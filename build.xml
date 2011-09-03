@@ -83,7 +83,7 @@ limitations under the License.
   </target>
 
   <target name="linkExe" depends="buildCpp">
-    <msvcLink detectDxSdkLibDir="true">
+    <msvcLink>
       <arg flag="/OUT:" path="out/andradion2.exe" />
       <arg path="out/BitMatrix.obj" />
       <arg path="out/Character.obj" />
@@ -108,9 +108,8 @@ limitations under the License.
       <standardLib name="gdi32.lib" />
       <standardLib name="ole32.lib" />
       <standardLib name="user32.lib" />
-      <standardLib name="dxguid.lib" />
-
-<!--      <standardLib name="WinMM.lib" /> -->
+      <arg path="dxlib/dxguid.lib" />
+      <arg path="dxlib/dplayx.lib" />
     </msvcLink>
   </target>
 </project>

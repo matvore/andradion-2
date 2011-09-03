@@ -1,0 +1,4 @@
+These contain legacy versions of DirectX libraries which allow us to compile
+against DirectPlay and DirectMusic. They are from the August 2006 release of
+the DirectX SDK.
+
