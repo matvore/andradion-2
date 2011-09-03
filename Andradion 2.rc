@@ -174,17 +174,17 @@ IDR_WELCOMEBOXMUSIC     MIDI    DISCARDABLE     "Resource\\rush.mid"
 // LVL
 //
 
-3A                      LVL     DISCARDABLE     "Resource\\3a.lvl"
-2A                      LVL     DISCARDABLE     "Resource\\2a.lvl"
-2B                      LVL     DISCARDABLE     "Resource\\2b.lvl"
-1_                      LVL     DISCARDABLE     "Resource\\1_.lvl"
-3B                      LVL     DISCARDABLE     "Resource\\3b.lvl"
-4_                      LVL     DISCARDABLE     "Resource\\4_.lvl"
-5_                      LVL     DISCARDABLE     "Resource\\5_.lvl"
-6A                      LVL     DISCARDABLE     "Resource\\6a.lvl"
-7A                      LVL     DISCARDABLE     "Resource\\7a.lvl"
-6B                      LVL     DISCARDABLE     "Resource\\6b.lvl"
-7B                      LVL     DISCARDABLE     "Resource\\7b.lvl"
+3A                      LVL     DISCARDABLE     "out\\levels\\3a.lvl"
+2A                      LVL     DISCARDABLE     "out\\levels\\2a.lvl"
+2B                      LVL     DISCARDABLE     "out\\levels\\2b.lvl"
+1_                      LVL     DISCARDABLE     "out\\levels\\1_.lvl"
+3B                      LVL     DISCARDABLE     "out\\levels\\3b.lvl"
+4_                      LVL     DISCARDABLE     "out\\levels\\4_.lvl"
+5_                      LVL     DISCARDABLE     "out\\levels\\5_.lvl"
+6A                      LVL     DISCARDABLE     "out\\levels\\6a.lvl"
+7A                      LVL     DISCARDABLE     "out\\levels\\7a.lvl"
+6B                      LVL     DISCARDABLE     "out\\levels\\6b.lvl"
+7B                      LVL     DISCARDABLE     "out\\levels\\7b.lvl"
 
 /////////////////////////////////////////////////////////////////////////////
 //

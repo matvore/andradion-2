@@ -28,6 +28,33 @@ limitations under the License.
     <taskdef name="msvcLink"
              classname="com.github.matvore.andradion2.ant.MsvcLink"
              classpath="out/java/src" />
+    <taskdef name="levelTextToBinary"
+             className="com.github.matvore.andradion2.ant.LevelTextToBinary"
+             classpath="out/java/src" />
+  </target>
+
+  <target name="levelBinaries" depends="declareCustomTasks">
+    <mkdir dir="out/levels" />
+    <levelTextToBinary input="levels/1_.dat"
+                       output="out/levels/1_.lvl" />
+    <levelTextToBinary input="levels/2a.dat"
+                       output="out/levels/2a.lvl" />
+    <levelTextToBinary input="levels/2b.dat"
+                       output="out/levels/2b.lvl" />
+    <levelTextToBinary input="levels/3a.dat"
+                       output="out/levels/3b.lvl" />
+    <levelTextToBinary input="levels/4_.dat"
+                       output="out/levels/4_.lvl" />
+    <levelTextToBinary input="levels/5_.dat"
+                       output="out/levels/5_.lvl" />
+    <levelTextToBinary input="levels/6a.dat"
+                       output="out/levels/6a.lvl" />
+    <levelTextToBinary input="levels/6b.dat"
+                       output="out/levels/6b.lvl" />
+    <levelTextToBinary input="levels/7a.dat"
+                       output="out/levels/7a.lvl" />
+    <levelTextToBinary input="levels/7b.dat"
+                       output="out/levels/7b.lvl" />
   </target>
 
   <macrodef name="compileOneCpp">

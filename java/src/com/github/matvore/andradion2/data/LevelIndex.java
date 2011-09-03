@@ -27,7 +27,10 @@ public enum LevelIndex {
   TACO_TRUCK("6a"),
   UFO("6b"),
   MEXICAN_BORDER("7a"),
-  HAWAII("7b");
+  HAWAII("7b"),
+  TIJUANA("8a"),
+  HAWAII_ENDING("e1"),
+  TIJUANA_ENDING("e2");
 
   private final String id;
 
