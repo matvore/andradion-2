@@ -60,5 +60,53 @@ limitations under the License.
                  output="out/Fixed.obj">
       <include path="./dxinclude" />
     </msvcCompile>
+    <msvcCompile input="LevelEnd.cpp"
+                 output="out/LevelEnd.obj">
+      <include path="./dxinclude" />
+    </msvcCompile>
+    <msvcCompile input="Palette.cpp"
+                 output="out/Palette.obj">
+      <include path="./dxinclude" />
+    </msvcCompile>
+    <msvcCompile input="Timer.cpp"
+                 output="out/Timer.obj">
+      <include path="./dxinclude" />
+    </msvcCompile>
+    <msvcCompile input="CompactMap.cpp"
+                 output="out/CompactMap.obj">
+      <include path="./dxinclude" />
+    </msvcCompile>
+    <msvcCompile input="GammaEffects.cpp"
+                 output="out/GammaEffects.obj">
+      <include path="./dxinclude" />
+    </msvcCompile>
+    <msvcCompile input="Menu.cpp"
+                 output="out/Menu.obj">
+      <include path="./dxinclude" />
+    </msvcCompile>
+    <msvcCompile input="PowerUp.cpp"
+                 output="out/PowerUp.obj">
+      <include path="./dxinclude" />
+    </msvcCompile>
+    <msvcCompile input="Weather.cpp"
+                 output="out/Weather.obj">
+      <include path="./dxinclude" />
+    </msvcCompile>
+    <msvcCompile input="Deeds.cpp"
+                 output="out/Deeds.obj">
+      <include path="./dxinclude" />
+    </msvcCompile>
+    <msvcCompile input="MusicLib.cpp"
+                 output="out/MusicLib.obj">
+      <include path="./dxinclude" />
+    </msvcCompile>
+    <msvcCompile input="Profiler.cpp"
+                 output="out/Profiler.obj">
+      <include path="./dxinclude" />
+    </msvcCompile>
+    <msvcCompile input="WinMain.cpp"
+                 output="out/WinMain.obj">
+      <include path="./dxinclude" />
+    </msvcCompile>
   </target>
 </project>
