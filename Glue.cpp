@@ -18,8 +18,8 @@
 #include "PowerUp.h"
 #include "Net.h"
 #include "GammaEffects.h"
+#include "BitMatrix.h"
 
-using std::bit_vector;
 using std::bitset;
 using std::pair;
 using std::max;
@@ -90,8 +90,7 @@ const int MAX_XDIST = 100; // how far something can be on x axis before it is in
 const int MAX_DISTSQUARED = 71200; // how far something can be squared before it is totally inaudible
 const int MIN_DISTSQUARED = 35600; // how far something has to be in order to have a lower volume
 const int ALWAYSPUSH = ~(1 << 9); // use slightly different collision detection in ufo level
-const int MAX_STRINGLEN = 150;
-const int LONG_STRINGLEN = 500;
+const int MAX_STRINGLEN = 500;
 const int LEVEL_NONE = -1;
 const int HERO = -1;
 const int POINTSFORSUICIDE = -1;
@@ -248,7 +247,7 @@ static IDirectSoundBuffer *sounds[NUM_SOUNDS];
 // array of duplicated sound buffers for sounds that are currently playing
 static IDirectSoundBuffer *playing[MAX_SOUNDS];
 
-static bit_vector walking_data; // on = inside, off = outside
+static auto_ptr<CBitMatrix> walking_data; // on = inside, off = outside
 static int width_in_tiles, height_in_tiles;
 
 static vector<TSector> sectors;
@@ -1837,8 +1836,7 @@ static void LoadLevel() {
   assert(i >= 0);
   assert(j >= 0);
 
-  walking_data.clear();
-  walking_data.resize(width_in_tiles * height_in_tiles);
+  walking_data = CBitMatrix::forDimensions(width_in_tiles, height_in_tiles);
 
   // loop through each rectangle which defines indoor regions
 
@@ -1854,7 +1852,7 @@ static void LoadLevel() {
       assert(k/TILE_HEIGHT >= 0);
       assert(k >= 0);
       for(l = m; l < o; l+=TILE_WIDTH) {
-        walking_data[(k/TILE_HEIGHT) * width_in_tiles + l/TILE_WIDTH] = true;
+        walking_data->set(l / TILE_WIDTH, k / TILE_HEIGHT);
       }
     }
   }
@@ -1979,8 +1977,7 @@ bool GluWalkingData(FIXEDNUM x,FIXEDNUM y) {
    x /= TILE_WIDTH; 
    y /= TILE_HEIGHT;
 
-   return walking_data[FixedCnvFrom<long>(y) * width_in_tiles 
-                       + FixedCnvFrom<long>(x)];
+   return walking_data->get(FixedCnvFrom<long>(x), FixedCnvFrom<long>(y));
 }
 
 static void Flip() {
@@ -2256,12 +2253,8 @@ static void HideMouseCursor()
 }
 
 void GluStrLoad(unsigned int id, string& target) {
-  int str_len = (IDS_BUDGETCUTS == id || IDS_OLDDX == id)
-    ? LONG_STRINGLEN : MAX_STRINGLEN;
-  char buffer[str_len];
-
-  LoadString(hInstance, id, buffer, str_len);
-	
+  char buffer[MAX_STRINGLEN];
+  LoadString(hInstance, id, buffer, MAX_STRINGLEN);
   target = buffer;
 }
 
@@ -2331,7 +2324,7 @@ static void LoadCmps(int level_width, int level_height,
     sectors.resize(total_sectors);
     width_in_tiles = tw;
     height_in_tiles = th;
-    walking_data.resize(th * tw);
+    walking_data = CBitMatrix::forDimensions(tw, th);
   }
 				
   GluStrLoad(IDS_LEVELPATH, path);

@@ -32,5 +32,9 @@ limitations under the License.
                  output="out/Glue.obj">
       <include path="./dxinclude" />
     </msvcCompile>
+    <msvcCompile input="BitMatrix.cpp"
+                 output="out/BitMatrix.obj">
+      <include path="./dxinclude" />
+    </msvcCompile>
   </target>
 </project>
