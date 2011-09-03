@@ -27,19 +27,56 @@ import java.util.Map;
 
 public class MsvcCompile extends Task {
   private File input, output;
-  private List<IncludePath> includePaths = new ArrayList<IncludePath>();
+  private List<Arg> args = new ArrayList<Arg>();
   private PathConfiguration pathConfiguration = PathConfiguration.getInstance();
+  private boolean detectWindowsSdkHeaderDir = true;
+  private boolean detectMsvcHeaderDir = true;
 
-  public static class IncludePath {
+  public static class Arg {
+    private String flag;
     private File path;
 
+    public void setFlag(String flag) {
+      this.flag = flag;
+    }
+
+    /**
+     * Set a file to append to the end of the flag. No white space is put
+     * between the flag and the file. Optional.
+     */
     public void setPath(File path) {
       this.path = path;
     }
 
-    public File getPath() {
-      return path;
+    @Override
+    public String toString() {
+      if (path == null) {
+        return flag;
+      } else {
+        return flag + path.toString();
+      }
     }
+  }
+
+  /**
+   * Set to {@code true} to automatically detect and use the Windows SDK
+   * header directory. For example,
+   * {@code C:\Program Files\Microsoft SDKs\Windows\v7.0\Include}.
+   * The default is {@code true}.
+   */
+  public void setDetectWindowsSdkHeaderDir(
+      boolean detectWindowsSdkHeaderDir) {
+    this.detectWindowsSdkHeaderDir = detectWindowsSdkHeaderDir;
+  }
+
+  /**
+   * Set to {@code true} to automatically detect and use the MSVC header
+   * directory. For example,
+   * {@code C:\Program Files\Microsoft Visual Studio 9.0\VC\Include}.
+   * The default is {@code true}.
+   */
+  public void setDetectMsvcHeaderDir(boolean detectMsvcHeaderDir) {
+    this.detectMsvcHeaderDir = detectMsvcHeaderDir;
   }
 
   /**
@@ -57,10 +94,10 @@ public class MsvcCompile extends Task {
   }
 
   /**
-   * Adds a path to include in the search path for {@code #include} directives.
+   * Adds an additional argument that will be passed to {@code CL.exe}.
    */
-  public void addInclude(IncludePath includePath) {
-    includePaths.add(includePath);
+  public void addArg(Arg arg) {
+    this.args.add(arg);
   }
 
   /**
@@ -91,19 +128,23 @@ public class MsvcCompile extends Task {
     ProcessBuilder processBuilder = new ProcessBuilder();
     List<String> command = new ArrayList<String>();
     command.add(msvcPath.toString());
-    for (IncludePath includePath : includePaths) {
-      command.add("/I" + includePath.getPath());
+    for (Arg arg : args) {
+      command.add(arg.toString());
     }
     command.add("/c"); // compile and don't link
     command.add("/Fo" + output.toString());
 
-    File windowsHeadersDir = new File(
-        pathConfiguration.getWindowsSdkDirectory(), "include");
-    command.add("/I" + windowsHeadersDir);
+    if (detectWindowsSdkHeaderDir) {
+      File windowsHeadersDir = new File(
+         pathConfiguration.getWindowsSdkDirectory(), "include");
+      command.add("/I" + windowsHeadersDir);
+    }
 
-    File msvcHeadersDir = new File(
-        pathConfiguration.getMsvcVcDirectory(), "include");
-    command.add("/I" + msvcHeadersDir);
+    if (detectMsvcHeaderDir) {
+      File msvcHeadersDir = new File(
+          pathConfiguration.getMsvcVcDirectory(), "include");
+      command.add("/I" + msvcHeadersDir);
+    }
 
     command.add(input.toString());
 

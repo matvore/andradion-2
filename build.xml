@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-<project name="Andradion 2" default="build" basedir=".">
+<project name="Andradion 2" default="buildCpp" basedir=".">
   <target name="buildCustomTasks">
     <mkdir dir="out/java/src" />
     <javac srcdir="java/src" destdir="out/java/src" />
@@ -27,86 +27,38 @@ limitations under the License.
              classpath="out/java/src" />
   </target>
 
-  <target name="build" depends="declareCustomTasks">
-    <msvcCompile input="Glue.cpp"
-                 output="out/Glue.obj">
-      <include path="./dxinclude" />
-    </msvcCompile>
-    <msvcCompile input="BitMatrix.cpp"
-                 output="out/BitMatrix.obj">
-      <include path="./dxinclude" />
-    </msvcCompile>
-    <msvcCompile input="Fire.cpp"
-                 output="out/Fire.obj">
-      <include path="./dxinclude" />
-    </msvcCompile>
-    <msvcCompile input="Graphics.cpp"
-                 output="out/Graphics.obj">
-      <include path="./dxinclude" />
-    </msvcCompile>
-    <msvcCompile input="Net.cpp"
-                 output="out/Net.obj">
-      <include path="./dxinclude" />
-    </msvcCompile>
-    <msvcCompile input="RawLoad.cpp"
-                 output="out/RawLoad.obj">
-      <include path="./dxinclude" />
-    </msvcCompile>
-    <msvcCompile input="Character.cpp"
-                 output="out/RawLoad.obj">
-      <include path="./dxinclude" />
-    </msvcCompile>
-    <msvcCompile input="Fixed.cpp"
-                 output="out/Fixed.obj">
-      <include path="./dxinclude" />
-    </msvcCompile>
-    <msvcCompile input="LevelEnd.cpp"
-                 output="out/LevelEnd.obj">
-      <include path="./dxinclude" />
-    </msvcCompile>
-    <msvcCompile input="Palette.cpp"
-                 output="out/Palette.obj">
-      <include path="./dxinclude" />
-    </msvcCompile>
-    <msvcCompile input="Timer.cpp"
-                 output="out/Timer.obj">
-      <include path="./dxinclude" />
-    </msvcCompile>
-    <msvcCompile input="CompactMap.cpp"
-                 output="out/CompactMap.obj">
-      <include path="./dxinclude" />
-    </msvcCompile>
-    <msvcCompile input="GammaEffects.cpp"
-                 output="out/GammaEffects.obj">
-      <include path="./dxinclude" />
-    </msvcCompile>
-    <msvcCompile input="Menu.cpp"
-                 output="out/Menu.obj">
-      <include path="./dxinclude" />
-    </msvcCompile>
-    <msvcCompile input="PowerUp.cpp"
-                 output="out/PowerUp.obj">
-      <include path="./dxinclude" />
-    </msvcCompile>
-    <msvcCompile input="Weather.cpp"
-                 output="out/Weather.obj">
-      <include path="./dxinclude" />
-    </msvcCompile>
-    <msvcCompile input="Deeds.cpp"
-                 output="out/Deeds.obj">
-      <include path="./dxinclude" />
-    </msvcCompile>
-    <msvcCompile input="MusicLib.cpp"
-                 output="out/MusicLib.obj">
-      <include path="./dxinclude" />
-    </msvcCompile>
-    <msvcCompile input="Profiler.cpp"
-                 output="out/Profiler.obj">
-      <include path="./dxinclude" />
-    </msvcCompile>
-    <msvcCompile input="WinMain.cpp"
-                 output="out/WinMain.obj">
-      <include path="./dxinclude" />
-    </msvcCompile>
+  <macrodef name="compileOneCpp">
+    <attribute name="name" />
+    <sequential>
+      <msvcCompile input="@{name}.cpp"
+                   output="out/@{name}.obj">
+        <arg flag="/I" path="./dxinclude" />
+        <arg flag="/EHsc" />
+      </msvcCompile>
+    </sequential>
+  </macrodef>
+
+  <target name="buildCpp" depends="declareCustomTasks">
+    <compileOneCpp name="BitMatrix" />
+    <compileOneCpp name="Character" />
+    <compileOneCpp name="CompactMap" />
+    <compileOneCpp name="Deeds" />
+    <compileOneCpp name="Fire" />
+    <compileOneCpp name="Fixed" />
+    <compileOneCpp name="GammaEffects" />
+    <compileOneCpp name="Glue" />
+    <compileOneCpp name="Graphics" />
+    <compileOneCpp name="LevelEnd" />
+    <compileOneCpp name="Menu" />
+    <compileOneCpp name="MusicLib" />
+    <compileOneCpp name="Net" />
+    <compileOneCpp name="Palette" />
+    <compileOneCpp name="PowerUp" />
+    <compileOneCpp name="Profiler" />
+    <compileOneCpp name="RawLoad" />
+    <compileOneCpp name="Timer" />
+    <compileOneCpp name="Weather" />
+    <compileOneCpp name="WinMain" />
   </target>
+
 </project>
