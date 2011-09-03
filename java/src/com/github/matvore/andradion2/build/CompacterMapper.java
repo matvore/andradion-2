@@ -27,7 +27,9 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class CompacterMapper {
   private static final class ByteMatrix implements Cloneable {
@@ -259,10 +261,6 @@ public class CompacterMapper {
     }
   }
 
-  private void compact(ByteMatrix data, OutputStream output)
-      throws IOException {
-  }
-
   public void compact(BufferedImage source, List<Color> palette,
       OutputStream output) throws IOException {
     int width = source.getWidth(), height = source.getHeight();
@@ -309,5 +307,44 @@ public class CompacterMapper {
       }
     }
     compact(eightBitImage, output);
+  }
+
+  private void compact(ByteMatrix data, OutputStream output)
+      throws IOException {
+    Map<Byte, List<Rectangle>> colorBlocks =
+        new HashMap<Byte, List<Rectangle>>();
+    List<ByteMatrix> patterns = new ArrayList<ByteMatrix>();
+    List<List<Rectangle>> patternAreas = new ArrayList<List<Rectangle>>();
+    data = data.clone();
+
+    // Search for color blocks.
+
+    int locX = 0, locY = 0;
+
+    // Contains all checked pixel colors.
+    Point nonTransparentCoor;
+
+    while ((nonTransparentCoor = findPixel(
+        ColorThat.IS_NOT, transparentColor, data, locX, locY)) != null) {
+      Byte colorHere = data.bytes[
+          data.index(nonTransparentCoor.x, nonTransparentCoor.y)];
+
+      // Only process if we have not processed this color before.
+      if (!colorBlocks.containsKey(colorHere)) {
+        List<Rectangle> colorBlockAreas = findAndClearColorBlocks(
+           data, nonTransparentCoor.x, nonTransparentCoor.y);
+
+        colorBlocks.put(colorHere, colorBlockAreas);
+      }
+
+      if (++locX >= data.width) {
+        locX = 0;
+        if (++locY >= data.height) {
+          break;
+        }
+      }
+    }
+
+    // Find patterns.
   }
 }
