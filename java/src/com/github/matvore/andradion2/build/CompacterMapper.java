@@ -30,7 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class CompacterMapper {
-  private static class ByteMatrix {
+  private static final class ByteMatrix implements Cloneable {
     public final byte[] bytes;
     public final int width, height;
 
@@ -42,6 +42,13 @@ public class CompacterMapper {
 
     public int index(int x, int y) {
       return y * width + x;
+    }
+
+    @Override
+    public ByteMatrix clone() {
+      ByteMatrix copy = new ByteMatrix(width, height);
+      System.arraycopy(bytes, 0, copy.bytes, 0, bytes.length);
+      return copy;
     }
   }
 
@@ -258,5 +265,49 @@ public class CompacterMapper {
 
   public void compact(BufferedImage source, List<Color> palette,
       OutputStream output) throws IOException {
+    int width = source.getWidth(), height = source.getHeight();
+    if (width > 256 || height > 256) {
+      throw new IllegalArgumentException(
+          "Bitmap is too large; dimensions must be <= 256: " +
+          width + ", " + height);
+    }
+    if (palette.isEmpty() || palette.size() > 256) {
+      throw new IllegalArgumentException(
+          "palette is too large; must be in the range of [1, 256]: " +
+          palette.size());
+    }
+
+    // Translate bitmap data into 8-bit palette entries.
+    int[] rgbRow = new int[width];
+    ByteMatrix eightBitImage = new ByteMatrix(width, height);
+    int pixelIndex = 0;
+    for (int y = 0; y < height; y++) {
+      source.getRGB(0, y, width, 1, rgbRow, 0, width);
+      for (int x = 0; x < width; x++, pixelIndex++) {
+        int r = (rgbRow[x] >> 16) & 0xff;
+        int g = (rgbRow[x] >> 8) & 0xff;
+        int b = rgbRow[x] & 0xff;
+        int bestMatch = -1, closeness = Integer.MAX_VALUE;
+
+        int i = 0;
+        for (Color thisColor : palette) {
+          int thisCloseness =
+              Math.abs(r - thisColor.getRed()) +
+              Math.abs(g - thisColor.getGreen()) +
+              Math.abs(b - thisColor.getBlue());
+
+          if (thisCloseness < closeness) {
+            bestMatch = i;
+            closeness = thisCloseness;
+            if (closeness == 0) {
+              break;
+            }
+          }
+          i++;
+        }
+        eightBitImage.bytes[pixelIndex++] = (byte)bestMatch;
+      }
+    }
+    compact(eightBitImage, output);
   }
 }
