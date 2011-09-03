@@ -1,1 +1,0 @@
-c:\borland\bcc55\bin\ilink32.exe /Gl /Gpr /Gn bob color color256 colornp compactmap graphics logger menu musiclib profiler rawload surfacelock surfacelock256 timer, GameLib2Release.lib
