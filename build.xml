@@ -16,12 +16,12 @@ limitations under the License.
 -->
 
 <project name="Andradion 2" default="linkExe" basedir=".">
-  <target name="buildCustomTasks">
+  <target name="buildJavaSource">
     <mkdir dir="out/java/src" />
     <javac srcdir="java/src" destdir="out/java/src" />
   </target>
 
-  <target name="declareCustomTasks" depends="buildCustomTasks">
+  <target name="declareCustomTasks" depends="buildJavaSource">
     <taskdef name="msvcCompile"
              classname="com.github.matvore.andradion2.ant.MsvcCompile"
              classpath="out/java/src" />
