@@ -36,5 +36,17 @@ limitations under the License.
                  output="out/BitMatrix.obj">
       <include path="./dxinclude" />
     </msvcCompile>
+    <msvcCompile input="Fire.cpp"
+                 output="out/Fire.obj">
+      <include path="./dxinclude" />
+    </msvcCompile>
+    <msvcCompile input="Graphics.cpp"
+                 output="out/Graphics.obj">
+      <include path="./dxinclude" />
+    </msvcCompile>
+    <msvcCompile input="Net.cpp"
+                 output="out/Net.obj">
+      <include path="./dxinclude" />
+    </msvcCompile>
   </target>
 </project>
