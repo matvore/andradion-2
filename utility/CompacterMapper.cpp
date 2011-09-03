@@ -24,33 +24,6 @@ public:
 
 // functions for manipulating loaded data . . .
 
-// returns true if there are only non-transparent pixels
-static bool IsOpaque(const BYTE *data, int data_width,
-                     const POINT& point, const SIZE& size)
-{
-  // calculate number of bytes to increment data pointer
-  //  to move to the next row
-  int to_change_rows = (data_width - size.cx);
-
-  // point data to first pixel to check
-  data += data_width * point.y + point.x;
-
-  for(int y = 0; y < size.cy; y++)
-    {
-      for(int x = 0; x < size.cx; x++)
-	{
-	  if(TRANS == *data)
-	    {
-	      return false;
-	    }
-	  data++;
-	}
-      data+=to_change_rows; // move to next row
-    }
-
-  return true;
-}
-
 int main(int argc, char **argv)
 {
   cout << "Official CompactMap maker\n\n";
@@ -373,7 +346,7 @@ int main(int argc, char **argv)
 	  loc.x = 0;
 	  loc.y = 0;
 			
-	  while(FindFirstNonTransparentPixel(data,size,loc))
+	  while(FindPixel(ColorThat.IS_NOT, TRANS, data,size,loc))
 	    {
               //cout << "A";
 	      BYTE base = data[size.cx * loc.y + loc.x];
@@ -396,7 +369,7 @@ int main(int argc, char **argv)
 		  break;
 		}
 
-	      if(!IsOpaque(data,size.cx,loc,pat))
+	      if(!AreaIs(ColorThat.IS_NOT, TRANS, data,size.cx,loc,pat))
 		{
 		  if(++loc.x >= size.cx)
 		    {
@@ -468,13 +441,13 @@ int main(int argc, char **argv)
 		// first spread to the right
 		while(++pat.cx + max.x <= size.cx &&
 		      SameAndSeparate(data,size.cx,pat,points) &&
-		      IsOpaque(data,size.cx,points[0],pat));
+		      AreaIs(ColorThat.IS_NOT, TRANS, data,size.cx,points[0],pat));
 		pat.cx--;
 
 		// now spread downward
 		while(++pat.cy + max.y <= size.cy &&
 		      SameAndSeparate(data,size.cx,pat,points) &&
-		      IsOpaque(data,size.cx,points[0],pat));
+		      AreaIs(ColorThat.IS_NOT, TRANS, data,size.cx,points[0],pat));
 		pat.cy--;
 
 		if(pat.cx * pat.cy >= MINIMUMPATTERNAREA) {

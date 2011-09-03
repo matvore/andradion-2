@@ -45,6 +45,8 @@ public class CompacterMapper {
     }
   }
 
+  private enum ColorThat {IS, IS_NOT}
+
   private final byte transparentColor;
   private final int minimumColorBlockArea;
   private final List<Dimension> patternAreas;
@@ -100,12 +102,13 @@ public class CompacterMapper {
     return result;
   }
 
-  private static boolean allOneColor(
-      ByteMatrix data, Rectangle area, byte color) {
+  private static boolean areaIs(ColorThat target, byte color,
+      ByteMatrix data, Rectangle area) {
+    boolean xor = (target == ColorThat.IS_NOT);
     int index = data.index(area.x, area.y);
     for (int y = 0; y < area.height; y++) {
       for (int x = 0; x < area.width; x++) {
-        if (data.bytes[index + x] != color) {
+        if ((data.bytes[index + x] != color) ^ xor) {
           return false;
         }
       }
@@ -140,7 +143,7 @@ public class CompacterMapper {
         do {
           scanningArea.x++;
         } while (scanningArea.x < data.width &&
-            allOneColor(data, scanningArea, baseColor));
+            areaIs(ColorThat.IS, baseColor, data, scanningArea));
 
         scanningArea.width = scanningArea.x - currX;
         scanningArea.x = currX;
@@ -149,7 +152,7 @@ public class CompacterMapper {
         do {
           scanningArea.y++;
         } while (scanningArea.y < data.height &&
-            allOneColor(data, scanningArea, baseColor));
+            areaIs(ColorThat.IS, baseColor, data, scanningArea));
 
         scanningArea.height = scanningArea.y - currY;
         scanningArea.y = currY;
@@ -225,8 +228,6 @@ public class CompacterMapper {
 
     return true;
   }
-
-  private enum ColorThat {IS, IS_NOT}
 
   private static Point findPixel(ColorThat target, byte color,
       ByteMatrix data, int startX, int startY) {
