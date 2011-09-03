@@ -24,49 +24,6 @@ public:
 
 // functions for manipulating loaded data . . .
 
-// compares a vector of areas
-static bool SameAndSeparate(const BYTE *data,
-                            int data_width,
-                            const SIZE& size,
-                            const vector<POINT>& coors)
-{
-  // compare similar data
-  pair<POINT,POINT> x;
-  x.first = coors[0];
-  for(int i = coors.size()-1; i >= 1; i--)
-    {			
-      x.second = coors[i];
-      if(!SameData(data,data_width,size,x))
-	{
-	  return false;
-	}
-    }
-
-  // look for overlapping (the first coor does not overlap at all)
-  for(int c1 = 0; c1 < coors.size(); c1++)
-    {
-      RECT a;
-
-      a.left = coors[c1].x;
-      a.right = coors[c1].x + size.cx;
-      a.top = coors[c1].y;
-      a.bottom = coors[c1].y + size.cy;
-
-      for(int c2 = c1+1; c2 < coors.size(); c2++)
-	{
-	  if(!((a.left >= coors[c2].x + size.cx) ||
-	       (a.right <= coors[c2].x) ||
-	       (a.top >= coors[c2].y + size.cy) ||
-	       (a.bottom <= coors[c2].y)))
-	    {
-	      return false;
-	    }
-	}
-    }
-
-  return true;
-}
-
 static bool FindFirstPixel(const BYTE *data,
                            const SIZE& data_size,
                            POINT& coor, BYTE base)

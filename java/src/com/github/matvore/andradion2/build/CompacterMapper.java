@@ -195,6 +195,40 @@ public class CompacterMapper {
     return true;
   }
 
+  private static boolean sameAndSeparate(
+      ByteMatrix data, Dimension dimension, List<Point> coors) {
+    // compare similar data
+    Point first = coors.get(0);
+    for (int i = coors.size() - 1; i >= 1; i--) {
+      Point second = coors.get(i);
+      if (!sameData(data, dimension, first, second)) {
+        return false;
+      }
+    }
+
+    // look for overlapping (the first coor does not overlap at all)
+    for (int c1 = 0; c1 < coors.size(); c1++) {
+      Point c1Coor = coors.get(c1);
+      int c1Left = c1Coor.x;
+      int c1Right = c1Coor.x + dimension.width;
+      int c1Top = c1Coor.y;
+      int c1Bottom = c1Coor.y + dimension.height;
+
+      for (int c2 = c1 + 1; c2 < coors.size(); c2++) {
+        Point c2Coor = coors.get(c2);
+
+        if (!((c1Left >= c2Coor.x + dimension.width) ||
+            (c1Right <= c2Coor.x) ||
+            (c1Top >= c2Coor.y + dimension.height) ||
+            (c1Bottom <= c2Coor.y))) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  }
+
   public static void compact(BufferedImage source, OutputStream output)
       throws IOException {
   }
