@@ -40,11 +40,11 @@ public class Level {
     Map<Entity, List<Point>> result =
         new EnumMap<Entity, List<Point>>(Entity.class);
     for (Map.Entry<Entity, List<Point>> group : entities.entrySet()) {
-      List<Point> locationList = group.getValue();
-      locationList = DeepCopy.ofList(group.getValue(), Copier.FOR_POINT);
+      List<Point> locationList = ImmutableList.copyOf(
+          group.getValue(), Copier.FOR_POINT);
       result.put(group.getKey(), locationList);
     }
-    return result;
+    return Collections.unmodifiableMap(result);
   }
 
   private Level(
@@ -81,7 +81,7 @@ public class Level {
   }
 
   public List<Rectangle> getIndoorRectangles() {
-    return DeepCopy.ofList(indoorRectangles, Copier.FOR_RECTANGLE);
+    return indoorRectangles;
   }
 
   public List<LevelEnd> getLevelEnds() {
@@ -89,7 +89,7 @@ public class Level {
   }
 
   public Map<Entity, List<Point>> getEntities() {
-    return copyEntities(entities);
+    return entities;
   }
 
   public static Builder newBuilder() {
@@ -110,7 +110,7 @@ public class Level {
     }
 
     public Builder withPalette(List<Color> palette) {
-      this.palette = new ArrayList<Color>(palette);
+      this.palette = ImmutableList.copyOf(palette);
       return this;
     }
 
@@ -130,14 +130,13 @@ public class Level {
     }
 
     public Builder withIndoorRectangles(List<Rectangle> indoorRectangles) {
-      this.indoorRectangles =
-          DeepCopy.ofList(indoorRectangles, Copier.FOR_RECTANGLE);
+      this.indoorRectangles = ImmutableList.copyOf(
+          indoorRectangles, Copier.FOR_RECTANGLE);
       return this;
     }
 
     public Builder withLevelEnds(List<LevelEnd> levelEnds) {
-      this.levelEnds = new ArrayList<LevelEnd>(levelEnds);
-      this.levelEnds = Collections.unmodifiableList(this.levelEnds);
+      this.levelEnds = ImmutableList.copyOf(levelEnds);
       return this;
     }
 

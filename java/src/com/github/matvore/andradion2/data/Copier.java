@@ -16,6 +16,7 @@ limitations under the License.
 
 package com.github.matvore.andradion2.data;
 
+import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
 
@@ -33,6 +34,13 @@ public interface Copier<T> {
     @Override
     public Point copy(Point x) {
       return (Point)x.clone();
+    }
+  };
+
+  Copier<Dimension> FOR_DIMENSION = new Copier<Dimension>() {
+    @Override
+    public Dimension copy(Dimension x) {
+      return (Dimension)x.clone();
     }
   };
 }

@@ -24,41 +24,6 @@ public:
 
 // functions for manipulating loaded data . . .
 
-static bool AllOneColor(const BYTE *data,
-                        int data_width,
-                        const RECT& area,
-                        BYTE color)
-{
-  // returns true if every pixel within area is equal to color
-
-  const BYTE *pos;
-
-  // set data to the first pixel we are observing
-  data += area.top * data_width + area.left;
-
-  for(int y = area.top; y < area.bottom; y++)
-    {
-      pos = data;
-
-      for(int x = area.left; x < area.right; x++)
-	{
-	  if(color != *pos)
-	    {
-	      return false; // found a conflicting pixel
-	    }
-	  pos++;
-	}
-
-      data += data_width;
-    }
-
-  // if we got here, than all pixels were equal to color
-  return true; // it was all one color
-}
-
-// finds rectangles of the color at start_coor and puts them in a vector, only returning rectangles whose upper-left
-//  coordinates are after or at start_coor, and replacing them with black at the same time.  Ignores rectangles whose
-//  areas are too small to be compressed into blocks
 static void FindRectangles(BYTE *data,
                            const SIZE& data_size,
                            const POINT& start_coor,

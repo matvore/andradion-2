@@ -16,6 +16,9 @@ limitations under the License.
 
 package com.github.matvore.andradion2.build;
 
+import com.github.matvore.andradion2.data.Copier;
+import com.github.matvore.andradion2.data.ImmutableList;
+
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Point;
@@ -43,8 +46,29 @@ public class CompacterMapper {
     }
   }
 
-  private CompacterMapper() {
-    throw new UnsupportedOperationException("static-only class");
+  private final List<Color> palette;
+  private final byte transparentColor;
+  private final int minimumColorBlockArea;
+  private final List<Dimension> patternAreas;
+  private final int minimumPatternArea;
+
+  private CompacterMapper(List<Color> palette, byte transparentColor,
+      int minimumColorBlockArea, List<Dimension> patternAreas,
+      int minimumPatternArea) {
+    this.palette = palette;
+    this.transparentColor = transparentColor;
+    this.minimumColorBlockArea = minimumColorBlockArea;
+    this.patternAreas = patternAreas;
+    this.minimumPatternArea = minimumPatternArea;
+  }
+
+  public static CompacterMapper of(List<Color> palette, byte transparentColor,
+      int minimumColorBlockArea, List<Dimension> patternAreas,
+      int minimumPatternArea) {
+    return new CompacterMapper(ImmutableList.copyOf(palette),
+        transparentColor, minimumColorBlockArea,
+        ImmutableList.copyOf(patternAreas, Copier.FOR_DIMENSION),
+        minimumPatternArea);
   }
 
   private static List<Rectangle> uniformDimensionRectangleList(
@@ -80,9 +104,33 @@ public class CompacterMapper {
     return result;
   }
 
-  public static void compact(
-      BufferedImage source, List<Color> palette, OutputStream output,
-      int minimumColorBlockArea, List<Dimension> patternAreas,
-      int minimumPatternArea) throws IOException {
+  private static boolean allOneColor(
+      ByteMatrix data, Rectangle area, byte color) {
+    int index = data.index(area.x, area.y);
+    for (int y = 0; y < area.height; y++) {
+      for (int x = 0; x < area.width; x++) {
+        if (data.bytes[index + x] != color) {
+          return false;
+        }
+      }
+      index += data.width;
+    }
+    return true;
+  }
+
+  /**
+   * Finds rectangles of the color at startCoor and puts them in a
+   * list of {@code Rectangles}. Will only return rectangles whose upper-left
+   * coordinates are after or at startCoor, and replacing them with
+   * {@code transparentColor} at the same time.  Ignores rectangles whose areas
+   * are less than {@code minimumColorBlockArea}.
+   */
+  private static List<Rectangle> findAndClearColorBlocks(
+      ByteMatrix data, Point startCoor) {
+    return null;
+  }
+
+  public static void compact(BufferedImage source, OutputStream output)
+      throws IOException {
   }
 }
