@@ -24,71 +24,6 @@ public:
 
 // functions for manipulating loaded data . . .
 
-static bool FindFirstPixel(const BYTE *data,
-                           const SIZE& data_size,
-                           POINT& coor, BYTE base)
-{
-  data += data_size.cx*coor.y+coor.x;
-
-  while(true)
-    {
-      if(*data == base)
-	{
-	  return true; // we found something
-	}
-
-      // increment current position
-      if(++coor.x >= data_size.cx)
-	{
-	  coor.x=0;
-	  if(++coor.y >= data_size.cy)
-	    {
-	      break;
-	    }
-	}
-
-      data++;
-    }
-
-  // move this coor struct to the lower right corner
-  coor.x = data_size.cx-1;
-  coor.y = data_size.cy-1;
-
-  return false; // we got all the way here and couldn't find a pixel that wasn't transparent
-}
-
-// puts coordinates of first non-transparent pixel into coor (returns false if none found, works from a starting location)
-static bool FindFirstNonTransparentPixel(const BYTE *data, const SIZE& data_size, POINT& coor)
-{
-  //cout << "FF";
-
-  data += data_size.cx*coor.y+coor.x;
-  for(;coor.y < data_size.cy;data++)
-    {
-      if(TRANS != *data)
-	{
-          return true; // we found something
-	}
-
-      // increment current position
-      if(++coor.x >= data_size.cx)
-	{
-	  coor.x=0;
-	  coor.y++;
-	}
-    }
-
-  //cout << "FF'";
-
-  // move this coor struct to the lower right corner
-  coor.x = data_size.cx-1;
-  coor.y = data_size.cy-1;
-
-  //cout << "GG'";
-
-  return false; // we got all the way here and couldn't find a pixel that wasn't transparent
-}
-
 // returns true if there are only non-transparent pixels
 static bool IsOpaque(const BYTE *data, int data_width,
                      const POINT& point, const SIZE& size)
@@ -374,7 +309,7 @@ int main(int argc, char **argv)
       vector<BYTE> checked; // an array of all checked pixel colors
       checked.resize(0);
 
-      while(FindFirstNonTransparentPixel(data,size,loc))
+      while(FindPixel(ColorThat.IS_NOT, TRANS, data,size,loc))
 	{
 	  BYTE here = data[size.cx*loc.y+loc.x];
 
@@ -495,7 +430,7 @@ int main(int argc, char **argv)
 	      max.x = points[0].x;
 	      max.y = points[0].y;
 				
-	      while(FindFirstPixel(data,size,points[ci],base)) {
+	      while(FindPixel(ColorThat.IS, base, data,size,points[ci])) {
                 //cout << "C";
 		if(points[ci].y + pat.cy > size.cy) {
 		  break;

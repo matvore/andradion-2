@@ -45,27 +45,24 @@ public class CompacterMapper {
     }
   }
 
-  private final List<Color> palette;
   private final byte transparentColor;
   private final int minimumColorBlockArea;
   private final List<Dimension> patternAreas;
   private final int minimumPatternArea;
 
-  private CompacterMapper(List<Color> palette, byte transparentColor,
+  private CompacterMapper(byte transparentColor,
       int minimumColorBlockArea, List<Dimension> patternAreas,
       int minimumPatternArea) {
-    this.palette = palette;
     this.transparentColor = transparentColor;
     this.minimumColorBlockArea = minimumColorBlockArea;
     this.patternAreas = patternAreas;
     this.minimumPatternArea = minimumPatternArea;
   }
 
-  public static CompacterMapper of(List<Color> palette, byte transparentColor,
+  public static CompacterMapper of(byte transparentColor,
       int minimumColorBlockArea, List<Dimension> patternAreas,
       int minimumPatternArea) {
-    return new CompacterMapper(ImmutableList.copyOf(palette),
-        transparentColor, minimumColorBlockArea,
+    return new CompacterMapper(transparentColor, minimumColorBlockArea,
         ImmutableList.copyOf(patternAreas, Copier.FOR_DIMENSION),
         minimumPatternArea);
   }
@@ -229,7 +226,36 @@ public class CompacterMapper {
     return true;
   }
 
-  public static void compact(BufferedImage source, OutputStream output)
+  private enum ColorThat {IS, IS_NOT}
+
+  private static Point findPixel(ColorThat target, byte color,
+      ByteMatrix data, int startX, int startY) {
+    int dataIndex = data.index(startX, startY);
+    int coorX = startX, coorY = startY;
+    boolean xor = target == ColorThat.IS_NOT;
+
+    while (true) {
+      if ((data.bytes[dataIndex] == color) ^ xor) {
+        return new Point(coorX, coorY);
+      }
+
+      // Increment current position.
+      if (++coorX >= data.width) {
+        coorX = 0;
+        if (++coorY >= data.height) {
+          return null;
+        }
+      }
+
+      dataIndex++;
+    }
+  }
+
+  private void compact(ByteMatrix data, OutputStream output)
       throws IOException {
+  }
+
+  public void compact(BufferedImage source, List<Color> palette,
+      OutputStream output) throws IOException {
   }
 }
