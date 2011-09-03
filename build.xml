@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-<project name="Andradion 2" default="build" basedir=".">
+<project name="Andradion 2" default="buildCpp" basedir=".">
   <target name="buildCustomTasks">
     <mkdir dir="out/java/src" />
     <javac srcdir="java/src" destdir="out/java/src" />
@@ -27,11 +27,19 @@ limitations under the License.
              classpath="out/java/src" />
   </target>
 
-  <target name="build" depends="declareCustomTasks">
-    <msvcCompile input="Glue.cpp"
-                 output="out/Glue.obj">
-      <arg flag="/I" path="./dxinclude" />
-      <arg flag="/EHsc" />
-    </msvcCompile>
+  <macrodef name="compileOneCpp">
+    <attribute name="name" />
+    <sequential>
+      <msvcCompile input="@{name}.cpp"
+                   output="out/@{name}.obj">
+        <arg flag="/I" path="./dxinclude" />
+        <arg flag="/EHsc" />
+      </msvcCompile>
+    </sequential>
+  </macrodef>
+
+  <target name="buildCpp" depends="declareCustomTasks">
+    <compileOneCpp name="Glue" />
   </target>
+
 </project>
