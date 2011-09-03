@@ -24,34 +24,6 @@ public:
 
 // functions for manipulating loaded data . . .
 
-// returns true if both rects have the same data
-static bool SameData(const BYTE *data,
-                     int data_width,
-                     const SIZE& size,
-                     const pair<POINT,POINT>& coors)
-{
-  // find what to check in memory by making shortcuts
-  const BYTE *d1 = &data[coors.first.y * data_width + coors.first.x];
-  const BYTE *d2 = &data[coors.second.y * data_width + coors.second.x];
-  int changing_rows = data_width - size.cx;
-
-  for(int y = 0; y < size.cy; y++)
-    {
-      for(int x = 0; x < size.cx; x++)
-	{
-	  if(*d1++ != *d2++)
-	    {
-	      return false;
-	    }
-	}
-
-      d1+=changing_rows;
-      d2+=changing_rows;
-    }
-
-  return true; // all pixels are the same, and there is no overlap
-}
-
 // compares a vector of areas
 static bool SameAndSeparate(const BYTE *data,
                             int data_width,

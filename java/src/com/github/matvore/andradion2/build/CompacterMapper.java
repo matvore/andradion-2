@@ -173,6 +173,28 @@ public class CompacterMapper {
     return result;
   }
 
+  /**
+   * Returns {@code true} iff two areas have the same pixel data.
+   */
+  private static boolean sameData(
+      ByteMatrix data, Dimension dimension, Point coors1, Point coors2) {
+    int index1 = data.index(coors1.x, coors1.y);
+    int index2 = data.index(coors2.x, coors2.y);
+    int changingRows = data.width - dimension.width;
+
+    for (int y = 0; y < dimension.height; y++) {
+      for (int x = 0; x < dimension.width; x++) {
+        if (data.bytes[index1++] != data.bytes[index2++]) {
+          return false;
+        }
+      }
+      index1 += changingRows;
+      index2 += changingRows;
+    }
+
+    return true;
+  }
+
   public static void compact(BufferedImage source, OutputStream output)
       throws IOException {
   }
