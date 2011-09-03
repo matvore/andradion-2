@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 
 public class MsvcCompile extends Task {
-  private File input, output;
   private List<Arg> args = new ArrayList<Arg>();
   private boolean detectWindowsSdkHeaderDir = true;
   private boolean detectMsvcHeaderDir = true;
@@ -58,20 +57,6 @@ public class MsvcCompile extends Task {
   }
 
   /**
-   * Sets the path and name of the output file, for example {@code out\Foo.obj}.
-   */
-  public void setOutput(File output) {
-    this.output = output;
-  }
-
-  /**
-   * Sets the path and name of the input file, for example {@code Foo.cpp}.
-   */
-  public void setInput(File input) {
-    this.input = input;
-  }
-
-  /**
    * Adds an additional argument that will be passed to {@code CL.exe}.
    */
   public void addArg(Arg arg) {
@@ -87,8 +72,6 @@ public class MsvcCompile extends Task {
     for (Arg arg : args) {
       command.add(arg.toString());
     }
-    command.add("/c"); // compile and don't link
-    command.add("/Fo" + output.toString());
 
     if (detectWindowsSdkHeaderDir) {
       File windowsHeadersDir = new File(
@@ -102,12 +85,16 @@ public class MsvcCompile extends Task {
       command.add("/I" + msvcHeadersDir);
     }
 
-    command.add(input.toString());
-
     // Add MSVC\Common7\IDE to PATH variable
     File common7ide = pathConfiguration.getInstance().getMsvcCommonDirectory();
     common7ide = new File(common7ide, "IDE");
     environmentPaths.add("PATH", processBuilder.environment(), common7ide);
+
+    System.out.println("command line:");
+    for (String argument : command) {
+      System.out.print("  ");
+      System.out.println(argument);
+    }
 
     ProcessResult result;
     try {

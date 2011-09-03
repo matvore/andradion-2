@@ -25,29 +25,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MsvcLink extends Task {
+  private boolean detectDxSdkLibDir = false;
   private boolean detectMsvcLibDir = true;
   private boolean detectWindowsSdkLibDir = true;
-  private File output;
   private List<Arg> args = new ArrayList<Arg>();
-  private List<InputPath> inputPaths = new ArrayList<InputPath>();
   private List<StandardLib> standardLibs = new ArrayList<StandardLib>();
 
   private final EnvironmentPaths environmentPaths =
       EnvironmentPaths.getInstance();
   private final PathConfiguration pathConfiguration =
       PathConfiguration.getInstance();
-
-  public static class InputPath {
-    private File path;
-
-    public void setPath(File path) {
-      this.path = path;
-    }
-
-    public File getPath() {
-      return path;
-    }
-  }
 
   public static class StandardLib {
     private String name;
@@ -81,16 +68,18 @@ public class MsvcLink extends Task {
     this.detectMsvcLibDir = detectMsvcLibDir;
   }
 
-  public void addInput(InputPath inputPath) {
-    inputPaths.add(inputPath);
+  /**
+   * Set to {@code true} to automatically detect and use the MS DirectX
+   * library directory. For example,
+   * {@code C:\Program Files\Microsoft DirectX SDK (June 2010)\Lib\x86}.
+   * The default is {@code false}.
+   */
+  public void setDetectDxSdkLibDir(boolean detectDxSdkLibDir) {
+    this.detectDxSdkLibDir = detectDxSdkLibDir;
   }
 
   public void addStandardLib(StandardLib standardLib) {
     standardLibs.add(standardLib);
-  }
-
-  public void setOutput(File output) {
-    this.output = output;
   }
 
   public void addArg(Arg arg) {
@@ -111,21 +100,26 @@ public class MsvcLink extends Task {
       command.add(standardLib.getName());
     }
 
+    if (detectDxSdkLibDir) {
+      String envVariable = System.getenv("DXSDK_DIR");
+      if (envVariable == null) {
+        throw new BuildException("Could not find the DirectX SDK. Make sure " +
+            "the DXSDK_DIR environment variable is set.");
+      }
+      File libPath = new File(envVariable, "Lib" + File.separator + "x86");
+      command.add("/LIBPATH:" + libPath);
+    }
+
     if (detectWindowsSdkLibDir) {
-      File windowsSdkLibDir = new File(
+      File libPath = new File(
           pathConfiguration.getWindowsSdkDirectory(), "Lib");
-      command.add("/LIBPATH:" + windowsSdkLibDir.toString());
+      command.add("/LIBPATH:" + libPath);
     }
 
     if (detectMsvcLibDir) {
-      File msvcLibDir = new File(
+      File libPath = new File(
           pathConfiguration.getMsvcVcDirectory(), "Lib");
-      command.add("/LIBPATH:" + msvcLibDir.toString());
-    }
-
-    command.add("/OUT:" + output.toString());
-    for (InputPath inputPath : inputPaths) {
-      command.add(inputPath.getPath().toString());
+      command.add("/LIBPATH:" + libPath);
     }
 
     // Add MSVC\Common7\IDE to PATH variable

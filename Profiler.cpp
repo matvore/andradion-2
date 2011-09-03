@@ -14,9 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
+#include "StdAfx.h"
+
 #ifdef _DEBUG
 
-#include "StdAfx.h"
 #include "Profiler.h"
 
 using std::vector;

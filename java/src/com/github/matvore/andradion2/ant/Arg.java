@@ -37,9 +37,11 @@ public class Arg {
   @Override
     public String toString() {
     if (path == null) {
-      return flag;
+      return flag.toString();
+    } else if (flag == null) {
+      return path.toString();
     } else {
-      return flag + path.toString();
+      return flag.toString() + path.toString();
     }
   }
 }

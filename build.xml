@@ -33,15 +33,33 @@ limitations under the License.
   <macrodef name="compileOneCpp">
     <attribute name="name" />
     <sequential>
-      <msvcCompile input="@{name}.cpp"
-                   output="out/@{name}.obj">
-        <arg flag="/I" path="./dxinclude" />
+      <msvcCompile>
+        <!-- Compile and don't link. -->
+        <arg flag="/c" />
+        <!-- Exception handling behavior. -->
         <arg flag="/EHsc" />
+        <arg flag="/I" path="./dxinclude" />
+        <arg flag="/YuStdAfx.h" />
+        <arg flag="/Fo" path="out/@{name}.obj" />
+
+        <arg path="@{name}.cpp" />
       </msvcCompile>
     </sequential>
   </macrodef>
 
   <target name="buildCpp" depends="declareCustomTasks">
+    <!-- Create the precompiled header. -->
+    <msvcCompile>
+      <!-- Compile and don't link. -->
+      <arg flag="/c" />
+      <!-- Exception handling behavior. -->
+      <arg flag="/EHsc" />
+      <arg flag="/I" path="./dxinclude" />
+      <arg flag="/Yc" />
+      <arg flag="/Fp" path="StdAfx.pch" />
+
+      <arg path="StdAfx.cpp" />
+    </msvcCompile>
     <compileOneCpp name="BitMatrix" />
     <compileOneCpp name="Character" />
     <compileOneCpp name="CompactMap" />
@@ -65,30 +83,34 @@ limitations under the License.
   </target>
 
   <target name="linkExe" depends="buildCpp">
-    <msvcLink output="out/andradion2.exe">
-      <input path="out/BitMatrix.obj" />
-      <input path="out/Character.obj" />
-      <input path="out/CompactMap.obj" />
-      <input path="out/Deeds.obj" />
-      <input path="out/Fire.obj" />
-      <input path="out/Fixed.obj" />
-      <input path="out/GammaEffects.obj" />
-      <input path="out/Glue.obj" />
-      <input path="out/Graphics.obj" />
-      <input path="out/LevelEnd.obj" />
-      <input path="out/Menu.obj" />
-      <input path="out/MusicLib.obj" />
-      <input path="out/Net.obj" />
-      <input path="out/Palette.obj" />
-      <input path="out/PowerUp.obj" />
-      <input path="out/Profiler.obj" />
-      <input path="out/RawLoad.obj" />
-      <input path="out/Timer.obj" />
-      <input path="out/Weather.obj" />
-      <input path="out/WinMain.obj" />
+    <msvcLink detectDxSdkLibDir="true">
+      <arg flag="/OUT:" path="out/andradion2.exe" />
+      <arg path="out/BitMatrix.obj" />
+      <arg path="out/Character.obj" />
+      <arg path="out/CompactMap.obj" />
+      <arg path="out/Deeds.obj" />
+      <arg path="out/Fire.obj" />
+      <arg path="out/Fixed.obj" />
+      <arg path="out/GammaEffects.obj" />
+      <arg path="out/Glue.obj" />
+      <arg path="out/Graphics.obj" />
+      <arg path="out/LevelEnd.obj" />
+      <arg path="out/Menu.obj" />
+      <arg path="out/MusicLib.obj" />
+      <arg path="out/Net.obj" />
+      <arg path="out/Palette.obj" />
+      <arg path="out/PowerUp.obj" />
+      <arg path="out/Profiler.obj" />
+      <arg path="out/RawLoad.obj" />
+      <arg path="out/Timer.obj" />
+      <arg path="out/Weather.obj" />
+      <arg path="out/WinMain.obj" />
       <standardLib name="gdi32.lib" />
       <standardLib name="ole32.lib" />
       <standardLib name="user32.lib" />
+      <standardLib name="dxguid.lib" />
+
+<!--      <standardLib name="WinMM.lib" /> -->
     </msvcLink>
   </target>
 </project>
