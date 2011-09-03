@@ -21,13 +21,28 @@ import java.awt.Dimension;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
-import java.io.Closeable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
 public class CompacterMapper {
+  private static class ByteMatrix {
+    public byte[] bytes;
+    public int width;
+
+    public int index(int x, int y) {
+      return y * width + x;
+    }
+
+    public static ByteMatrix ofSize(int width, int height) {
+      ByteMatrix result = new ByteMatrix();
+      result.bytes = new byte[width * height];
+      result.width = width;
+      return result;
+    }
+  }
+
   private CompacterMapper() {
     throw new UnsupportedOperationException("static-only class");
   }
@@ -37,6 +52,30 @@ public class CompacterMapper {
     List<Rectangle> result = new ArrayList<Rectangle>();
     for (Point location : locations) {
       result.add(new Rectangle(location, dimension));
+    }
+    return result;
+  }
+
+  private static void drawRectangle(
+      ByteMatrix data, byte color, Rectangle area) {
+    int index = data.index(area.x, area.y);
+    for (int y = 0; y < area.height; y++) {
+      for (int x = 0; x < area.width; x++) {
+        data.bytes[index + x] = color;
+      }
+      index += data.width;
+    }
+  }
+
+  private static ByteMatrix makeCopy(ByteMatrix source, Rectangle area) {
+    ByteMatrix result = ByteMatrix.ofSize(area.width, area.height);
+    int sourceIndex = source.index(area.x, area.y);
+    int resultIndex = 0;
+    for (int y = 0; y < area.height; y++) {
+      System.arraycopy(
+          source.bytes, sourceIndex, result.bytes, resultIndex, area.width);
+      resultIndex += result.width;
+      sourceIndex += source.width;
     }
     return result;
   }

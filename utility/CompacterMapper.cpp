@@ -24,61 +24,6 @@ public:
 
 // functions for manipulating loaded data . . .
 
-// puts a black rectangle somewhere
-static void BlackRectangle(BYTE *data, int data_width, const RECT& loc)
-{
-  // point data to the first pixel to set to black
-  data += (loc.top * data_width + loc.left);
-
-  // loop through each row
-  for(int y = loc.top; y < loc.bottom; y++)
-    {
-      int width = loc.right - loc.left;
-      for(int x = 0; x < width; x++)
-	{
-	  data[x] = TRANS;
-	}
-
-      // go further into data buffer
-      data += data_width;
-    }
-}
-
-// transfers data from *data to pattern, replacing the area in *data with the transparent color
-static void PatternRectangle(BYTE *data,
-                             int data_width,
-                             const vector<RECT>& area,
-                             vector< vector<BYTE> >& pattern) {
-  BYTE *data_backup = data; // store a backup pointer to *data
-
-  // point data to the first pixel to copy
-  data += (area[0].top * data_width + area[0].left);
-
-  int to_change_rows = (data_width - (area[0].right - area[0].left));
-  int w = area[0].right - area[0].left;
-  int h = area[0].bottom - area[0].top;
-
-  pattern.resize(h);
-
-  for(int y =0 ; y < h; y++)
-    {
-      pattern[y].resize(w);
-      for(int x = 0; x < w; x++)
-	{
-	  pattern[y][x] = *data;
-	  data++;
-	}
-
-      data+=to_change_rows;
-    }
-
-  // clear out these areas
-  for(int i = 0; i < area.size(); i++)
-    {
-      BlackRectangle(data_backup,data_width,area[i]);
-    }
-}
-
 static bool AllOneColor(const BYTE *data,
                         int data_width,
                         const RECT& area,
@@ -175,7 +120,7 @@ static void FindRectangles(BYTE *data,
 	      rects.resize(rects.size()+1,x);
 
 	      // clear out this new area
-	      BlackRectangle(data,data_size.cx,x);
+	      DrawRectangle(data, data_size.cx, TRANS, x);
 	    }
 	}
 
@@ -788,7 +733,14 @@ int main(int argc, char **argv)
 		  patterns.resize(pi+1);
 
 		  UniformDimensionRectangleList(points,pat,pattern_coors[pi]);
-		  PatternRectangle(data,size.cx,pattern_coors[pi],patterns[pi]);
+                  patterns[pi] = MakeCopy(data, size.cx, pattern_coors[pi][0]);
+
+                  // clear out these areas
+                  for(int i = 0; i < pattern_coors[pi].size(); i++)
+                    {
+                      DrawRectangle(data, size.cx, TRANS, pattern_coors[pi][i]);
+                    }
+
 		}
 	      }
 
