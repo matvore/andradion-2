@@ -31,18 +31,17 @@ import java.util.List;
 
 public class CompacterMapper {
   private static class ByteMatrix {
-    public byte[] bytes;
-    public int width;
+    public final byte[] bytes;
+    public final int width, height;
+
+    public ByteMatrix(int width, int height) {
+      bytes = new byte[width * height];
+      this.width = width;
+      this.height = height;
+    }
 
     public int index(int x, int y) {
       return y * width + x;
-    }
-
-    public static ByteMatrix ofSize(int width, int height) {
-      ByteMatrix result = new ByteMatrix();
-      result.bytes = new byte[width * height];
-      result.width = width;
-      return result;
     }
   }
 
@@ -92,7 +91,7 @@ public class CompacterMapper {
   }
 
   private static ByteMatrix makeCopy(ByteMatrix source, Rectangle area) {
-    ByteMatrix result = ByteMatrix.ofSize(area.width, area.height);
+    ByteMatrix result = new ByteMatrix(area.width, area.height);
     int sourceIndex = source.index(area.x, area.y);
     int resultIndex = 0;
     for (int y = 0; y < area.height; y++) {
@@ -119,15 +118,59 @@ public class CompacterMapper {
   }
 
   /**
-   * Finds rectangles of the color at startCoor and puts them in a
+   * Finds rectangles of the color at {@code startX, startY} and puts them in a
    * list of {@code Rectangles}. Will only return rectangles whose upper-left
-   * coordinates are after or at startCoor, and replacing them with
-   * {@code transparentColor} at the same time.  Ignores rectangles whose areas
-   * are less than {@code minimumColorBlockArea}.
+   * coordinates are after or at the starting coordinates, and replacing them
+   * with {@code transparentColor} at the same time.  Ignores rectangles whose
+   * areas are less than {@code minimumColorBlockArea}.
    */
-  private static List<Rectangle> findAndClearColorBlocks(
-      ByteMatrix data, Point startCoor) {
-    return null;
+  private List<Rectangle> findAndClearColorBlocks(
+      ByteMatrix data, int startX, int startY) {
+    List<Rectangle> result = new ArrayList<Rectangle>();
+    int currX = startX, currY = startY;
+    int dataPosition = data.index(currX, currY);
+    byte baseColor = data.bytes[dataPosition];
+    Rectangle scanningArea = new Rectangle();
+
+    for (; dataPosition < data.bytes.length; dataPosition++) {
+      if (baseColor == data.bytes[dataPosition]) {
+        scanningArea.x = currX;
+        scanningArea.width = 1;
+        scanningArea.y = currY;
+        scanningArea.height = 1;
+
+        // Expand to the right.
+        do {
+          scanningArea.x++;
+        } while (scanningArea.x < data.width &&
+            allOneColor(data, scanningArea, baseColor));
+
+        scanningArea.width = scanningArea.x - currX;
+        scanningArea.x = currX;
+
+        // Expand downward.
+        do {
+          scanningArea.y++;
+        } while (scanningArea.y < data.height &&
+            allOneColor(data, scanningArea, baseColor));
+
+        scanningArea.height = scanningArea.y - currY;
+        scanningArea.y = currY;
+
+        if (scanningArea.width * scanningArea.height >= minimumColorBlockArea) {
+          result.add(scanningArea);
+          drawRectangle(data, transparentColor, scanningArea);
+          scanningArea = new Rectangle();
+        }
+      }
+
+      // Increment x and wrap around if appropriate.
+      if (++currX >= data.width) {
+        currX = 0;
+        currY++;
+      }
+    }
+    return result;
   }
 
   public static void compact(BufferedImage source, OutputStream output)
