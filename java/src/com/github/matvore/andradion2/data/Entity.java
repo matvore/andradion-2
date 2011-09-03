@@ -22,5 +22,6 @@ public enum Entity {
   EVIL_TURNER,
   PISTOL,
   MACHINE_GUN,
-  BAZOOKA;
+  BAZOOKA,
+  HEALTH;
 }

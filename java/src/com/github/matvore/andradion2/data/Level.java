@@ -47,13 +47,14 @@ public class Level {
     return result;
   }
 
-  private Level(List<Color> palette,
-                Dimension levelSize,
-                WeatherPattern weatherPattern,
-                Point playerStartLocation,
-                List<Rectangle> indoorRectangles,
-                List<LevelEnd> levelEnds,
-                Map<Entity, List<Point>> entities) {
+  private Level(
+      List<Color> palette,
+      Dimension levelSize,
+      WeatherPattern weatherPattern,
+      Point playerStartLocation,
+      List<Rectangle> indoorRectangles,
+      List<LevelEnd> levelEnds,
+      Map<Entity, List<Point>> entities) {
     this.palette = palette;
     this.levelSize = levelSize;
     this.weatherPattern = weatherPattern;
@@ -143,6 +144,17 @@ public class Level {
     public Builder withEntities(Map<Entity, List<Point>> entities) {
       this.entities = copyEntities(entities);
       return this;
+    }
+
+    public Level build() {
+      return new Level(
+          palette,
+          levelSize,
+          weatherPattern,
+          playerStartLocation,
+          indoorRectangles,
+          levelEnds,
+          entities);
     }
   }
 }
