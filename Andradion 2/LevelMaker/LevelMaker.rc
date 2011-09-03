@@ -1,0 +1,91 @@
+//Microsoft Developer Studio generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (U.S.) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+#ifdef _WIN32
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+#endif //_WIN32
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE DISCARDABLE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Cursor
+//
+
+IDC_TURNER              CURSOR  DISCARDABLE     "cursor1.cur"
+IDC_SALLY               CURSOR  DISCARDABLE     "cur00001.cur"
+IDC_PISTOL              CURSOR  DISCARDABLE     "curso.cur"
+IDC_MILTON              CURSOR  DISCARDABLE     "cur00002.cur"
+IDC_MACHINEGUN          CURSOR  DISCARDABLE     "cur00003.cur"
+IDC_HEALTH              CURSOR  DISCARDABLE     "cur00004.cur"
+IDC_BAZOOKA             CURSOR  DISCARDABLE     "cursor2.cur"
+IDC_EVILTURNER          CURSOR  DISCARDABLE     "cursor3.cur"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_HEALTH              BITMAP  DISCARDABLE     "Health.bmp"
+IDB_MILTON              BITMAP  DISCARDABLE     "1miltons.bmp"
+IDB_SALLY               BITMAP  DISCARDABLE     "1sallys.bmp"
+IDB_TURNER              BITMAP  DISCARDABLE     "1turners.bmp"
+IDB_BAZOOKA             BITMAP  DISCARDABLE     "bazookae.bmp"
+IDB_EVILTURNER          BITMAP  DISCARDABLE     "1evilturners.bmp"
+IDB_MACHINEGUN          BITMAP  DISCARDABLE     "mge.bmp"
+IDB_PISTOL              BITMAP  DISCARDABLE     "pistole.bmp"
+#endif    // English (U.S.) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
