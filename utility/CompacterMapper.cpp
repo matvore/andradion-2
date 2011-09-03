@@ -14,59 +14,15 @@ static BYTE TRANS;
 
 class datafile {
 public:
-  datafile(const char *fn)
-    : file(CreateFile(fn,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL)) {}
-
-  ~datafile() {CloseHandle(file);}
-  
-  void putByte(BYTE b) {
-    DWORD read;
-
-    WriteFile(file, (const void *)&b, sizeof(b), &read, 0);
-  }
-
-  void putWord(WORD w) {
-    DWORD read;
-
-    WriteFile(file, (const void *)&w, sizeof(w), &read, 0);
-  }
-
-  void putUsuallyByte(WORD w) {
-    if (!w || w > 0xff) {
-      putByte(0);
-      putWord(w);
-    } else {
-      putByte(w);
-    }
-  }
-
   void putRect(const RECT& r) {
     putByte(r.left);
     putByte(r.top);
     putByte((WORD)(r.right - r.left - 1));
     putByte((WORD)(r.bottom - r.top - 1));
   }
-
-private:
-  const HANDLE file;
 };
 
 // functions for manipulating loaded data . . .
-
-// makes a redundant vector of rectangles
-static void MakeRectangleArray(const vector<POINT>& p,const SIZE& s,vector<RECT>& t)
-{
-  t.resize(p.size());
-
-  for(int i = 0; i < t.size(); i++)
-    {
-      t[i].left= p[i].x;
-      t[i].right = p[i].x + s.cx;
-      t[i].top = p[i].y;
-      t[i].bottom = p[i].y + s.cy;
-    }
-}
-
 
 // puts a black rectangle somewhere
 static void BlackRectangle(BYTE *data, int data_width, const RECT& loc)
@@ -831,7 +787,7 @@ int main(int argc, char **argv)
 		  pattern_coors.resize(pi+1);
 		  patterns.resize(pi+1);
 
-		  MakeRectangleArray(points,pat,pattern_coors[pi]);
+		  UniformDimensionRectangleList(points,pat,pattern_coors[pi]);
 		  PatternRectangle(data,size.cx,pattern_coors[pi],patterns[pi]);
 		}
 	      }

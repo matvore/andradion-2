@@ -103,61 +103,51 @@ public class LevelFormats {
 
   public static void toBinary(Level level, OutputStream output)
       throws IOException {
+    BinaryOutputStream out = BinaryOutputStream.of(output);
     List<Color> palette = level.getPalette();
-    writeByte(output, palette.size());
+    out.putByte(palette.size());
     for (Color color : palette) {
-      writeByte(output, color.getRed());
-      writeByte(output, color.getGreen());
-      writeByte(output, color.getBlue());
+      out.putByte(color.getRed());
+      out.putByte(color.getGreen());
+      out.putByte(color.getBlue());
     }
 
     Dimension levelSize = level.getLevelSize();
-    writeWord(output, levelSize.width);
-    writeWord(output, levelSize.height);
+    out.putWord(levelSize.width);
+    out.putWord(levelSize.height);
 
-    writeByte(output, level.getWeatherPattern().ordinal());
+    out.putByte(level.getWeatherPattern().ordinal());
 
     Point playerStartLocation = level.getPlayerStartLocation();
-    writeWord(output, playerStartLocation.x);
-    writeWord(output, playerStartLocation.y);
+    out.putWord(playerStartLocation.x);
+    out.putWord(playerStartLocation.y);
 
     List<Rectangle> indoorRectangles = level.getIndoorRectangles();
-    writeByte(output, indoorRectangles.size());
+    out.putByte(indoorRectangles.size());
     for (Rectangle indoorRectangle : indoorRectangles) {
-      writeWord(output, indoorRectangle.x);
-      writeWord(output, indoorRectangle.y);
-      writeWord(output, indoorRectangle.x + indoorRectangle.width);
-      writeWord(output, indoorRectangle.y + indoorRectangle.height);
+      out.putWord(indoorRectangle.x);
+      out.putWord(indoorRectangle.y);
+      out.putWord(indoorRectangle.x + indoorRectangle.width);
+      out.putWord(indoorRectangle.y + indoorRectangle.height);
     }
 
     List<LevelEnd> levelEnds = level.getLevelEnds();
-    writeByte(output, levelEnds.size());
+    out.putByte(levelEnds.size());
     for (LevelEnd levelEnd : levelEnds) {
-      writeByte(output, levelEnd.getToLevel().ordinal());
-      writeWord(output, levelEnd.getLocation().x);
-      writeWord(output, levelEnd.getLocation().y);
+      out.putByte(levelEnd.getToLevel().ordinal());
+      out.putWord(levelEnd.getLocation().x);
+      out.putWord(levelEnd.getLocation().y);
     }
 
     Map<Entity, List<Point>> entities = level.getEntities();
     for (Entity entityType : Entity.values()) {
       List<Point> locations = entities.get(entityType);
-      writeByte(output, locations.size());
+      out.putByte(locations.size());
       for (Point location : locations) {
-        writeWord(output, location.x);
-        writeWord(output, location.y);
+        out.putWord(location.x);
+        out.putWord(location.y);
       }
     }
-  }
-
-  private static void writeByte(OutputStream output, int value)
-      throws IOException {
-    output.write((byte)value);
-  }
-
-  private static void writeWord(OutputStream output, int value)
-      throws IOException {
-    writeByte(output, value & 0xff);
-    writeByte(output, value >> 8);
   }
 
   private static int readTextInteger(InputStream input)
