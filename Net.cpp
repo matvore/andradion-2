@@ -1,537 +1,347 @@
+/** \file Net.cpp
+ * Contains variables and functions that are internal to the Net
+ * module, which facilitates communication between Andradion 2
+ * computers over a network. These are the messages that can be sent
+ * over the network:
+ * <p>&nbsp;</p>
+ * <table border="0">
+ * <tr valign="top">
+ *  <td><h4>Sync message</h4></td>
+ *  <td><p>Sent every couple of frames indicating to the other
+ *  players:</p>
+ *   <ul>
+ *    <li>The x- and y-coordinates of the player. (X and Y)</li>
+ *    <li>The direction the player is facing. (D)</li>
+ *    <li>The weapon the player is holding. (W)</li>
+ *    <li>Whether or not the player is moving. (M)</li>
+ *    <li>Whether or not the player is firing the machine gun. (F)</li>
+ *   </ul>
+ *  <p>The message is <strong>4 bytes long</strong>, and its format
+ *  is: <tt>0FMWWDDD XXXXXXXX XXXXYYYY YYYYYYYY</tt> and the byte
+ *  order is little-endian</p></td> 
+ * </tr>
+ * <tr><td colspan="2"><hr></td></tr>
+ * <tr valign="top">
+ *  <td><h4>Start moving message</h4></td>
+ *  <td><p>Indicates that the player has begun to move from a standing
+ *  position or has changed direction. Included in the message is the
+ *  direction in which the player is moving (D).</p>
+ *  <p>The message is <strong>1 byte long</strong>, and its format is:
+ *  <tt>00000DDD</tt></p></td>
+ * </tr>
+ * <tr><td colspan="2"><hr></td></tr>
+ * <tr valign="top">
+ *  <td><h4>Stop moving message</h4></td>
+ *  <td><p>Indicates that the player has stopped moving and was
+ *  previously walking.</p>
+ *  <p>The message is <strong>1 byte long</strong>, and its format is:
+ *  <tt>10000000</tt></p></td>
+ * </tr>
+ * <tr><td colspan="2"><hr></td></tr>
+ * <tr valign="top">
+ *  <td><h4>Start firing machine gun message</h4></td>
+ *  <td><p>Indicates that the player has begun to fire the machine
+ *  gun. The machine gun should be firing until a Stop firing machine
+ *  gun message is sent. Included in the message is the direction in
+ *  which the player is facing (D).</p>
+ *  <p>The message is <strong>1 byte long</strong>, and its format is:
+ *  <tt>01000DDD</tt></p></td>
+ * </tr>
+ * <tr><td colspan="2"><hr></td></tr>
+ * <tr valign="top">
+ *  <td><h4>Stop firing machine gun message</h4></td>
+ *  <td><p>Indicates that the player has stopped firing the machine
+ *  gun.</p>
+ *  <p>The message is <strong>1 byte long</strong>, and its format is:
+ *  <tt>11000000</tt></p></td>
+ * </tr>
+ * <tr><td colspan="2"><hr></td></tr>
+ * <tr valign="top">
+ *  <td><h4>Fire pistol message</h4></td>
+ *  <td><p>Indicates that the player has just fired the
+ *  pistol. Included in the message is the direction in which the
+ *  player is facing (D).</p>
+ *  <p>The message is <strong>1 byte long</strong>, and its format is:
+ *  <tt>00100DDD</tt></p>
+ * </tr>
+ * <tr><td colspan="2"><hr></td></tr>
+ * <tr valign="top">
+ *  <td><h4>Fire bazooka message</h4></td>
+ *  <td><p>Indicates that the player has just fired the
+ *  bazooka. Included in the message is the point at which the bazooka
+ *  bullet stopped and exploded (X and Y).</p>
+ *  <p>The message is <strong>3 bytes long</strong>, and its format is:
+ *  <tt>XXXXXXXX XXXXYYYY YYYYYYYY</tt></p></td>
+ * </tr>
+ * <tr><td colspan="2"><hr></td></tr>
+ * <tr valign="top">
+ *  <td><h4>Change weapon message</h4></td>
+ *  <td><p>Indicates that the player just changed his weapon. Included
+ *  in the message is the weapon type (W).</p>
+ *  <p>The message is <strong>1 byte long</strong>, and its format is:
+ *  <tt>101000WW</tt></p></td>
+ * </tr>
+ * <tr><td colspan="2"><hr></td></tr>
+ * <tr valign="top">
+ *  <td><h4>Died message</h4></td>
+ *  <td><p>Indicates that the player has died and left some ammo in
+ *  his place. Included in the message is the:</p>
+ *   <ul>
+ *    <li>amount of pistol ammo he was carrying (P)</li>
+ *    <li>amount of machine gun ammo he was carrying (M)</li>
+ *    <li>amount of bazooka ammo he was carrying (B)</li>
+ *   </ul>
+ *  <p>The message is <strong>6 bytes long</strong>, and its format
+ *  is: <tt>PPPPPPPP PPPPPPPP MMMMMMMM MMMMMMMM BBBBBBBB
+ *  BBBBBBBB</tt> and the byte order is little-endian.</p></td>
+ * </tr>
+ * <tr><td colspan="2"><hr></td></tr>
+ * <tr valign="top">
+ *  <td><h4>Admit hit message</h4></td>
+ *  <td><p>Indicates that the player is in pain and has just "sworn." 
+ *  Swearing is a sound that lets the player know some character is
+ *  hurt.</p>
+ *  <p>The message is <strong>1 byte long</strong>, and its format is:
+ *  <tt>01100000</tt></p></td>
+ * </tr>
+ * <tr><td colspan="2"><hr></td></tr>
+ * <tr valign="top">
+ *  <td><h4>Pick up power up message</h4></td>
+ *  <td><p>Indicates that the player has picked up a power
+ *  up. Included in the message is the index of the powerup (P).</p>
+ *  <p>The message is <strong>2 bytes long</strong>, and its format is:
+ *  <tt>PPPPPPPP PPPPPPPP</tt> and the byte order is
+ *  little-endian</p></td> 
+ * </tr>
+ * <tr><td colspan="2"><hr></td></tr>
+ * <tr valign="top">
+ *  <td><h4>Change weather message</h4></td>
+ *  <td><p>Indicates that the host has issued a new weather
+ *  state. Included in the message is the number indicating the
+ *  weather state (W).</p>
+ *  <p>The message is <strong>1 byte long</strong>, and its format is:
+ * <tt>1110WWWW</tt></p></td>
+ * </tr>
+ * <tr><td colspan="2"><hr></td></tr>
+ * <tr valign="top">
+ *  <td><h4>Hit message</h4></td>
+ *  <td><p>Indicates that this computer determined the player on it
+ *  has hit another player with a machine gun or pistol bullet. This
+ *  is the only message that is directed at a particular player,
+ *  instead of everyone in the session. Included in the message is the
+ *  type of bullet we hit with, given by the weapon type value
+ *  (W).</p>
+ *  <p>The message is <strong>1 byte long</strong>, and its format is:
+ *  <tt>00010WWW</tt></p></td></tr>
+ * 
+ *  
+ * 
+ * </table>
+ */
 #include "StdAfx.h"
-#include "Fixed.h"
-#include "SharedConstants.h"
-#include "Net.h"
-#include "Certifiable.h"
-#include "SurfaceLock.h"
-#include "SurfaceLock256.h"
-#include "Graphics.h"
-#include "Character.h"
-#include "Fire.h"
-#include "Glue.h"
-#include "Resource.h"
-#include "PowerUp.h"
-#include "Weather.h"
 #include "Logger.h"
+#include "Buffer.h"
+#include "Net.h"
 
-class Connection {
+using std::pair;
+using std::string;
+using std::bad_alloc;
+using std::queue;
+using std::auto_ptr;
+using std::vector;
+
+class CreatePlayerFailure : public std::exception {
 public:
-  Connection() : data(NULL), data_size(0) {}
-  Connection(const Connection &rhs) {
-    Connection();
-    *this = rhs;    
+  virtual const char *what() const throw() {
+    return "Unable to create the player for this computer in the Net game";
   }
-  ~Connection() {free(data);}
-
-  void Set(const char *source_name, const void *source, DWORD size) {
-    free(data);
-    data = malloc(size);
-    memcpy(data, source, size);
-    data_size = size;
-    name = source_name;
-  }
-
-  Connection& operator =(const Connection& rhs) {
-    if (this != &rhs) {
-      Set(rhs.name.c_str(), rhs.data, rhs.data_size);
-    }
-
-    return *this;
-  }
-
-  DWORD data_size;
-  void *data;
-  string name;
 };
 
-enum {NETSTATE_JOINING, NETSTATE_HOSTING, NETSTATE_NOGAME};
+class PlayerNotFoundException : public std::exception {
+public:
+  virtual const char *what() const throw() {
+    return "The player of the given ID is no longer in the game";
+  }
+};
 
-typedef IDirectPlay4A *DPInt;
-#define DPLAYREFIID IID_IDirectPlay4A
+enum NETSTATE {NOTINIT, JOINING, HOSTING, NOGAME};
 
 struct REMOTEPLAYER {
+  REMOTEPLAYER(DPID i, const char *n) throw()
+    : id(i), name(n), firing(false), walking(false) {}
   DPID id;
-
-  POINT loc_at_end_of_sync; // stored in fixed-point
-  POINT loc_at_start_of_sync; // stored in fixed-point
-
-  bool firing;
+  bool firing, walking;
   string name;
-
-  // timer for the other guy's sync
-  DWORD sync;
-
-  // everything else is stored in the
-  //  actual CCharacter class
 };
 
-// sends one byte of data to all players, guaranteed depending
-//  on parameter
-static void SimpleMessage(BYTE data,bool guaranteed);
-static HRESULT CreatePlayer();
-
-// all of our internal members
-static DPInt dp; // DPInt is either IDirectPlay4 * or IDirectPlay4A *
-static int state;
-static vector<Connection> protocols;
+static IDirectPlay4A *dp = 0;
+static NETSTATE state = NOTINIT;
+static NetFeedback *feedback = 0;
+static vector<pair<string, Buffer> > protocols;
 static DWORD sync_rate, sync;
-static vector<REMOTEPLAYER> remotes; // data for remote players
+static vector<REMOTEPLAYER> remotes; 
 static DPID us;
+static unsigned int room_index;
 
-static queue<DPMSG_GENERIC *> system_messages;
+// Information stored away after calls to the Net*** functions
+static unsigned int weather, direction, weapon;
+static unsigned short x_pos, y_pos;
+static bool firing_machine_gun, walking;
 
 // message types are listed in Message Types.doc
 
 const int MAX_PLAYERS = 16;
 
+const unsigned int MSGSIZE_SYNC = 4;
+const unsigned int MSGSIZE_FIREBAZOOKA = 3;
+const unsigned int MSGSIZE_DIED = 6;
+const unsigned int MSGSIZE_PICKUPPOWERUP = 2;
+const BYTE MSGTYPE_BITS = 0xf0;
+const BYTE MSGTYPE_STARTMOVING = 0x00;
+const BYTE MSGTYPE_STOPMOVING = 0x80;
+const BYTE MSGTYPE_STARTFIRINGMACHINEGUN = 0x40;
+const BYTE MSGTYPE_STOPFIRINGMACHINEGUN = 0xc0;
+const BYTE MSGTYPE_FIREPISTOL = 0x20;
+const BYTE MSGTYPE_CHANGEWEAPON = 0xa0;
+const BYTE MSGTYPE_ADMITHIT = 0x60;
+const BYTE MSGTYPE_CHANGEWEATHER = 0xe0;
+const BYTE MSGTYPE_HIT = 0x10;
+
+const unsigned int DEFAULT_INITIAL_BUFFER_SIZE = 20;
+const DWORD SESSION_FLAGS = DPSESSION_DIRECTPLAYPROTOCOL
+      | DPSESSION_KEEPALIVE | DPSESSION_MIGRATEHOST
+      | DPSESSION_NOPRESERVEORDER | DPSESSION_OPTIMIZELATENCY;
+
+static inline void SendSimpleMsg(BYTE data,
+                                 bool guaranteed) throw() {
+  assert(NetInGame());
+
+  DWORD flags = guaranteed
+    ? DPSEND_ASYNC | DPSEND_NOSENDCOMPLETEMSG | DPSEND_GUARANTEED
+    : DPSEND_ASYNC | DPSEND_NOSENDCOMPLETEMSG;
+  
+  dp->SendEx(us, DPID_ALLPLAYERS, flags, &data, 1, 0, 0, 0, 0);
+
+  WriteLog("Sent a simple message (1-byte of data to all players), "
+	   "containing number: %x\n" LogArg((int)data));
+}
+
+static inline bool ValidCoordinate(const unsigned short c) {
+  return !(c & ~0xfff);
+}
+
+static inline bool ValidDirection(const unsigned int d) {
+  return !(d & ~7);
+}
+
+static inline bool ValidWeapon(const unsigned int w) {
+  return !(w & ~3);
+}
+
+static inline bool ValidWeatherState(const unsigned int w) {
+  return !(w & ~0x0f);
+}
+
+static inline void SendSyncMsg(const unsigned short x,
+                               const unsigned short y,
+                               const unsigned int direction,
+                               const unsigned int weapon,
+                               const bool walking,
+                               const bool firing_machine_gun) throw() {
+  DWORD data;
+
+  assert(ValidCoordinate(x) && ValidCoordinate(y));
+  assert(ValidDirection(direction));
+  assert(ValidWeapon(weapon));
+  assert(NetInGame());
+
+  data = firing_machine_gun ? 1 : 0;
+  data <<= 1;
+  data |= walking ? 1 : 0;
+  data <<= 2;
+  data |= weapon;
+  data <<= 3;
+  data |= direction;
+  data <<= 12;
+  data |= x;
+  data <<= 12;
+  data |= y;
+
+  dp->SendEx(us, DPID_ALLPLAYERS,
+             DPSEND_ASYNC | DPSEND_NOSENDCOMPLETEMSG | DPSEND_GUARANTEED,
+             &data, MSGSIZE_SYNC, 0, 0, 0, 0);
+}
+
 // {CF58E020-9BD3-11d4-B6FE-0050040B0541}
 static const GUID ANDRADION2GUID = 
-  { 0xcf58e020, 0x9bd3, 0x11d4, { 0xb6, 0xfe, 0x0, 0x50, 0x4, 0xb, 0x5, 0x41 } };
+  { 0xcf58e020, 0x9bd3, 0x11d4, { 0xb6, 0xfe, 0x0, 0x50, 0x4, 0xb,
+                                  0x5, 0x41 } };
 
-static BOOL FAR PASCAL EnumConnectionMethodsCallback(LPCGUID,
-						     LPVOID lpConnection,
-						     DWORD dwConnectionSize,
-						     LPCDPNAME lpName,
-						     DWORD, LPVOID) {
-  WriteLog("Enumeration of protocals callback called for %s\n"
-	   LogArg(lpName->lpszShortNameA));
-
-  // make sure we can create this protocol
-  DPInt dp;
-  if(FAILED(CoCreateInstance(CLSID_DirectPlay, NULL, CLSCTX_ALL, DPLAYREFIID,
-			     (void**)&dp))) {
-    return FALSE; // stop enumeration
+static void CreatePlayer(unsigned int model, const char *name)
+  throw(CreatePlayerFailure) {
+  DPNAME our_name;
+  BYTE player_data = (BYTE)model; 
+  our_name.dwSize = sizeof(our_name);
+  our_name.dwFlags = 0;
+  our_name.lpszLongNameA = our_name.lpszShortNameA
+    = const_cast<char *>(name);
+	
+  if(FAILED(TryAndReport(dp->CreatePlayer(&us, &our_name, 0,
+                                          &player_data, 1, 0)))) {
+    WriteLog("Call to DirectPlay.CreatePlayer failed\n");
+    throw CreatePlayerFailure();
   }
 
-  WriteLog("Try to initiate it for ourselves...\n");
-  if(FAILED(dp->InitializeConnection(lpConnection,0))) {
-    WriteLog("Didn't work, returning to get on with the enumeration\n");
-    TryAndReport(dp->Release());
-    return TRUE;
-  }
+  WriteLog("Successfully created our player\n");
+}
 
-  WriteLog("It worked, recording connection data and protocol name, etc...\n");
-
-  // done with dp
-  TryAndReport(dp->Release());
-
-  int magic_index = protocols.size();
-
-  protocols.resize(magic_index + 1);
-  protocols[magic_index].Set(lpName->lpszShortNameA, lpConnection,
-			     dwConnectionSize);
+static BOOL FAR PASCAL
+FoundProtocol(LPCGUID, LPVOID lpConnection,
+              DWORD dwConnectionSize, LPCDPNAME lpName,
+              DWORD, LPVOID context) {
+  BOOL *mem_error = (BOOL *)context;
   
-  WriteLog("Successfully enumerated %s\n" LogArg(lpName->lpszShortNameA));
+//   WriteLog("Enumeration of protocols callback called for %s "
+//            "with connection size of %d\n"
+// 	   LogArg(lpName->lpszShortNameA)
+//            LogArg(dwConnectionSize));
+
+//   // make sure we can create this protocol
+//   IDirectPlay4A *dp;
+//   if(FAILED(CoCreateInstance(CLSID_DirectPlay, NULL, CLSCTX_ALL,
+//                              IID_IDirectPlay4A, (void**)&dp))) {
+//     return FALSE; // stop enumeration
+//   }
+
+//   WriteLog("Try to initiate it for ourselves...\n");
+//   if(FAILED(dp->InitializeConnection(lpConnection, 0))) {
+//     WriteLog("Didn't work, returning to get on with the enumeration\n");
+//     TryAndReport(dp->Release());
+//     return TRUE;
+//   }
+
+//   WriteLog("It worked, recording connection data and protocol "
+//            "name, etc...\n");
+
+//   TryAndReport(dp->Release());
+
+  try {
+    protocols.push_back(pair<string, Buffer>(string(lpName->lpszShortNameA),
+                                             Buffer(lpConnection,
+                                                    dwConnectionSize)));
+  } catch (bad_alloc& ba) {
+    *mem_error = TRUE;
+    return FALSE;
+  }
+  
+  WriteLog("Successfully enum'd %s\n" LogArg(lpName->lpszShortNameA));
 
   return TRUE;
 }
 
-void NetInitialize() {
-  WriteLog("NetInitialize() called");
-  state = NETSTATE_NOGAME;
-
-  if(FAILED(CoInitialize(NULL))) {
-    WriteLog("CoInitialize() Failed, no protocols will be initialized");
-    return;
-  }
-
-  // get a list of all the protocols
-  DPInt dp;
-  WriteLog("Attempting to create temporary DirectPlay interface to enumerate protocols");
-  if(SUCCEEDED(CoCreateInstance(CLSID_DirectPlay, NULL, CLSCTX_ALL, DPLAYREFIID, (VOID**)&dp))) {
-    WriteLog("DirectPlay created!  Now calling enumeration method");
-    TryAndReport(dp->EnumConnections(&ANDRADION2GUID,EnumConnectionMethodsCallback,NULL,DPCONNECTION_DIRECTPLAY));
-    TryAndReport(dp->Release());
-  }
-	
-  WriteLog("Done enumerating\n");
-
-  if(0 == protocols.size()) {
-    WriteLog("Didn't get any protocols\n");
-    CoUninitialize();
-  }
-
-  WriteLog("Directplay return codes:\n");
-#define CODE(x) WriteLog(" %s: %x\n" LogArg(#x) LogArg(x))
-  CODE(CLASS_E_NOAGGREGATION);
-  CODE(DP_OK);
-  CODE(DPERR_ACCESSDENIED);
-  CODE(DPERR_ACTIVEPLAYERS);
-  CODE(DPERR_ALREADYINITIALIZED);
-  CODE(DPERR_APPNOTSTARTED);
-  CODE(DPERR_AUTHENTICATIONFAILED);
-  CODE(DPERR_BUFFERTOOLARGE);
-  CODE(DPERR_BUFFERTOOSMALL);
-  CODE(DPERR_BUSY);
-  CODE(DPERR_CANCELFAILED);
-  CODE(DPERR_CANNOTCREATESERVER);
-  CODE(DPERR_CANTADDPLAYER);
-  CODE(DPERR_CANTCREATEGROUP);
-  CODE(DPERR_CANTCREATEPLAYER);
-  CODE(DPERR_CANTCREATEPROCESS);
-  CODE(DPERR_CANTCREATESESSION);
-  CODE(DPERR_CANTLOADCAPI);
-  CODE(DPERR_CANTLOADSECURITYPACKAGE);
-  CODE(DPERR_CANTLOADSSPI);
-  CODE(DPERR_CAPSNOTAVAILABLEYET);
-  CODE(DPERR_CONNECTING);
-  CODE(DPERR_CONNECTIONLOST);
-  CODE(DPERR_ENCRYPTIONFAILED);
-  CODE(DPERR_ENCRYPTIONNOTSUPPORTED);
-  CODE(DPERR_EXCEPTION);
-  CODE(DPERR_GENERIC);
-  CODE(DPERR_INVALIDFLAGS);
-  CODE(DPERR_INVALIDGROUP);
-  CODE(DPERR_INVALIDINTERFACE);
-  CODE(DPERR_INVALIDOBJECT);
-  CODE(DPERR_INVALIDPARAMS);
-  CODE(DPERR_INVALIDPASSWORD);
-  CODE(DPERR_INVALIDPLAYER);
-  CODE(DPERR_INVALIDPRIORITY);
-  CODE(DPERR_LOGONDENIED);
-  CODE(DPERR_NOCAPS);
-  CODE(DPERR_NOCONNECTION);
-  CODE(DPERR_NOINTERFACE);
-  CODE(DPERR_NOMESSAGES);
-  CODE(DPERR_NONAMESERVERFOUND);
-  CODE(DPERR_NONEWPLAYERS);
-  CODE(DPERR_NOPLAYERS);
-  CODE(DPERR_NOSESSIONS);
-  CODE(DPERR_NOTLOBBIED);
-  CODE(DPERR_NOTLOGGEDIN);
-  CODE(DPERR_OUTOFMEMORY);
-  CODE(DPERR_PENDING);
-  CODE(DPERR_PLAYERLOST);
-  CODE(DPERR_SENDTOOBIG);
-  CODE(DPERR_SESSIONLOST);
-  CODE(DPERR_SIGNFAILED);
-  CODE(DPERR_TIMEOUT);
-  CODE(DPERR_UNAVAILABLE);
-  CODE(DPERR_UNINITIALIZED);
-  CODE(DPERR_UNKNOWNAPPLICATION);
-  CODE(DPERR_UNKNOWNMESSAGE);
-  CODE(DPERR_UNSUPPORTED);
-  CODE(DPERR_USERCANCEL);
-  // CODE(E_UNKNOWN);
-#undef CODE
-
-  WriteLog("Now leaving NetInitialize()\n");
-}
-
-void NetRelease()
-{
-  WriteLog("NetRelease called, say goodbye to everybody\n");
-  if(NetProtocolInitialized()) {
-      WriteLog("Protocol is currently intialized, checking if still in a game\n");
-      if(NetInGame()) {
-	  WriteLog("Game is still open, closing now\n");
-	  NetLeaveGame();
-	}
-      NetReleaseProtocol();
-      WriteLog("Protocol and game closed\n");
-    }
-
-  if(0 != protocols.size()) {
-      WriteLog("Protocols had been enumerated, now we must called CoUninitialize()\n");
-      CoUninitialize();
-      WriteLog("CoUnin called\n");
-    }
-
-  WriteLog("Releasing connection data\n");
-
-  protocols.clear();
-
-  WriteLog("Now leaving NetRelease()\n");
-}
-
-BOOL FAR PASCAL EnumPlayersCB(DPID dpId, DWORD, LPCDPNAME lpName, DWORD, LPVOID)
-{
-  WriteLog("Enumeration of players callback called for player %s\n" LogArg(lpName));
-	
-  WriteLog("Trying to find player's model\n");
-  BYTE m;
-  DWORD size = 1;
-  if(FAILED(dp->GetPlayerData(dpId,(void *)&m,&size,DPGET_REMOTE)))
-    {
-      WriteLog("Failed to get player data, skipping enumeration of this participant\n");
-      return TRUE;
-    }
-  WriteLog("Player uses model %d\n" LogArg((int)m));
-
-  assert(GLUenemies.size() == remotes.size());
-
-  int magic_index = remotes.size();
-
-  remotes.resize(magic_index+1);
-
-  WriteLog("Storing name and ID...\n");
-  remotes[magic_index].id = dpId;
-  remotes[magic_index].name = (TCHAR *)lpName->lpszShortName;
-
-  WriteLog("Building CCharacter object in GLUenemies array...\n");
-  GLUenemies.resize(magic_index+1);
-  CCharacter *c = &GLUenemies[magic_index];
-  c->model = (int)m;
-  c->current_weapon = 0;
-  c->state = 0;
-  c->direction = DSOUTH;
-  c->coor.first.x = 0;
-  c->coor.first.y = 0;
-  c->coor.second = c->coor.first;
-	
-  WriteLog("Preparing other variables and data");
-  remotes[magic_index].loc_at_end_of_sync.x = 0;
-  remotes[magic_index].loc_at_end_of_sync.y = 0;
-  remotes[magic_index].loc_at_start_of_sync = remotes[magic_index].loc_at_end_of_sync;
-  remotes[magic_index].firing = false;
-  remotes[magic_index].sync = 0;
-	
-  WriteLog("Finished enumerating Mr. or Ms. %s, callback is returning" LogArg(lpName));
-  return TRUE;
-}
-
-void NetWelcome()
-{
-  WriteLog("NetWelcome() called");
-  // sets the level of the session desc
-  // right before the game
-	
-  // get size of session description
-  if(NETSTATE_HOSTING == state)
-    {
-      WriteLog("We are host, so we must set the SessionDesc to store level (should already contain sync rate)");
-      DWORD size = 0;
-      const HRESULT res = dp->GetSessionDesc(NULL,&size);
-
-      assert (DPERR_BUFFERTOOSMALL == res); 
-
-      // allocate buffer for it
-      DPSESSIONDESC2 *sd = (DPSESSIONDESC2 *)new BYTE[size];
-
-      sd->dwSize = sizeof(DPSESSIONDESC2);
-
-      // request desc
-      dp->GetSessionDesc((void *)sd,&size);
-
-      WriteLog("SessionDesc obtained, value of User2 (sync_rate) is %d" LogArg((int)sd->dwUser2));
-
-      // make necessary changes and apply
-      sd->dwUser1 = (DWORD)GLUlevel;
-      WriteLog("Value of User1 (level) is %d" LogArg((int)sd->dwUser1));
-      dp->SetSessionDesc(sd,0);
-
-      WriteLog("SetSessionDesc completed");
-
-      // delete unneeded buffer
-      delete (BYTE *)sd;
-    }
-
-  // enumerate players getting the player data of them and therefore
-  //  their model indices
-  remotes.clear();
-  GLUenemies.clear();
-
-  WriteLog("Calling EnumPlayers to enumerate all players and get their models");
-  dp->EnumPlayers(NULL,EnumPlayersCB,NULL,DPENUMPLAYERS_REMOTE);
-}
-
-const char *NetProtocolName(int protocol_index) {
-  assert(protocol_index >= 0 && protocol_index < protocols.size());
-  return protocols[protocol_index].name.c_str();
-}
-
-int NetProtocolCount() {return protocols.size();}
-
-int NetInitializeProtocol(DWORD index) {
-  assert(!NetProtocolInitialized());
-  WriteLog("NetInitializeProtocol() called to start protocol #%d" LogArg(index));
-
-  if(index < 0 || index >= protocols.size()) {
-    WriteLog("Invalid protocol index was used, returning with error");
-    return INITIALIZEPROTOCOL_INVALIDINDEX;
-  }
-
-  WriteLog("Attempting to create DirectPlay interface and InitializeConnection()");
-  TryAndReport(CoCreateInstance(CLSID_DirectPlay, NULL, CLSCTX_ALL, DPLAYREFIID, (void **)&dp));
-  assert (NULL != protocols[index].data);
-  assert (0 != protocols[index].data_size);
-  TryAndReport(dp->InitializeConnection(protocols[index].data, 0));
-	
-  WriteLog("NetInitializeProtocol() success!  Return success code");
-  return INITIALIZEPROTOCOL_SUCCESS;
-}
-
-void NetReleaseProtocol() {
-  WriteLog("NetReleaseProtocol() was called, releasing protocol");
-  assert(true == NetProtocolInitialized());
-  TryAndReport(dp->Release());
-  dp = NULL;
-  state = NETSTATE_NOGAME;
-  WriteLog("NetReleaseProtocol() finished, now leaving");
-}
-
-bool NetProtocolInitialized() {return NULL != dp;}
-
-bool NetCheckForSystemMessages() {
-  assert(NETSTATE_NOGAME != state);
-
-  while(!system_messages.empty()) {
-    WriteLog("NetCheckForSystemMessages() was called and the system_messages queue is not empty yet...");
-    DPMSG_GENERIC *msg = system_messages.front();
-    system_messages.pop();
-
-    WriteLog("switch(msg->dwType)");
-    switch(msg->dwType)
-      {
-      case DPSYS_HOST:
-	{
-	  WriteLog("case DPSYS_HOST:  we are now host!");
-	  state = NETSTATE_HOSTING;
-	  break;
-	}
-      case DPSYS_DESTROYPLAYERORGROUP:
-	{
-	  WriteLog("case DPSYS_DESTROYPLAYERORGROUP:  a player left the game!");
-	  // cast a pointer to the msg
-	  DPMSG_DESTROYPLAYERORGROUP *p_msg = (DPMSG_DESTROYPLAYERORGROUP *)msg;
-	
-	  // show the announcement of this player's joining
-	  int name_strlen = strlen(p_msg->dpnName.lpszShortNameA);
-	  string format;
-	  // load the format of this message
-	  GluStrLoad(IDS_OLDPLAYER,format);
-	  // allocate memory for buffer
-	  TCHAR *buffer = new TCHAR[name_strlen + format.length()];
-	  // post the message
-	  wsprintf(buffer,format.c_str(),(LPCTSTR)p_msg->dpnName.lpszShortName);
-				
-	  WriteLog("Posting message of player leaving to screen");
-	  GluPostMessage(buffer);
-				
-	  delete buffer;
-
-	  // get rid of old people we were counting
-	  WriteLog("Enumerating players again");
-	  NetWelcome();
-
-	  break;
-	}
-      case DPSYS_SESSIONLOST:
-	{
-	  WriteLog("case DPSYS_SESSIONLOST:  we lost the session!");
-	  delete (BYTE *)msg;
-	  WriteLog("session lost; NetCheckSystemMessages() returns true");
-	  return true;
-	}
-      case DPSYS_SETPLAYERORGROUPDATA:
-	{
-	  WriteLog("case DPSYS_SETPLAYERORGROUPDATA:  player has selected model");
-
-	  // cast a pointer to the msg
-	  DPMSG_SETPLAYERORGROUPDATA *p_msg = (DPMSG_SETPLAYERORGROUPDATA *)msg;
-	  if(us == p_msg->dpId)
-	    {
-	      WriteLog("The player in question is this computer, so ignoring the message...");
-	      break;
-	    }
-
-	  // send the player a weather state message
-	  //  note we are actually sending it to everybody,
-	  //  but oh well!
-	  WriteLog("Sending new player (and all old ones) a weather state message");
-	  NetSendWeatherStateMessage(WtrCurrentState());
-
-	  NetWelcome();
-	}
-      case DPSYS_CREATEPLAYERORGROUP:
-	{
-	  WriteLog("case DPSYS_CREATEPLAYERORGROUP:  player has joined, just post a message");
-
-	  // cast a pointer to the msg
-	  DPMSG_CREATEPLAYERORGROUP *p_msg = (DPMSG_CREATEPLAYERORGROUP *)msg;
-
-	  // show the announcement of this player's joining
-	  int name_strlen = strlen(p_msg->dpnName.lpszShortNameA);
-	  string format;
-	  // load the format of this message
-	  GluStrLoad(IDS_NEWPLAYER,format);
-	  // allocate memory for buffer
-	  TCHAR *buffer = new TCHAR[name_strlen + format.length()];
-	  // post the message
-	  wsprintf(buffer,format.c_str(),(LPCTSTR)p_msg->dpnName.lpszShortName);
-				
-	  WriteLog("Posting player join message to screen");
-	  GluPostMessage(buffer);
-
-	  delete buffer;
-	}
-
-
-	// any other cases we don't really care about or aren't expecting...
-      }
-
-    WriteLog("Deleting buffer that contained system message data");
-    delete (BYTE *)msg;
-  }
-
-  return false;
-}
-
-int NetCreateGame(int index) {
-  WriteLog("NetCreateGame called to join room %d\n" LogArg(index));
-
-  assert(NETSTATE_NOGAME == state);
-
-  WriteLog("Filling out session description of the game we want to start\n");
-  DPSESSIONDESC2 sd;
-  memset((void *)&sd,0,sizeof(sd));
-  sd.dwSize = sizeof(sd);
-  // set the flags we want
-  sd.dwFlags |= DPSESSION_DIRECTPLAYPROTOCOL;
-  sd.dwFlags |= DPSESSION_KEEPALIVE;
-  sd.dwFlags |= DPSESSION_MIGRATEHOST;
-  sd.dwFlags |= DPSESSION_NOPRESERVEORDER;
-  sd.dwFlags |= DPSESSION_OPTIMIZELATENCY;
-  sd.guidApplication = ANDRADION2GUID;
-  sd.dwMaxPlayers = MAX_PLAYERS;
-	
-  // calculate session name 
-  char session_name[2] = {'a', 0};
-  session_name[0] += (char)index;
-  sd.lpszSessionNameA = (LPSTR)session_name;
-	
-  sd.dwUser1 = 0xffffffff; // we don't know the level yet
-  sd.dwUser2 = sync_rate = GLUsync_rate;
-
-  WriteLog("Calling DirectPlay::Open\n");
-  if(FAILED(TryAndReport(dp->Open(&sd, DPOPEN_CREATE)))) {
-    WriteLog("Failed to create game session; leaving NetCreateGame\n");
-    state = NETSTATE_NOGAME;
-    return CREATEGAME_FAILURE;
-  }
-
-  WriteLog("Calling Net module's CreatePlayer\n");
-  if(FAILED(CreatePlayer())) {
-    WriteLog("Failed to create player; leaving NetCreateGame\n");
-    state = NETSTATE_NOGAME;
-    dp->Close();
-    return CREATEGAME_FAILURE;
-  }
-
-  WriteLog("Finished creating session and player\n");
-  state = NETSTATE_HOSTING;
-  return CREATEGAME_SUCCESS;
-}
-
-bool NetInGame() {
-  return NETSTATE_NOGAME != state;
-}
-
-// callback for enumerating sessions to join
-static BOOL FAR PASCAL EnumSessionsCB(LPCDPSESSIONDESC2 lpThisSD,
-				      LPDWORD,
-				      DWORD dwFlags,
-				      LPVOID context) {
+static BOOL FAR PASCAL
+FoundSession(LPCDPSESSIONDESC2 lpThisSD,
+             LPDWORD, DWORD dwFlags, LPVOID context) {
   int *const communicated = (int *)context;
 
   if(DPESC_TIMEDOUT == dwFlags) {
@@ -543,7 +353,7 @@ static BOOL FAR PASCAL EnumSessionsCB(LPCDPSESSIONDESC2 lpThisSD,
 
   // make sure we have right session name
   if('a' + char(*communicated) != lpThisSD->lpszSessionNameA[0]) {
-    WriteLog("Enumerated session of name %s; were looking for %c"
+    WriteLog("Enumerated session of name %s; were looking for %c\n"
 	     LogArg(lpThisSD->lpszSessionNameA)
 	     LogArg('a' + char(*communicated)));
     return TRUE;
@@ -562,554 +372,634 @@ static BOOL FAR PASCAL EnumSessionsCB(LPCDPSESSIONDESC2 lpThisSD,
   // get session description
   DWORD sd_size = 0;
   TryAndReport(dp->GetSessionDesc(NULL, &sd_size));
-  DPSESSIONDESC2 *sd = NULL;
+  Buffer sd_buffer(sd_size);
+  assert(sd_size >= sizeof(DPSESSIONDESC2));
+  DPSESSIONDESC2 *sd = (DPSESSIONDESC2 *)sd_buffer.Get();
 
   if(0 == sd_size ||
-     NULL == (sd = (DPSESSIONDESC2 *)new BYTE[sd_size]) ||
-     FAILED(dp->GetSessionDesc((void *)sd,&sd_size)) ||
-     sd->dwUser1 >= NUM_LEVELS) {
-    delete (BYTE *)sd;
-    dp->Close();
+     FAILED(TryAndReport(dp->GetSessionDesc(sd, &sd_size)))) {
+    TryAndReport(dp->Close());
     return FALSE;
   }
 
   // we got in!
   *communicated = (int)sd->dwUser1; // get level index
   sync_rate = sd->dwUser2;
-  delete (BYTE *)sd;
-  state = NETSTATE_JOINING;
-  assert(*communicated < NUM_LEVELS);
-  assert(*communicated >= 0);
+  sync = 0;
+  state = JOINING;
+
+  WriteLog("Successfully enumerated the game we wanted to join\n");
+
   return FALSE;
 }
 
-int NetJoinGame(int index) {
-  DPSESSIONDESC2 session;
+static BOOL FAR PASCAL
+FoundPlayer(DPID dpId, DWORD, LPCDPNAME lpName, DWORD, LPVOID) {
+  BYTE m;
+  DWORD size = 1;
   
-  // create an enumeration filter so we only get what we want
-  memset((void *)&session, 0, sizeof(session));
-  session.dwSize = sizeof(session);
-  session.guidApplication = ANDRADION2GUID;
-
-  assert(NETSTATE_NOGAME == state);
+  WriteLog("Enumeration of players callback called for player %s\n"
+           LogArg(lpName));
+	
+  if(FAILED(dp->GetPlayerData(dpId, &m, &size, DPGET_REMOTE))) {
+    WriteLog("Failed to get player data, skipping enumeration of this "
+             "participant\n");
+    return TRUE;
+  }
+  WriteLog("Player uses model %d\n" LogArg((int)m));
   
-  dp->EnumSessions(&session, 0,
-		   EnumSessionsCB, (LPVOID)&index,
-		   DPENUMSESSIONS_AVAILABLE);
-	
-  if(NETSTATE_JOINING != state) {
-    return JOINGAME_FAILURE;
-  }
-
-  // try to create our player
-  if(FAILED(CreatePlayer())) {
-    dp->Close();
-    state = NETSTATE_NOGAME;
-    return JOINGAME_FAILURE;
-  }
-
-  // return the level we play on, given by the enumeration
-  // callback function 
-  return index;
-}
-
-void NetLeaveGame() {
-  dp->Close();
-  state = NETSTATE_NOGAME;
-}
-
-bool NetRemoteLogic() {
-  const int DEFAULT_INITIAL_BUFFER_SIZE = 10;
+  feedback->CreateEnemy(m);
+  remotes.push_back(REMOTEPLAYER(dpId, lpName->lpszShortNameA));
   
-  if(NETSTATE_NOGAME == state) {
-    return false;
+  WriteLog("Finished enumerating %s, callback is returning\n"
+           LogArg(lpName->lpszShortName));
+
+  return TRUE;
+}
+
+static void RecountPlayers() throw(NetSessionLost, bad_alloc) {
+  // enumerate players getting the player data of them and therefore
+  //  their model indices
+  remotes.clear();
+  feedback->ClearEnemyArray();
+
+  WriteLog("Calling EnumPlayers to enumerate all "
+           "players and get their models\n");
+  if (FAILED(TryAndReport(dp->EnumPlayers(0, FoundPlayer,
+                                          0, DPENUMPLAYERS_REMOTE)))) {
+    NetLeaveGame();
+    throw NetSessionLost();
+  }
+}
+
+static void ProcessSystemMessage(DPMSG_GENERIC *msg)
+  throw(NetSessionLost, bad_alloc) {
+  switch(msg->dwType) {
+  case DPSYS_HOST: {
+    WriteLog("System mesage: we are new host\n");
+    state = HOSTING;
+    break;
+  }
+  case DPSYS_DESTROYPLAYERORGROUP: {
+    WriteLog("System message: player has left\n");
+    DPMSG_DESTROYPLAYERORGROUP *p_msg = (DPMSG_DESTROYPLAYERORGROUP *)msg;
+	
+    feedback->PlayerLeaving(p_msg->dpnName.lpszShortNameA);
+
+    RecountPlayers();
+    break;
+  }
+  case DPSYS_SESSIONLOST: {
+    WriteLog("System message: session lost\n");
+    throw NetSessionLost();
+  }
+  case DPSYS_SETPLAYERORGROUPDATA: {
+    WriteLog("System message: set player data\n");
+
+    DPMSG_SETPLAYERORGROUPDATA *p_msg = (DPMSG_SETPLAYERORGROUPDATA *)msg;
+    
+    if(us != p_msg->dpId) {
+      WriteLog("Telling the new player what the weather is like\n");
+      NetChangeWeather(weather);
+      RecountPlayers();
+    }
+    break;
+  }
+  case DPSYS_CREATEPLAYERORGROUP: {
+    WriteLog("System message: player has joined\n");
+
+    DPMSG_CREATEPLAYERORGROUP *p_msg = (DPMSG_CREATEPLAYERORGROUP *)msg;
+
+    WriteLog("Posting player join message to screen\n");
+    feedback->PlayerJoining(p_msg->dpnName.lpszShortNameA);
+  }
+    // there are other system messages; we don't care about them
+  }
+}
+
+static unsigned int FindPlayerIndex(DPID id)
+  throw (PlayerNotFoundException) {
+  for (int times_tried = 0; times_tried < 2; times_tried++) {
+    unsigned int i;
+    
+    for (i = 0; i < remotes.size() && id != remotes[i].id; i++)
+      ;
+
+    if (remotes.size() == i) {
+      WriteLog("Didn't find a matching player, so "
+               "enuming the players again\n");
+      RecountPlayers();
+    } else {
+      return i;
+    }
   }
 
-  // first check for messages we may have
-  // then set the coor.first coordinates of each character
-  //  by interpreting sync rate and destination coor
-  // then send a sync message if it's time
-
-  // this loop checks for messages we may have
-  BYTE *dataB = new BYTE[DEFAULT_INITIAL_BUFFER_SIZE];
-  DWORD buffer_size = DEFAULT_INITIAL_BUFFER_SIZE;
-  while(true) {
-    DPID from, to;
-    DWORD data_size = buffer_size;
-      
-    if(FAILED(dp->Receive(&from, &to, DPRECEIVE_ALL, dataB, &data_size))) {
-      if (data_size <= buffer_size) {
-	break;
-      }
-	
-      delete dataB;
-      dataB = new BYTE[buffer_size = data_size];
-      continue;
-    }
-
-    if(DPID_SYSMSG == from) {
-      WriteLog("Message was system message, putting on system_message queue, going to check for more messages, already done with this one\n");
-      system_messages.push((DPMSG_GENERIC *)dataB);
-      dataB = new BYTE[DEFAULT_INITIAL_BUFFER_SIZE];
-      buffer_size = DEFAULT_INITIAL_BUFFER_SIZE;
-      continue; 
-    }
-
-    const DWORD *const dataD = (const DWORD *)dataB;
-    const WORD *const dataW = (const WORD *)dataB;
-
-    WriteLog("Message data obtained");
-
-    // first check for messages which are
-    //  not player-dependent, meaning it don't matter who
-    //  sent them
-    // the only ones like that are the powerup pickup message and weather state message
-    if(2 == data_size) {
-      WriteLog("Message is a powerup pickup, processing...");
-      vector<CPowerUp> *v = &GLUpowerups;
-      if(dataW[0] < v->size()) {
-	// data is valid, because the index is valid
-	// get a pointer to the powerup in question
-	CPowerUp *p = &(*v)[dataW[0]];
-	if(p->type < 0) {
-	  (*v)[dataW[0]] = (*v)[v->size()-1];
-	  v->resize(v->size()-1);
-	} else {
-	  // make coor of powerups
-	  //  negative so they are invisible,
-	  //  and later on it will regenerate
-	  if(p->x > 0) {
-	    assert(p->y > 0);
-	    p->x *= -1;
-	    p->y *= -1;
-	  }
-	  p->frames_since_picked_up = 0;
-	}
-      }
-      WriteLog("Done processing message: powerup pickup\n");
-
-      continue; 
-    }
-
-    if(1 == data_size && (0x40 & dataB[0])) {
-      WriteLog("weather state change, processing message...\n");
-      WtrNextState(dataB[0] & ~0x40);
-      WriteLog("Done processing message: weather state change\n");
-      continue;
-    }
-		
-    WriteLog("Sending player of message is important, checking for match with database of remote players");
-    DWORD i;
-    for(i = 0; i < remotes.size() && remotes[i].id != from; i++) {}
-
-    if(remotes.size() == i)
-      {
-	WriteLog("Didn't find a matching player, so enumerating the players again with call to NetWelcome()");
-	NetWelcome();
-	WriteLog("NetWelcome() returned, leaving RemoteLogic function for now");
-	delete dataB;
-	return true;
-      }
-
-    WriteLog("Found matching player: %d, named %s" LogArg(i) LogArg(remotes[i].name.c_str()));
-
-    if(6 == data_size)
-      {
-	WriteLog("We got a death msg, someone died, processing...");
-	// get a pointer to the powerup vector
-	vector<CPowerUp> *p;
-	p = &GLUpowerups;
-	CPowerUp new_p;
-	FIXEDNUM got_data[NUM_WEAPONS]; // must convert data into fixed point form
-
-	for(int j = 0; j < NUM_WEAPONS; j++)
-	  {
-	    got_data[j] = (FIXEDNUM)dataW[j];
-	  }
-
-	new_p.Setup
-	  (
-	   GLUenemies[i].coor.first.x,
-	   GLUenemies[i].coor.first.y,
-	   got_data
-	   );
-
-	// add new powerup to end of vector
-	p->resize(p->size()+1,new_p);
-
-	WriteLog("Finished processing message: death message");
-	continue;
-      }
-		
-    if(4 == data_size)
-      {
-	WriteLog("Got a sync message; processing...");
-	remotes[i].loc_at_start_of_sync = remotes[i].loc_at_end_of_sync;
-	remotes[i].loc_at_end_of_sync.x = FixedCnvTo<long>((dataD[0] >> 12)&0xfff);
-	remotes[i].loc_at_end_of_sync.y = FixedCnvTo<long>((dataD[0]) & 0xfff);
-	remotes[i].sync = 0;
-	// get current weapon: bit shift and mask
-	GLUenemies[i].current_weapon = (dataD[0] >> 24) & 3;
-	// get direction: bit shift and mask
-	GLUenemies[i].direction = (dataD[0] >> 26);
-
-	WriteLog("Finished processing message: sync message");
-	continue;
-      }
-		
-    if(3 == data_size)
-      {
-	WriteLog("Got a bazooka fired message; processing");
-
-	// look for open projectile slot
-	CFire *fires = GLUfires;
-	for(i = 0; i < MAX_FIRES; i++)
-	  {
-	    if(fires[i].OkayToDelete())
-	      {
-		break;
-	      }
-	  }
-
-	if(MAX_FIRES != i)
-	  {
-	    fires += i;
-	    DWORD x;
-	    DWORD y;
-	    // extract 12 least significant bits for y, the 12 more sig bits for x
-	    x = (DWORD)(dataB[1] >> 4) | ((DWORD)dataB[2] << (DWORD)4);
-	    y = dataW[0] & 0xfff;
-	    // call fire setup for remotely created bazookas
-	    fires->Setup
-	      (
-	       GLUenemies[i].coor.first.x,GLUenemies[i].coor.first.y,FixedCnvTo<long>(x),FixedCnvTo<long>(y)
-	       );				
-	  }
-
-	WriteLog("Finished processing message: bazooka fire message");
-
-	continue;
-      }
-
-    if(0x80 & dataB[0])
-      {
-	WriteLog("Got a weapon change message; processing");
-	GLUenemies[i].current_weapon = dataB[0] & ~0x80;
-	WriteLog("Finished processing message: weapon change message");
-	continue;
-      }
-
-    if(0xc0 & dataB[0])
-      {
-	WriteLog("Got a pistol fire message; processing");
-
-	// look for a good slot to use
-	int j;
-	for(j = 0; j < MAX_FIRES; i++)
-	  {
-	    if(GLUfires[j].OkayToDelete())
-	      {
-		// we found memory that the CFire object can occupy
-		break;
-	      }
-	  }
-	
-	if(MAX_FIRES != j)
-	  {
-	    // a good slot was found
-	    GLUfires[j].Setup(GLUenemies[i].X(),GLUenemies[i].Y(),dataB[0] & 0xc0,WEAPON_PISTOL,true);
-	  }
-			
-	WriteLog("Finished processing message: pistol fire message");
-	continue;
-      }
-
-    if(0 == dataB[0])
-      {
-	WriteLog("Got an admit hit message; processing");
-	GLUenemies[i].state = CHARSTATE_HURT;
-	GLUenemies[i].frames_in_this_state = 0;
-	WriteLog("Finished processing message: admit hit message");
-	continue;
-      }
-
-    if(1 == dataB[0])
-      {
-	WriteLog("Got a start fire message; processing");
-	remotes[i].firing = true;
-	WriteLog("Done processing message: start fire message");
-	continue;
-      }
-
-    if(2 == dataB[0])
-      {
-	WriteLog("Got a stop fire message; processing");
-	remotes[i].firing = false;
-	WriteLog("Done processing message: stop fire message");
-	continue;
-      }
-
-    WriteLog("Got a hit w/pistol or machine gun message; processing");
-    GLUhero.SubtractHealth(dataB[0]-3);
-    WriteLog("Done processing message: hit w/pistol or machine gun message");
-  }
-
-  delete dataB;
-
-  // see if we should send a synchronization message
-  if(++sync >= sync_rate)
-    {
-      WriteLog("Sending synchronization message");
-      sync = 0;
-      DWORD sync_data = 0;
-		
-      // calculate where we will be at the end of the sync
-      CCharacter *hero = &GLUhero;
-      int end_x, end_y;
-      if(hero->coor.first.x != hero->coor.second.x || hero->coor.first.y != hero->coor.second.y) {
-	// we are going to move!
-	POINT *start = &hero->coor.first;
-	FIXEDNUM dir_x, dir_y;
-	FIXEDNUM speed = FixedMul(HEROSPEED, HEROSPEED_MPFACTOR);
-	GluInterpretDirection(hero->direction,dir_x,dir_y);
-
-	if(CHARSTATE_HURT == hero->state) {
-	  speed = FixedMul(speed, HEROSPEED_HURTFACTOR);
-	}
-
-	dir_x = FixedMul(dir_x, sync_rate * speed);
-	dir_y = FixedMul(dir_y, sync_rate * speed);
-
-	end_x = FixedCnvFrom<long>(start->x + dir_x) & 4095;
-	end_y = FixedCnvFrom<long>(start->y + dir_y) & 4095;
-      } else {
-	end_x = FixedCnvFrom<long>(hero->coor.first.x);
-	end_y = FixedCnvFrom<long>(hero->coor.first.y);
-      }
-
-      // add the coordinates to the data
-      sync_data |= end_y;
-      sync_data |= (end_x << 12);
-
-      // add the weapon type
-      sync_data |= hero->current_weapon << 24;
-	
-      // add the direction
-      sync_data |= hero->direction << 26;
-
-      WriteLog("Finished processing synchronization data, about to send");
-      dp->SendEx(
-		 us,
-		 DPID_ALLPLAYERS,
-		 DPSEND_ASYNC | DPSEND_NOSENDCOMPLETEMSG,
-		 (void *)&sync_data,
-		 4,
-		 0,
-		 0,
-		 NULL,
-		 NULL
-		 );
-      WriteLog("Finished sending sync message");
-    }
-
-  int enemy_count = remotes.size();
-  assert(GLUenemies.size() == enemy_count);
-
-  for(int i = 0; i < enemy_count; i++)
-    {
-      POINT *where_ya_at = &GLUenemies[i].coor.second;
-
-      // this variable will be used for calculations of both x and y
-      int range = remotes[i].loc_at_end_of_sync.x - remotes[i].loc_at_start_of_sync.x;
-
-      // how far we are through the sync of this enemy
-      FIXEDNUM progress_factor =	FixedCnvTo<long>(remotes[i].sync) / sync_rate;
-
-      // multiply range by a progress factor
-      range = FixedCnvFrom<long>(progress_factor * range);
-		
-      where_ya_at->x = remotes[i].loc_at_start_of_sync.x + range;
-		
-      // now start calculating y coordinate like we did x
-      range = remotes[i].loc_at_end_of_sync.y - remotes[i].loc_at_start_of_sync.y;
-
-      // multiply range once again by a progress factor
-      range = FixedCnvFrom<long>(progress_factor * range);
-
-      where_ya_at->y = remotes[i].loc_at_start_of_sync.y + range;
-    }
-
-  return true;
+  WriteLog("The player with the given ID has left\n");
+  throw PlayerNotFoundException();
 }
 
-void NetSendWeaponChangeMessage(int type)
-{
-  assert(type >= 0);
-  assert(type < NUM_WEAPONS);
+void NetInitialize() throw(std::bad_alloc) {
+  IDirectPlay4A *dp;
+  
+  WriteLog("NetInitialize() called\n");
 
-  if(NETSTATE_NOGAME != state)
-    {
-      // no need to send it guaranteed; if it doesn't
-      //  get there, the others will know within the next
-      //  sync message
-      SimpleMessage(0x80 | (BYTE)type,false);
-    }
-  WriteLog("Sent message: weapon change message, change to weapon %d" LogArg(type));
-}
-
-void NetSendPowerUpPickUpMessage(int  powerup_index)
-{
-  if(NETSTATE_NOGAME == state || powerup_index > 0xff)
-    {
-      // index too high or not playing a game anyway, so just quit
-      return;
-    }
-
-  WORD msg = WORD(BYTE(powerup_index));
-
-  // send the message
-  dp->SendEx
-    (
-     us,DPID_ALLPLAYERS,DPSEND_NOSENDCOMPLETEMSG | DPSEND_ASYNC | DPSEND_GUARANTEED,(void *)&msg,2,0,0,NULL,NULL
-     );
-	
-  WriteLog("Sent message: powerup pickup message, picked up powerup w/index of %d" LogArg(powerup_index));
-}
-
-void NetSendHitMessage(int player,int weapon_type)
-{
-  if(NETSTATE_NOGAME == state) {
-      GLUenemies[player].SubtractHealth(weapon_type);
-  } else {
-    // do something
-    BYTE send = 4+(BYTE)weapon_type;
-
-    // we hit you! mwa ha ha!
-    dp->SendEx(us, remotes[player].id,
-	       DPSEND_NOSENDCOMPLETEMSG | DPSEND_ASYNC | DPSEND_GUARANTEED,
-	       (void *)&send, 1, 0, 0, NULL, NULL);
-  }
-
-  WriteLog("Sent message: hit message, we hit player w/index of %d, w/weapon w/index of %d" LogArg(player) LogArg(weapon_type));
-}
-
-void NetSendAdmitHitMessage() {
-  if(NETSTATE_NOGAME != state) {
-    SimpleMessage(0,false);
-  }
-  WriteLog("Sent message: admit hit message");
-}
-
-void NetSendBazookaFireMessage(FIXEDNUM x,FIXEDNUM y)
-{
-  if(NETSTATE_NOGAME == state || x >= Fixed(4096) || y >= Fixed(4096)) {
-    // coordinates too high, don't care, or not in game...
+  if (NOTINIT != state) {
     return;
   }
 
-  // check validity of x and y (cannot be negative)
-  if(x < 0) {x = 0;}
-  if(y < 0) {y = 0;}
+  if(FAILED(CoInitialize(NULL))) {
+    WriteLog("CoInitialize() Failed, no protos will be init'd\n");
+    throw bad_alloc();
+  }
 
-  DWORD msg; // only three bytes will be transferred
-  x = FixedCnvFrom<long>(x);
-  y = FixedCnvFrom<long>(y);
+  // get a list of all the protocols
+  WriteLog("Creating temporary DirectPlay interface "
+           "to enum protos\n");
+  if(SUCCEEDED(CoCreateInstance(CLSID_DirectPlay, NULL, CLSCTX_ALL,
+                                IID_IDirectPlay4A, (VOID**)&dp))) {
+    BOOL mem_error = FALSE;
+    WriteLog("DirectPlay created!  Now calling enum method\n");
+    TryAndReport(dp->EnumConnections(&ANDRADION2GUID, FoundProtocol,
+                                     &mem_error, DPCONNECTION_DIRECTPLAY));
+    TryAndReport(dp->Release());
 
-  msg = (DWORD)y;
-  msg |= ((DWORD)x << 12);
-
-  dp->SendEx(us,DPID_ALLPLAYERS,DPSEND_NOSENDCOMPLETEMSG | DPSEND_ASYNC | DPSEND_GUARANTEED,(void *)&msg,3,0,0,NULL,NULL);
-
-  WriteLog("Sent message: bazooka fire message, explosion at %d,%d" LogArg(FixedCnvFrom<long>(x)) LogArg(FixedCnvFrom<long>(y)));
-}
-
-void NetSendDeathMessage(FIXEDNUM *ammo) {
-  assert(NETSTATE_NOGAME != state);
-  WORD ammo_send[NUM_WEAPONS];
+    if (mem_error) {
+      throw bad_alloc();
+    }
+  }
 	
-  for(int i = 0; i < NUM_WEAPONS; i++) {
-    ammo_send[i] = Fixed(1) <= ammo[i] ? 0-1 : (WORD)ammo[i];
-  }
-
-  dp->SendEx(us, DPID_ALLPLAYERS,
-	     DPSEND_ASYNC | DPSEND_GUARANTEED | DPSEND_NOSENDCOMPLETEMSG,
-	     (void *)ammo_send, NUM_WEAPONS * sizeof(WORD),
-	     0,0,NULL,NULL);
-
-  WriteLog("Sent message: death message");
-}
-
-void NetSendMachineGunFireStartMessage() {
-  if(NETSTATE_NOGAME != state) {
-    SimpleMessage(2,false);
-  }
-
-  WriteLog("Sent message: machine gun fire start message");
-}
-
-void NetSendMachineGunFireStopMessage()
-{
-  if(NETSTATE_NOGAME != state) {
-    SimpleMessage(3,false);
-  }
-
-  WriteLog("Sent message: machine gun fire stop message");
-}
-
-HRESULT CreatePlayer() {
-  // now create the player
-  DPNAME our_name;
-  our_name.dwSize = sizeof(our_name);
-  our_name.dwFlags = 0;
-  our_name.lpszLongName = our_name.lpszShortName =
-    (LPWSTR)GLUname.c_str();
-	
-  HRESULT hr = dp->CreatePlayer(&us,&our_name,NULL,NULL,0,0);
-  if(FAILED(hr)) {return hr;}
-
-  // set player's data
-  BYTE player_data = (BYTE)GLUhero.Model(); // set the player's data to its model to use
-
-  hr = dp->SetPlayerData(us,(void *)&player_data,1,DPSET_GUARANTEED | DPSET_REMOTE);
-  if(FAILED(hr)) {
-    // we failed, destroy the player...
-    dp->DestroyPlayer(us);
-  }
-
-  return hr;
-}
-
-void SimpleMessage(BYTE data, bool guaranteed) {
-  // the caller should have checked if we were in the game
-  assert(NETSTATE_NOGAME != state);
-
-  DWORD flags = guaranteed
-    ? DPSEND_ASYNC | DPSEND_NOSENDCOMPLETEMSG | DPSEND_GUARANTEED
-    : DPSEND_ASYNC | DPSEND_NOSENDCOMPLETEMSG;
+  state = NOGAME;
   
-  dp->SendEx(us, DPID_ALLPLAYERS, flags, &data, 1, 0, 0, NULL, NULL);
-
-  WriteLog("Sent a simple message (1-byte of data to all players), "
-	   "containing number: %d\n" LogArg((int)data));
+  WriteLog("Now leaving NetInitialize()\n");
 }
 
-bool NetSendWeatherStateMessage(int weather_state) {
-  if(NETSTATE_JOINING == state) {
-    WriteLog("Did not send message: weather state message, but were "
-	     "going to, because we are not host\n");
-    return false;
-  } else if(NETSTATE_HOSTING == state) {
-    SimpleMessage(0x40 | weather_state,true);
-    WriteLog("Sent message: weather state message\n");
-  }	
+void NetRelease() throw() {
+  if (NOTINIT != state) {
+    WriteLog("Releasing...\n");
+    NetReleaseProtocol();
 
-  return true;
-}
+    CoUninitialize();
+    protocols.clear();
 
-void NetSendPistolFireMessage(int direction) {
-  if(NETSTATE_NOGAME != state) {
-    SimpleMessage(0xc0 | direction,false);
+    state = NOTINIT;
   }
 
-  WriteLog("Sent message: pistol fire message\n");
+  WriteLog("Now leaving NetRelease()\n");
 }
+
+const char *NetProtocolName(unsigned int protocol_index) throw() {
+  assert(protocol_index < protocols.size());
+  return protocols[protocol_index].first.c_str();
+}
+
+unsigned int NetProtocolCount() throw() {
+  assert(NOTINIT != state);
+  return protocols.size();
+}
+
+void NetInitializeProtocol(unsigned int index) throw() {
+  assert(index < protocols.size());
+  assert(NOTINIT != state);
+
+  NetReleaseProtocol();
+  
+  WriteLog("NetInitializeProtocol() called to start protocol "
+           "#%d\n" LogArg(index));
+
+  TryAndReport(CoCreateInstance(CLSID_DirectPlay, 0, CLSCTX_ALL,
+                                IID_IDirectPlay4A, (void **)&dp));
+  TryAndReport(dp->InitializeConnection(protocols[index].second.Get(), 0));
+	
+  WriteLog("NetInitializeProtocol() finished\n");
+
+  assert(NetProtocolInitialized());
+}
+
+void NetReleaseProtocol() throw() {
+  WriteLog("NetReleaseProtocol() was called, releasing protocol\n");
+  
+  if (NetProtocolInitialized()) {
+    NetLeaveGame();
+
+    TryAndReport(dp->Release());
+  
+    dp = 0;
+    state = NOGAME;
+  }
+  
+  WriteLog("NetReleaseProtocol() finished, now leaving\n");
+
+  assert(!NetInGame() && !NetProtocolInitialized());
+}
+
+bool NetProtocolInitialized() throw() {return bool(dp);}
+
+void NetCreateGame(unsigned int index, unsigned int sr,
+                   unsigned int initial_weather_state,
+                   unsigned int player_model, const char *player_name,
+                   auto_ptr<NetFeedback> fb)
+  throw(NetCreateFailure) {
+  try {
+    assert(NetProtocolInitialized());
+    NetLeaveGame();
+
+    WriteLog("NetCreateGame called to join room %d\n" LogArg(index));
+
+    DPSESSIONDESC2 sd;
+    memset((void *)&sd, 0, sizeof(sd));
+    sd.dwSize = sizeof(sd);
+    sd.dwFlags = SESSION_FLAGS | DPSESSION_JOINDISABLED;
+    sd.guidApplication = ANDRADION2GUID;
+    sd.dwMaxPlayers = MAX_PLAYERS;
+	
+    // calculate session name 
+    char session_name[2] = {'a', 0};
+    session_name[0] += (char)index;
+    room_index = index;
+    sd.lpszSessionNameA = session_name;
+	
+    sd.dwUser1 = 0xffffffff; // we don't know the level yet
+    sd.dwUser2 = sync_rate = sr;
+    sync = 0;
+
+    WriteLog("Calling DirectPlay::Open\n");
+    if(FAILED(TryAndReport(dp->Open(&sd, DPOPEN_CREATE)))) {
+      WriteLog("Failed to create game session; leaving NetCreateGame\n");
+      throw NetCreateFailure();
+    }
+
+    WriteLog("Calling Net module's CreatePlayer\n");
+    CreatePlayer(player_model, player_name);
+    WriteLog("Finished creating session and player\n");
+    state = HOSTING;
+    feedback = fb.release();
+    feedback->ClearEnemyArray();
+
+    assert(NetInGame() && NetIsHost());
+  } catch (CreatePlayerFailure& cpf) {
+    WriteLog("Failed to create player; leaving NetCreateGame\n");
+    dp->Close();
+    throw NetCreateFailure();
+  }
+
+}
+
+void NetSetLevelIndex(unsigned int index) throw(NetSessionLost) {
+  if (NetIsHost()) {
+    DPSESSIONDESC2 sd;
+    char session_name[2] = {'a', 0};
+    
+    memset(&sd, 0, sizeof(sd));
+    sd.dwSize = sizeof(sd);
+    sd.dwFlags = SESSION_FLAGS;
+    session_name[0] += room_index;
+    sd.dwMaxPlayers = MAX_PLAYERS;
+    sd.lpszSessionNameA = session_name;
+    sd.dwUser1 = index;
+    sd.dwUser2 = sync_rate;
+    sd.guidApplication = ANDRADION2GUID;
+
+    if (FAILED(dp->SetSessionDesc(&sd, 0))) {
+      throw NetSessionLost();
+    }
+  }
+}
+
+bool NetInGame() throw() {return NOGAME != state && NOTINIT != state;}
+
+bool NetIsHost() throw() {return HOSTING == state;}
+
+unsigned int NetJoinGame(unsigned int index, unsigned int player_model,
+                         const char *player_name, auto_ptr<NetFeedback> fb)
+  throw(NetJoinFailure) {
+  try {
+    DPSESSIONDESC2 session;
+
+    assert(NetProtocolInitialized());
+    NetLeaveGame();
+  
+    // create an enumeration filter so we only get what we want
+    memset((void *)&session, 0, sizeof(session));
+    session.dwSize = sizeof(session);
+    session.guidApplication = ANDRADION2GUID;
+
+    room_index = index;
+
+    TryAndReport(dp->EnumSessions(&session, 0,
+                                  FoundSession, (LPVOID)&index,
+                                  DPENUMSESSIONS_AVAILABLE));
+
+    if(JOINING != state) {
+      WriteLog("Enumeration did not change state\n");
+      throw NetJoinFailure();
+    }
+
+    WriteLog("Trying to create our player\n");
+    CreatePlayer(player_model, player_name);
+
+    WriteLog("Clearing enemy data on local machine\n");
+    feedback = fb.release();
+    feedback->ClearEnemyArray();
+
+    WriteLog("Successfully Joined game\n");
+    assert(NetInGame() && !NetIsHost());
+    
+    return index;
+  } catch (CreatePlayerFailure& cpf) {
+    dp->Close();
+    state = NOGAME;
+    throw NetJoinFailure();
+  }
+}
+
+void NetLeaveGame() throw() {
+  if (NetInGame()) {
+    dp->Close();
+    state = NOGAME;
+    delete feedback;
+    feedback = 0;
+  }
+}
+
+void NetLogic() throw(NetSessionLost, std::bad_alloc) {
+  if(!NetInGame()) {
+    return;
+  }
+
+  // this loop checks for messages we may have
+  Buffer msg_buffer(DEFAULT_INITIAL_BUFFER_SIZE);
+
+  while(true) {
+    DPID from, to;
+    DWORD data_size = msg_buffer.Size();
+    bool has_message;
+
+    WriteLog("Checking for Net message\n");
+      
+    switch(dp->Receive(&from, &to, DPRECEIVE_ALL,
+                       msg_buffer.Get(), &data_size)) {
+    case DPERR_BUFFERTOOSMALL:
+      WriteLog("Reallocating %d bytes\n" LogArg(data_size));
+      msg_buffer.Reallocate(data_size);
+      continue;
+    case DP_OK:
+      WriteLog("Message found\n");
+      has_message = true;
+      break;
+    case DPERR_NOMESSAGES:
+      WriteLog("No more messages\n");
+      has_message = false;
+      break;
+    default:
+      WriteLog("Severe error\n");
+      NetLeaveGame();
+      throw NetSessionLost();
+    }
+
+    if (!has_message) {
+      break;
+    }
+
+    if (DPID_SYSMSG == from) {
+      ProcessSystemMessage((DPMSG_GENERIC *)msg_buffer.Get());
+      continue;
+    }
+
+    try {
+      switch (data_size) {
+      case MSGSIZE_PICKUPPOWERUP:
+        WriteLog("Power up was picked up...\n");
+        feedback->PickUpPowerUp(*(WORD *)msg_buffer.Get());
+        break;
+      case MSGSIZE_SYNC: {
+        unsigned int player = FindPlayerIndex(from);
+        DWORD d = *(DWORD *)msg_buffer.Get();
+        WORD x = WORD((d >> 12) & 0x0fff);
+        WORD y = WORD(d & 0x0fff);
+        unsigned int weapon = (d >> 27) & 3;
+        unsigned int direction = (d >> 24) & 7;
+
+        WriteLog("Got a sync message; processing...\n");
+
+        feedback->SetEnemyPosition(player, x, y);
+        feedback->SetEnemyWeapon(player, weapon);
+        feedback->SetEnemyDirection(player, direction);
+
+        remotes[player].firing = bool(d & 0x40000000);
+        remotes[player].walking = bool(d & 0x20000000);
+
+        WriteLog("Finished processing message: sync message\n");
+        break;
+      }
+      case MSGSIZE_DIED: {
+        unsigned int player = FindPlayerIndex(from);
+        WriteLog("We got a death msg, someone died, processing...\n");
+        feedback->KillEnemy(player, (WORD *)msg_buffer.Get());
+        break;
+      }
+      case MSGSIZE_FIREBAZOOKA: {
+        unsigned int player = FindPlayerIndex(from);
+        BYTE *as_bytes = (BYTE *)msg_buffer.Get();
+        WriteLog("Got a bazooka fired message; processing\n");
+        DWORD x = ((as_bytes[1] >> 4) & 0x0f) | ((DWORD)as_bytes[2] << 4);
+        DWORD y = (DWORD)as_bytes[0] | ((DWORD)(as_bytes[1] & 0x0f) << 8);
+        feedback->EnemyFiresBazooka(player, x, y);
+        WriteLog("Finished processing message: bazooka fire message\n");
+        break;
+      }
+      case 1: {
+        BYTE type = *(BYTE *)msg_buffer.Get();
+        BYTE data = type & ~MSGTYPE_BITS;
+        unsigned int player = FindPlayerIndex(from);
+        type &= MSGTYPE_BITS;
+      
+        switch (type) {
+        case MSGTYPE_CHANGEWEATHER:
+          WriteLog("Weather state was changed...\n");
+          feedback->SetWeatherState(data);
+          break;
+        case MSGTYPE_CHANGEWEAPON: 
+          WriteLog("Weapon change message; processing\n");
+          feedback->SetEnemyWeapon(player, data);
+          break;
+        case MSGTYPE_FIREPISTOL: 
+          WriteLog("Pistol fire message\n");
+          feedback->SetEnemyDirection(player, data);
+          feedback->EnemyFiresPistol(player);
+          break;
+        case MSGTYPE_ADMITHIT: 
+          WriteLog("Admit hit message\n");
+          feedback->HurtEnemy(player);
+          break;
+        case MSGTYPE_STARTFIRINGMACHINEGUN: 
+          WriteLog("Start firing machine gun message\n");
+          remotes[player].firing = true;
+          feedback->SetEnemyDirection(player, data);
+          break;
+        case MSGTYPE_STOPFIRINGMACHINEGUN:
+          WriteLog("Stop firing machine gun message\n");
+          remotes[player].firing = false;
+          break;
+        case MSGTYPE_HIT:
+          WriteLog("[I] Hit [you] message\n");
+          feedback->HurtHero(data);
+          break;
+        case MSGTYPE_STARTMOVING:
+          remotes[player].walking = true;
+          feedback->SetEnemyDirection(player, data);
+          break;
+        case MSGTYPE_STOPMOVING:
+          remotes[player].walking = false;
+          break;
+        default:
+          WriteLog("UNKNOWN 1-BYTE MESSAGE OF TYPE %d\n" LogArg(type));
+        }
+      
+        break;
+      }
+      default:
+        WriteLog("UNKNOWN MESSAGE OF SIZE %d\n" LogArg(data_size));
+      }
+    } catch (PlayerNotFoundException& pnfe) {
+      WriteLog("A message was sent by an absent player\n");
+      // ignoring this message
+    }
+  }
+
+  for(unsigned int i = 0; i < remotes.size(); i++) {
+    if (remotes[i].walking) {
+      feedback->WalkEnemy(i);
+    }
+
+    if (remotes[i].firing) {
+      feedback->EnemyFiresMachineGun(i);
+    }
+  }
+
+  if (++sync >= sync_rate) {
+    sync = 0;
+
+    SendSyncMsg(x_pos, y_pos, direction, weapon,
+                walking, firing_machine_gun);
+  }
+}
+
+void NetFireBazooka(unsigned short x, unsigned short y) throw() {
+  assert(ValidCoordinate(x) && ValidCoordinate(y));
+  
+  if (NetInGame()) {
+    BYTE data[MSGSIZE_FIREBAZOOKA];
+
+    data[0] = BYTE(x >> 4);
+  
+    data[1] = BYTE(x & 0x0f);
+    data[1] <<= 4;
+    data[1] |= BYTE(y >> 8);
+  
+    data[2] = BYTE(y & 0xff);
+
+    dp->SendEx(us, DPID_ALLPLAYERS,
+               DPSEND_ASYNC | DPSEND_NOSENDCOMPLETEMSG | DPSEND_GUARANTEED,
+               data, MSGSIZE_FIREBAZOOKA,
+               0, 0, 0, 0);
+  }
+}
+
+void NetFireMachineGun(bool firing) throw() {
+  if (NetInGame()) {
+    if (firing_machine_gun) {
+      if (!firing) {
+        SendSimpleMsg(MSGTYPE_STOPFIRINGMACHINEGUN, false);
+      }
+    } else if (firing) {
+      SendSimpleMsg(MSGTYPE_STARTFIRINGMACHINEGUN | direction, false);
+    }
+    firing_machine_gun = firing;
+  }
+}
+
+void NetSetWeapon(unsigned int type) throw() {
+  assert(ValidWeapon(weapon));
+  
+  if (NetInGame() && weapon != type) {
+    weapon = type;
+    SendSimpleMsg(MSGTYPE_CHANGEWEAPON | weapon, false);
+  }
+}
+
+void NetDied(WORD *ammo) throw() {
+  if (NetInGame()) {
+    dp->SendEx(us, DPID_ALLPLAYERS,
+               DPSEND_ASYNC | DPSEND_NOSENDCOMPLETEMSG | DPSEND_GUARANTEED,
+               ammo, MSGSIZE_DIED, 0, 0, 0, 0);
+  }
+}
+
+void NetSetPosition(unsigned short new_x,
+                    unsigned short new_y,
+                    unsigned int new_dir) throw() {
+  assert(ValidCoordinate(new_x) && ValidCoordinate(new_y));
+  assert(ValidDirection(new_dir));
+
+  if (NetInGame()) {
+    if (walking) {
+      if (new_dir != direction) {
+        SendSimpleMsg(MSGTYPE_STARTMOVING | new_dir, false);
+      } else if (new_x == x_pos && new_y == y_pos) {
+        walking = false;
+        SendSimpleMsg(MSGTYPE_STOPMOVING, false);
+      }
+    } else if (new_x != x_pos || new_y != y_pos) {
+      walking = true;
+      SendSimpleMsg(MSGTYPE_STARTMOVING | new_dir, false);
+    }
+
+    x_pos = new_x;
+    y_pos = new_y;
+    direction = new_dir;
+  }
+}
+
+void NetAdmitHit() throw() {
+  if (NetInGame()) {
+    SendSimpleMsg(MSGTYPE_ADMITHIT, true);
+  }
+}
+
+void NetHit(unsigned int player,
+            unsigned int weapon_type) throw() {
+  assert(ValidWeapon(weapon_type));
+
+  if (NetInGame()) {
+    DPID to = remotes[player].id;
+    BYTE data = weapon_type | MSGTYPE_HIT;
+
+    dp->SendEx
+      (us, to, DPSEND_ASYNC | DPSEND_NOSENDCOMPLETEMSG | DPSEND_GUARANTEED,
+       &data, 1, 0, 0, 0, 0);
+  }    
+}
+
+void NetPickUpPowerUp(unsigned short powerup_index) throw() {
+  if (NetInGame()) {
+    dp->SendEx(us, DPID_ALLPLAYERS, DPSEND_ASYNC
+               | DPSEND_NOSENDCOMPLETEMSG | DPSEND_GUARANTEED,
+               &powerup_index, MSGSIZE_PICKUPPOWERUP, 0, 0, 0, 0);
+  }
+}
+
+void NetFirePistol(unsigned int dir) throw() {
+  assert(ValidDirection(dir));
+  if (NetInGame()) {
+    SendSimpleMsg(MSGTYPE_FIREPISTOL | dir, false);
+  }
+}
+
+void NetChangeWeather(unsigned int new_weather) throw() {
+  assert(ValidWeatherState(new_weather));
+  if (NetInGame()) {
+    weather = new_weather;
+    SendSimpleMsg(MSGTYPE_CHANGEWEATHER | weather, true);
+  }
+}
+

@@ -1,14 +1,11 @@
-class CCharacter;
+class CLevelEnd {
+public:
+  CLevelEnd(FIXEDNUM x_, FIXEDNUM y_, int ref_)
+    : x(x_), y(y_), ref(ref_) {}
+  bool Collides(FIXEDNUM tx, FIXEDNUM ty) const;
+  int Reference() const {return ref;}
 
-class CLevelEnd  
-{
- public:
-  void Setup(FIXEDNUM x_,FIXEDNUM y_,int reference_) {x = x_; y = y_; reference = reference_;}
-  bool Collides(const CCharacter& ch);
-  int Reference() const {return this->reference;}
-
- private:
-  FIXEDNUM x;
-  FIXEDNUM y;
-  int reference;
+private:
+  FIXEDNUM x, y;
+  int ref;
 };

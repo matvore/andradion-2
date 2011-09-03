@@ -22,11 +22,7 @@
 #include <iostream>
 #include <string>
 
-using std::cout;
-using std::cin;
-using std::string;
-using std::endl;
-using std::ofstream;
+using namespace std;
 
 const int SECTOR_WIDTH = 160;
 const int SECTOR_HEIGHT = 100;
@@ -34,162 +30,148 @@ const int SECTOR_AREA = 100 * 160;
 
 struct BMPFILE24B
 {
-	BITMAPFILEHEADER bmp_header;
-	BITMAPINFOHEADER info_header;
-	RGBTRIPLE data[SECTOR_HEIGHT][SECTOR_WIDTH];
+  BITMAPFILEHEADER bmp_header;
+  BITMAPINFOHEADER info_header;
+  RGBTRIPLE data[SECTOR_HEIGHT][SECTOR_WIDTH];
 };
 
 static void WriteBmp(const char *fn,const BMPFILE24B& d)
 {
-	HANDLE f = CreateFile(fn,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
+  HANDLE f = CreateFile(fn,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL);
 
-	DWORD written;
-	WriteFile(f,(const void *)&d.bmp_header,sizeof(BITMAPFILEHEADER),&written,NULL);
-	WriteFile(f,(const void *)&d.info_header,sizeof(BITMAPINFOHEADER),&written,NULL);
-	WriteFile(f,(const void *)&d.data[0][0],SECTOR_AREA*sizeof(RGBTRIPLE),&written,NULL);
+  DWORD written;
+  WriteFile(f,(const void *)&d.bmp_header,sizeof(BITMAPFILEHEADER),&written,NULL);
+  WriteFile(f,(const void *)&d.info_header,sizeof(BITMAPINFOHEADER),&written,NULL);
+  WriteFile(f,(const void *)&d.data[0][0],SECTOR_AREA*sizeof(RGBTRIPLE),&written,NULL);
 
-	CloseHandle(f);
+  CloseHandle(f);
+}
+
+  
+
+void Sectorize(string input, ostream& cmb)
+{
+  string path = "C:\\Andradion 2\\levels\\";
+
+  string source = path + input + ".bmp";
+  string bat_file = "C:\\Andradion 2\\Resource\\" + input + ".bat";
+
+  HBITMAP loaded = (HBITMAP)LoadImage(NULL,source.c_str(),IMAGE_BITMAP,0,0,LR_CREATEDIBSECTION|LR_LOADFROMFILE);
+  HDC loaded_dc = CreateCompatibleDC(NULL);
+  HGDIOBJ old_bitmap_loaded_dc = SelectObject(loaded_dc,(HGDIOBJ)loaded);
+
+  BITMAP loaded_info;
+
+  GetObject((HGDIOBJ)loaded,sizeof(loaded_info),(void *)&loaded_info);
+
+  int width = loaded_info.bmWidth / SECTOR_WIDTH;
+  int height = loaded_info.bmHeight / SECTOR_HEIGHT;
+
+  if(0 != loaded_info.bmWidth % SECTOR_WIDTH || loaded_info.bmWidth < SECTOR_WIDTH)
+    {
+      width++;
+    }
+	
+  if(0 != abs(loaded_info.bmHeight) % SECTOR_HEIGHT || loaded_info.bmHeight < SECTOR_HEIGHT)
+    {
+      height++;
+    }
+
+  BMPFILE24B new_bmp;
+  new_bmp.bmp_header.bfType = 0x4d42;
+  new_bmp.bmp_header.bfSize = sizeof(BMPFILE24B);
+  new_bmp.bmp_header.bfReserved1 = 0;
+  new_bmp.bmp_header.bfReserved2 = 0;
+  new_bmp.bmp_header.bfOffBits = sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER);
+						
+  new_bmp.info_header.biSize = sizeof(BITMAPINFOHEADER);
+  new_bmp.info_header.biWidth = SECTOR_WIDTH;
+  new_bmp.info_header.biHeight = SECTOR_HEIGHT;
+  new_bmp.info_header.biPlanes = 1;
+  new_bmp.info_header.biBitCount = 24;
+  new_bmp.info_header.biCompression = BI_RGB;
+  new_bmp.info_header.biSizeImage = SECTOR_AREA * sizeof(RGBTRIPLE);
+  new_bmp.info_header.biXPelsPerMeter = 100;
+  new_bmp.info_header.biYPelsPerMeter = 100;
+  new_bmp.info_header.biClrUsed = 0;
+  new_bmp.info_header.biClrImportant = 0;
+
+  ofstream bat(bat_file.c_str());
+
+  bat << "type ";
+
+  for(int y = 0; y < height; y++)
+    {
+      for(int x = 0; x < width; x++)
+        {
+          int base_x = x*SECTOR_WIDTH;
+          int base_y = y*SECTOR_HEIGHT;
+          for(int sub_y = 0; sub_y < SECTOR_HEIGHT; sub_y++)
+            {
+              for(int sub_x = 0; sub_x < SECTOR_WIDTH; sub_x++)
+                {
+                  COLORREF esto = GetPixel(loaded_dc,sub_x+base_x,sub_y+base_y);
+                  if(CLR_INVALID == esto)
+                    {
+                      esto = 0;
+                    }
+                  RGBTRIPLE *t = &new_bmp.data[SECTOR_HEIGHT-1-sub_y][sub_x];
+                  t->rgbtRed = GetRValue(esto);
+                  t->rgbtGreen = GetGValue(esto);
+                  t->rgbtBlue = GetBValue(esto);
+					
+                  // if anything is real dim, just convert it to solid black
+                  if(t->rgbtRed <= 4 && t->rgbtGreen <= 4 && t->rgbtBlue <= 4)
+                    {
+                      memset((void *)t,0,sizeof(RGBTRIPLE));
+                    }
+                }
+            }
+
+          string partial;
+          char numero[10];
+          partial += itoa(x,numero,10);
+          partial += 'x';
+          partial += itoa(y,numero,10); 
+          string bmp_name = path + string(input) + partial + string(".bmp");
+          WriteBmp(bmp_name.c_str(),new_bmp);
+
+          cmb << "c:\\Andradion 2\\levels\\" << input << partial << ".bmp" << endl;
+          cmb << "c:\\Andradion 2\\palettes\\"
+              << string(input).substr(0, 2) << ".pal" << endl;
+          cmb << "c:\\Andradion 2\\Resource\\" << input << partial << ".cmp" << endl;
+          cmb << 16 << endl;
+          cmb << "4x4" << endl;
+          cmb << "*" << endl;
+          cmb << 16 << endl;
+          bat << input << partial << ".cmp ";
+        }
+    }
+
+  bat << " >" << input << ".cmpset";
+
+  // delete everything we were just doing stuff with
+  SelectObject(loaded_dc,old_bitmap_loaded_dc);
+  DeleteObject((HGDIOBJ)loaded);
+  DeleteDC(loaded_dc);
 }
 
 int main(int, char**)
 {
-	char input[4];
+  const char levs[][4] =
+    {"1_", "2a", "2b", "3a", "3b", "4_", "5_",
+     "6a", "6b", "7a", "7b"};
+  
+  string cmb_file = "C:\\Andradion 2\\utility\\generate.cmb";
+  ofstream cmb(cmb_file.c_str());
 
-	cout << "Enter 3-byte input string (* to quit): ";
-	cin.getline(input,4);
+  for (int i = 0; i < 11; i++) {
+    cout << "Working on level: " << levs[i] << endl;
+    Sectorize(string(levs[i]) + string("_"), cmb);
+    Sectorize(string(levs[i]) + string("u"), cmb);
+  }
 
-	if(0 == strcmp("*",input))
-	{
-		return 0;
-	}
+  cmb << "*q" << endl;
 
-	string path = "C:\\Andradion 2\\CmpSrc\\";
-	path += input;
-	path += '\\';
-
-	string source = path + input + ".bmp";
-	string dat_file = path + input + ".dat";
-	string cmb_file = path + input + ".cmb";
-
-	cout << "Source .bmp: " << source << endl;
-	cout << "Destin .dat: " << dat_file << endl;
-	cout << "Destin .cmb: " << cmb_file << endl;
-
-	HBITMAP loaded = (HBITMAP)LoadImage(NULL,source.c_str(),IMAGE_BITMAP,0,0,LR_CREATEDIBSECTION|LR_LOADFROMFILE);
-	HDC loaded_dc = CreateCompatibleDC(NULL);
-	HGDIOBJ old_bitmap_loaded_dc = SelectObject(loaded_dc,(HGDIOBJ)loaded);
-
-	BITMAP loaded_info;
-
-	GetObject((HGDIOBJ)loaded,sizeof(loaded_info),(void *)&loaded_info);
-
-	cout << "Bitmap info of source: " << endl;
-	cout << "width bytes: " << loaded_info.bmWidthBytes << endl;
-	cout << "width      : " << loaded_info.bmWidth << endl;
-	cout << "height     : " << loaded_info.bmHeight << endl;
-	cout << "bits pixel : " << loaded_info.bmBitsPixel << endl;
-	cout << "type       : " << loaded_info.bmType << endl;
-	cout << "planes     : " << loaded_info.bmPlanes << endl;
-
-	int width = loaded_info.bmWidth / SECTOR_WIDTH;
-	int height = loaded_info.bmHeight / SECTOR_HEIGHT;
-
-	if(0 != loaded_info.bmWidth % SECTOR_WIDTH || loaded_info.bmWidth < SECTOR_WIDTH)
-	{
-		width++;
-	}
-	
-	if(0 != abs(loaded_info.bmHeight) % SECTOR_HEIGHT || loaded_info.bmHeight < SECTOR_HEIGHT)
-	{
-		height++;
-	}
-
-	cout << "Using master width and height of " << width << "x" << height << endl;
-	
-	BMPFILE24B new_bmp;
-	new_bmp.bmp_header.bfType = 0x4d42;
-	new_bmp.bmp_header.bfSize = sizeof(BMPFILE24B);
-	new_bmp.bmp_header.bfReserved1 = 0;
-	new_bmp.bmp_header.bfReserved2 = 0;
-	new_bmp.bmp_header.bfOffBits = sizeof(BITMAPFILEHEADER)+sizeof(BITMAPINFOHEADER);
-						
-	new_bmp.info_header.biSize = sizeof(BITMAPINFOHEADER);
-	new_bmp.info_header.biWidth = SECTOR_WIDTH;
-	new_bmp.info_header.biHeight = SECTOR_HEIGHT;
-	new_bmp.info_header.biPlanes = 1;
-	new_bmp.info_header.biBitCount = 24;
-	new_bmp.info_header.biCompression = BI_RGB;
-	new_bmp.info_header.biSizeImage = SECTOR_AREA * sizeof(RGBTRIPLE);
-	new_bmp.info_header.biXPelsPerMeter = 100;
-	new_bmp.info_header.biYPelsPerMeter = 100;
-	new_bmp.info_header.biClrUsed = 0;
-	new_bmp.info_header.biClrImportant = 0;
-
-	ofstream cmb;
-	ofstream dat;
-
-	cmb.open(cmb_file.c_str());
-	dat.open(dat_file.c_str());
-	
-	for(int y = 0; y < height; y++)
-	{
-		for(int x = 0; x < width; x++)
-		{
-			cout << "Writing bmp: ";
-
-			int base_x = x*SECTOR_WIDTH;
-			int base_y = y*SECTOR_HEIGHT;
-			for(int sub_y = 0; sub_y < SECTOR_HEIGHT; sub_y++)
-			{
-				for(int sub_x = 0; sub_x < SECTOR_WIDTH; sub_x++)
-				{
-					COLORREF esto = GetPixel(loaded_dc,sub_x+base_x,sub_y+base_y);
-					if(CLR_INVALID == esto)
-					{
-						esto = 0;
-					}
-					RGBTRIPLE *t = &new_bmp.data[SECTOR_HEIGHT-1-sub_y][sub_x];
-					t->rgbtRed = GetRValue(esto);
-					t->rgbtGreen = GetGValue(esto);
-					t->rgbtBlue = GetBValue(esto);
-					
-					// if anything is real dim, just convert it to solid black
-					if(t->rgbtRed <= 4 && t->rgbtGreen <= 4 && t->rgbtBlue <= 4)
-					{
-						memset((void *)t,0,sizeof(RGBTRIPLE));
-					}
-				}
-			}
-			string fn = path;
-			string partial;
-			char numero[10];
-			partial += itoa(x,numero,10);
-			partial += 'x';
-			partial += itoa(y,numero,10);
-			fn += partial;
-			string bmp_name = fn + ".bmp";
-			cout << bmp_name << endl;
-			WriteBmp(bmp_name.c_str(),new_bmp);
-
-			cmb << "c:\\Andradion 2\\CmpSrc\\" << input << "\\" << partial << ".bmp" << endl;
-			cmb << "c:\\Andradion 2\\Resource\\" << input << partial << ".cmp" << endl;
-			cmb << 16 << endl;
-			cmb << "4x4" << endl;
-			cmb << "*" << endl;
-			cmb << 16 << endl;
-			cmb << "y" << endl;
-			dat << input << partial << " CMP DISCARDABLE \"Resource\\\\" << input << partial << ".cmp\"" << endl;
-		}
-	}
-
-	cmb << "*q" << endl;
-
-	cmb.close();
-	dat.close();
-
-	// delete everything we were just doing stuff with
-	SelectObject(loaded_dc,old_bitmap_loaded_dc);
-	DeleteObject((HGDIOBJ)loaded);
-	DeleteDC(loaded_dc);
-	return main(0,NULL);
+  return 0;
 }

@@ -1,9 +1,12 @@
 #ifdef _DEBUG
 
-using std::vector;
 void StartProfileFrame();
-void GetProfileData(vector<string>&); // call every frame
-void InitializeProfiler(DWORD); // pass the size of the profile data array (will grow automatically when necessary)
+
+void GetProfileData(std::vector<std::string>&);
+
+// pass the size of the profile data array
+//  (will grow automatically when necessary)
+void InitializeProfiler(DWORD); 
 
 struct ProfileSample;
 

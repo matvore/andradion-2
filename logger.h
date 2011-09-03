@@ -6,7 +6,14 @@
 #if defined(_DEBUG)
 
 #define LogArg(x) ,(x)
-#define WriteLog std::printf
+
+inline void WriteLog(const char *fmt, ...) {
+  va_list v;
+
+  va_start(v, fmt);
+
+  std::vfprintf(stderr, fmt, v);
+}
 
 #define TryAndReport(op) TryAndReportB(op, #op)
 

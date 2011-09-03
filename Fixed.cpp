@@ -3,7 +3,7 @@
 
 FIXEDNUM FixedDiv(FIXEDNUM x,FIXEDNUM y) {
   FIXEDNUM r;
-  asm(
+  asm (
      "movl %1,%%eax;"
      "cdq;"
      "shldl $16,%%eax,%%edx;"
@@ -17,7 +17,7 @@ FIXEDNUM FixedDiv(FIXEDNUM x,FIXEDNUM y) {
 
 FIXEDNUM FixedMul(FIXEDNUM x,FIXEDNUM y) {
   FIXEDNUM r;
-  asm(  
+  asm (   
       "movl %1,%%eax;"
       "imull %2;"
       "shrdl $16,%%edx,%%eax;"

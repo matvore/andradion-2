@@ -1,17 +1,16 @@
 // a simple program that makes .cmp files
 #include <cassert>
-#include <windows.h>
 #include <iostream>
 #include <cstring>
 #include <vector>
 #include <fstream>
+#include <windows.h>
 
 using namespace std;
 
-static int          MINIMUMPATTERNAREA;
-static int          MINIMUMBLOCKAREA;
+static int MINIMUMPATTERNAREA, MINIMUMBLOCKAREA;
 static vector<SIZE> PATTERNAREAS;
-static DWORD        TRANS; // transparent color
+static BYTE TRANS;
 
 class datafile {
 public:
@@ -19,23 +18,33 @@ public:
     : file(CreateFile(fn,GENERIC_WRITE,0,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL)) {}
 
   ~datafile() {CloseHandle(file);}
+  
+  void putByte(BYTE b) {
+    DWORD read;
 
-  DWORD put(DWORD x, bool as_color = false) {
-    WORD data; 
+    WriteFile(file, (const void *)&b, sizeof(b), &read, 0);
+  }
 
-    if(as_color) {
-      // color is stored in 5/6/5 format
-      const WORD b = (WORD)GetBValue(x) >> 3,
-	g = ((WORD)GetGValue(x) & (252)) << 3,
-	r = ((WORD)GetRValue(x) & (248)) << 8;
-      data = r | g | b;
+  void putWord(WORD w) {
+    DWORD read;
+
+    WriteFile(file, (const void *)&w, sizeof(w), &read, 0);
+  }
+
+  void putUsuallyByte(WORD w) {
+    if (!w || w > 0xff) {
+      putByte(0);
+      putWord(w);
     } else {
-      data = (WORD)x;
+      putByte(w);
     }
+  }
 
-    WriteFile(file, (const void *)&data, sizeof(data), &x, NULL);
-
-    return x;
+  void putRect(const RECT& r) {
+    putByte(r.left);
+    putByte(r.top);
+    putByte((WORD)(r.right - r.left - 1));
+    putByte((WORD)(r.bottom - r.top - 1));
   }
 
 private:
@@ -60,7 +69,7 @@ static void MakeRectangleArray(const vector<POINT>& p,const SIZE& s,vector<RECT>
 
 
 // puts a black rectangle somewhere
-static void BlackRectangle(DWORD *data,int data_width,const RECT& loc)
+static void BlackRectangle(BYTE *data, int data_width, const RECT& loc)
 {
   // point data to the first pixel to set to black
   data += (loc.top * data_width + loc.left);
@@ -80,15 +89,16 @@ static void BlackRectangle(DWORD *data,int data_width,const RECT& loc)
 }
 
 // transfers data from *data to pattern, replacing the area in *data with the transparent color
-static void PatternRectangle(DWORD *data,int data_width,const vector<RECT>& area,vector< vector<COLORREF> >& pattern)
-{
-  DWORD *data_backup = data; // store a backup pointer to *data
+static void PatternRectangle(BYTE *data,
+                             int data_width,
+                             const vector<RECT>& area,
+                             vector< vector<BYTE> >& pattern) {
+  BYTE *data_backup = data; // store a backup pointer to *data
 
   // point data to the first pixel to copy
   data += (area[0].top * data_width + area[0].left);
 
   int to_change_rows = (data_width - (area[0].right - area[0].left));
-
   int w = area[0].right - area[0].left;
   int h = area[0].bottom - area[0].top;
 
@@ -99,9 +109,10 @@ static void PatternRectangle(DWORD *data,int data_width,const vector<RECT>& area
       pattern[y].resize(w);
       for(int x = 0; x < w; x++)
 	{
-	  pattern[y][x] = (COLORREF)(*data);
+	  pattern[y][x] = *data;
 	  data++;
 	}
+
       data+=to_change_rows;
     }
 
@@ -112,11 +123,14 @@ static void PatternRectangle(DWORD *data,int data_width,const vector<RECT>& area
     }
 }
 
-static bool AllOneColor(const DWORD *data,int data_width,const RECT& area,DWORD color)
+static bool AllOneColor(const BYTE *data,
+                        int data_width,
+                        const RECT& area,
+                        BYTE color)
 {
   // returns true if every pixel within area is equal to color
 
-  const DWORD *pos;
+  const BYTE *pos;
 
   // set data to the first pixel we are observing
   data += area.top * data_width + area.left;
@@ -127,7 +141,7 @@ static bool AllOneColor(const DWORD *data,int data_width,const RECT& area,DWORD 
 
       for(int x = area.left; x < area.right; x++)
 	{
-	  if((const DWORD)color != (const DWORD)(*pos))
+	  if(color != *pos)
 	    {
 	      return false; // found a conflicting pixel
 	    }
@@ -144,21 +158,24 @@ static bool AllOneColor(const DWORD *data,int data_width,const RECT& area,DWORD 
 // finds rectangles of the color at start_coor and puts them in a vector, only returning rectangles whose upper-left
 //  coordinates are after or at start_coor, and replacing them with black at the same time.  Ignores rectangles whose
 //  areas are too small to be compressed into blocks
-static void FindRectangles(DWORD *data,const SIZE& data_size,const POINT& start_coor,vector<RECT>& rects)
+static void FindRectangles(BYTE *data,
+                           const SIZE& data_size,
+                           const POINT& start_coor,
+                           vector<RECT>& rects)
 {
-  int curr_x = start_coor.x; // current coordinates
-  int curr_y = start_coor.y;
+  int curr_x = start_coor.x, curr_y = start_coor.y;
 
-  // clear out rects
-  rects.resize(0);
+  rects.clear();
 
-  DWORD *data_position = &data[data_size.cx*start_coor.y+start_coor.x];
-  DWORD base = *data_position;
-  DWORD *after_last = &data[data_size.cx*data_size.cy]; // the address of the pixel which is right after the one we check last
+  BYTE *data_position = &data[data_size.cx*start_coor.y+start_coor.x];
+  BYTE base = *data_position;
+
+  // the address of the pixel which is right after the one we check last
+  BYTE *after_last = &data[data_size.cx*data_size.cy];
 
   for(;data_position<after_last;data_position++)
     {
-      if((const DWORD)base == (const DWORD)*data_position)
+      if(base == *data_position)
 	{
 	  RECT x;
 
@@ -173,7 +190,7 @@ static void FindRectangles(DWORD *data,const SIZE& data_size,const POINT& start_
 	      x.right++;
 	      x.left++;
 	    }
-	  while(((const int)x.right <= (int)data_size.cx) && true == AllOneColor(data,data_size.cx,x,base));
+	  while((int)x.right <= (int)data_size.cx && AllOneColor(data,data_size.cx,x,base));
 
 	  // back up a bit
 	  x.right--;
@@ -187,7 +204,7 @@ static void FindRectangles(DWORD *data,const SIZE& data_size,const POINT& start_
 	      x.bottom++;
 	      x.top++;
 	    }	
-	  while(((const int)x.bottom <= (int)data_size.cy) && true == AllOneColor(data,data_size.cx,x,base));
+	  while((int)x.bottom <= (int)data_size.cy && AllOneColor(data,data_size.cx,x,base));
 
 	  // back up a bit
 	  x.bottom--;
@@ -216,24 +233,24 @@ static void FindRectangles(DWORD *data,const SIZE& data_size,const POINT& start_
 }
 
 // returns true if both rects have the same data
-static bool SameData(const DWORD *data,int data_width,const SIZE& size,const pair<POINT,POINT>& coors)
+static bool SameData(const BYTE *data,
+                     int data_width,
+                     const SIZE& size,
+                     const pair<POINT,POINT>& coors)
 {
   // find what to check in memory by making shortcuts
-  const DWORD *d1 = &data[coors.first.y * data_width + coors.first.x];
-  const DWORD *d2 = &data[coors.second.y * data_width + coors.second.x];
-  int changing_rows = // bytes to move to change rows
-    (data_width-size.cx);
+  const BYTE *d1 = &data[coors.first.y * data_width + coors.first.x];
+  const BYTE *d2 = &data[coors.second.y * data_width + coors.second.x];
+  int changing_rows = data_width - size.cx;
+
   for(int y = 0; y < size.cy; y++)
     {
       for(int x = 0; x < size.cx; x++)
 	{
-	  if(*d1 != *d2)
+	  if(*d1++ != *d2++)
 	    {
-	      return false; // conflicting pixels
+	      return false;
 	    }
-
-	  d1++;
-	  d2++;
 	}
 
       d1+=changing_rows;
@@ -244,7 +261,10 @@ static bool SameData(const DWORD *data,int data_width,const SIZE& size,const pai
 }
 
 // compares a vector of areas
-static bool SameAndSeparate(const DWORD *data,int data_width,const SIZE& size,const vector<POINT>& coors)
+static bool SameAndSeparate(const BYTE *data,
+                            int data_width,
+                            const SIZE& size,
+                            const vector<POINT>& coors)
 {
   // compare similar data
   pair<POINT,POINT> x;
@@ -252,7 +272,7 @@ static bool SameAndSeparate(const DWORD *data,int data_width,const SIZE& size,co
   for(int i = coors.size()-1; i >= 1; i--)
     {			
       x.second = coors[i];
-      if(false == SameData(data,data_width,size,x))
+      if(!SameData(data,data_width,size,x))
 	{
 	  return false;
 	}
@@ -270,12 +290,10 @@ static bool SameAndSeparate(const DWORD *data,int data_width,const SIZE& size,co
 
       for(int c2 = c1+1; c2 < coors.size(); c2++)
 	{
-	  if(!(
-	       (a.left >= coors[c2].x + size.cx) ||
+	  if(!((a.left >= coors[c2].x + size.cx) ||
 	       (a.right <= coors[c2].x) ||
 	       (a.top >= coors[c2].y + size.cy) ||
-	       (a.bottom <= coors[c2].y)
-	       ))
+	       (a.bottom <= coors[c2].y)))
 	    {
 	      return false;
 	    }
@@ -285,7 +303,9 @@ static bool SameAndSeparate(const DWORD *data,int data_width,const SIZE& size,co
   return true;
 }
 
-static bool FindFirstPixel(const DWORD *data,const SIZE& data_size,POINT& coor,DWORD base)
+static bool FindFirstPixel(const BYTE *data,
+                           const SIZE& data_size,
+                           POINT& coor, BYTE base)
 {
   data += data_size.cx*coor.y+coor.x;
 
@@ -317,27 +337,16 @@ static bool FindFirstPixel(const DWORD *data,const SIZE& data_size,POINT& coor,D
 }
 
 // puts coordinates of first non-transparent pixel into coor (returns false if none found, works from a starting location)
-static bool FindFirstNonTransparentPixel(const DWORD *data,const SIZE& data_size,POINT& coor,const vector<DWORD>& ignore = vector<DWORD>())
+static bool FindFirstNonTransparentPixel(const BYTE *data, const SIZE& data_size, POINT& coor)
 {
+  //cout << "FF";
+
   data += data_size.cx*coor.y+coor.x;
   for(;coor.y < data_size.cy;data++)
     {
       if(TRANS != *data)
 	{
-	  int i;
-
-	  for(i = 0; i < ignore.size(); i++)
-	    {
-	      if(ignore[i] == *data)
-		{
-		  break;
-		}
-	    }
-
-	  if(ignore.size() == i)
-	    {
-	      return true; // we found something
-	    }
+          return true; // we found something
 	}
 
       // increment current position
@@ -348,15 +357,20 @@ static bool FindFirstNonTransparentPixel(const DWORD *data,const SIZE& data_size
 	}
     }
 
+  //cout << "FF'";
+
   // move this coor struct to the lower right corner
   coor.x = data_size.cx-1;
   coor.y = data_size.cy-1;
+
+  //cout << "GG'";
 
   return false; // we got all the way here and couldn't find a pixel that wasn't transparent
 }
 
 // returns true if there are only non-transparent pixels
-static bool SolidWallOfMeat(const DWORD *data,int data_width,const POINT& point,const SIZE& size)
+static bool IsOpaque(const BYTE *data, int data_width,
+                     const POINT& point, const SIZE& size)
 {
   // calculate number of bytes to increment data pointer
   //  to move to the next row
@@ -381,37 +395,9 @@ static bool SolidWallOfMeat(const DWORD *data,int data_width,const POINT& point,
   return true;
 }
 
-// returns how many non-transparent pixels there are in a given area
-static int NumNonTransparentPixels(const DWORD *data,int data_width,const RECT& loc)
+int main(int argc, char **argv)
 {
-  // calculate number of bytes to increment data pointer
-  //  to move to the next row
-  int to_change_rows = (data_width - (loc.right-loc.left));
-
-  // point data to first pixel to check
-  data += data_width * loc.top + loc.left;
-
-  int found = 0;
-
-  for(int y = loc.top; y < loc.bottom; y++)
-    {
-      for(int x = loc.left; x < loc.right; x++)
-	{
-	  if(TRANS != *data)
-	    {
-	      found++;
-	    }
-	  data++;
-	}
-      data+=to_change_rows; // move to next row
-    }
-
-  return found;
-}
-
-void main(int argc,char **argv)
-{
-  cout << "Official CCompactMap maker for GameLib2\n\n";
+  cout << "Official CompactMap maker\n\n";
 
   istream *source;
   ifstream batch;
@@ -421,7 +407,7 @@ void main(int argc,char **argv)
       batch.open(argv[1]);
       if(0 == batch.fail())
 	{
-	  source = (istream *)&batch;
+	  source = &batch;
 	  cout << "Using batch file.\n";
 	}
       else
@@ -440,7 +426,10 @@ void main(int argc,char **argv)
     {
       char sn[256];
       char tn[256];
+      char pn[256];
       char in[256];
+      ifstream pal;
+      vector<RGBTRIPLE> palette;
 
       cout << "Enter name of .bmp file to read (type *q to quit): ";
       source->getline(sn,256);
@@ -450,8 +439,36 @@ void main(int argc,char **argv)
 	  break;
 	}
 
+      cout << "Enter the file name of the palette to convert to: ";
+      source->getline(pn, 256);
+
+      pal.open(pn);
+      if (pal.fail())
+        {
+          cout << "Could not load the palette file " << pn << "\n";
+          continue;
+        }
+      else
+        {
+          int size;
+
+          pal >> size;
+          palette.resize(size);
+
+          for (vector<RGBTRIPLE>::iterator itr = palette.begin();
+               itr != palette.end(); itr++)
+            {
+              int r, g, b;
+              pal >> r >> g >> b;
+
+              itr->rgbtRed = r;
+              itr->rgbtGreen = g;
+              itr->rgbtBlue = b;
+            }          
+        }
+
       cout << "Enter name of compressed file to write results to: ";
-      source->getline(tn,256);
+      source->getline(tn, 256);
 
       do
 	{
@@ -460,14 +477,6 @@ void main(int argc,char **argv)
 	  MINIMUMBLOCKAREA = atoi(in);
 	}
       while (MINIMUMBLOCKAREA<1);
-
-      cout << 
-	"\
-Now you will be requested to enter the suggested pattern area.  The compacter  \n\
-will search the bitmap for patterns of those sizes in the order entered.  When \n\
-a pattern of a suggested size is found,the compacter will see if the pattern   \n\
-area can be spread for increased optimization and efficiency.                  \n\
-\n";
 
       PATTERNAREAS.resize(0);
 		
@@ -539,52 +548,7 @@ area can be spread for increased optimization and efficiency.                  \
 
       char yesslashno;
 
-      do
-	{
-	  cout << "Use black for transparent color (Y/N)? ";
-	  source->getline(in,256);
-
-	  yesslashno = in[0];
-			
-	  if(yesslashno >= 'a' && yesslashno <= 'z')
-	    {
-	      yesslashno += ('A' - 'a');
-	    }
-	}
-      while (yesslashno != 'N' && yesslashno != 'Y');
-
-      if('Y' == yesslashno)
-	{
-	  TRANS = 0; // black is transparent
-	}
-      else
-	{
-	  unsigned char rgb[3];
-	  const char RGBNAME[3] = {'R','G','B'};
-
-	  for(int i = 0; i < 3; i++)
-	    {
-	      int x = -1;
-
-	      do
-		{
-		  cout << "Enter " << RGBNAME[i] << " element of transparent color (0-255): ";
-		  source->getline(in,256);
-		  x = atoi(in);
-
-		  if(0 == x && '0' != in[0])
-		    {
-		      x = -1;
-		    }
-		}
-	      while(x < 0 || x > 255);
-
-	      rgb[i] = (unsigned char)x;
-	    }
-			
-	  TRANS = (DWORD)RGB(rgb[0],rgb[1],rgb[2]);
-	}
-
+      TRANS = 0; // black is transparent
       HBITMAP bmp = (HBITMAP)LoadImage(NULL,sn,IMAGE_BITMAP,0,0,LR_LOADFROMFILE|LR_CREATEDIBSECTION);
 
       if(NULL == bmp)
@@ -607,62 +571,76 @@ area can be spread for increased optimization and efficiency.                  \
       size.cx = bmp_info.bmWidth;
       size.cy = bmp_info.bmHeight;
 
+      if (size.cx > 256 || size.cy > 256)
+        {
+          cout << "Bitmap is too large; dimensions must be <= 256." << endl;
+
+          // now that we have stored the bitmap data in the data ptr,
+          //  we can get rid of the bmp object
+          DeleteObject(bmp);
+          
+          continue;
+        }
+
       area = size.cx * size.cy;
 
       cout << "Successfully loaded bitmap of dimensions:\n";
       cout << size.cx << " pixels wide by " << size.cy << " pixels high with an area of " << area << " pixels.\n";
 
-      COLORREF *data = new COLORREF[area];
+      BYTE *data = new BYTE[area];
 
       HDC source = CreateCompatibleDC(NULL);
       bmp = (HBITMAP)SelectObject(source,(HGDIOBJ)bmp);
 
-      cout << "Translating bitmap data into 32-bit COLORREF's . . . \n";
+      cout << "Translating bitmap data into 8-bit palette entries...\n";
 
-      int last_printed_percent = 0;
+      BYTE *pos = data, *after_last = data + area;
 
-      cout << "0%->";
-
-      COLORREF *pos = data;
-      COLORREF *after_last = &data[area];
-
-      int curr_x = 0;
-      int curr_y = 0;
+      int curr_x = 0, curr_y = 0;
 
       for(; pos < after_last; pos++)
 	{
-	  *pos = GetPixel(source,curr_x,curr_y);
+	  COLORREF color = GetPixel(source,curr_x,curr_y);
+          int r = GetRValue(color);
+          int g = GetGValue(color);
+          int b = GetBValue(color);
+          int bestMatch = -1, closeness = 5000;
+
+          for (int i = 0; i < palette.size() && closeness; i++)
+            {
+              RGBTRIPLE& t(palette[i]);
+              int thisCloseness
+                = abs(r - (int)t.rgbtRed)
+                + abs(g - (int)t.rgbtGreen)
+                + abs(b - (int)t.rgbtBlue);
+
+              if (thisCloseness < closeness)
+                {
+                  bestMatch = i;
+                  closeness = thisCloseness;
+                }
+            }
+
+          *pos = (BYTE)bestMatch;
 
 	  if(++curr_x >= size.cx)
 	    {
 	      curr_x = 0;
 	      curr_y++;
-				
-	      int this_percent = int((((float)curr_y+1.0f)/(float)size.cy) * 100.0f);
-
-	      if(this_percent - 10 >= last_printed_percent)
-		{
-		  cout << this_percent << "%->";
-		  last_printed_percent = this_percent;
-		}
 	    }
 	}
 
       cout << "\n";
 
-      // now that we have stored the bitmap data in the data ptr, we can get rid of the bmp object
+      // now that we have stored the bitmap data in the data ptr,
+      //  we can get rid of the bmp object
       DeleteObject(SelectObject(source,(HGDIOBJ)bmp));
       DeleteDC(source);
 
-      vector<COLORREF> blocks;
+      vector<BYTE> blocks;
       vector<vector<RECT> > block_areas;
-      vector<vector<vector<COLORREF> > > patterns;
+      vector<vector<vector<BYTE> > > patterns;
       vector<vector<RECT > > pattern_coors;
-
-      blocks.resize(0);
-      block_areas.resize(0);
-      patterns.resize(0);
-      pattern_coors.resize(0);
 
       // look for color blocks
       cout << "Searching for color blocks . . . \n";
@@ -672,18 +650,18 @@ area can be spread for increased optimization and efficiency.                  \
       loc.x = 0;
       loc.y = 0;
 
-      vector<COLORREF> checked; // an array of all checked pixel colors
+      vector<BYTE> checked; // an array of all checked pixel colors
       checked.resize(0);
 
-      while(true == FindFirstNonTransparentPixel((DWORD *)data,size,loc))
+      while(FindFirstNonTransparentPixel(data,size,loc))
 	{
-	  COLORREF here = data[size.cx*loc.y+loc.x];
+	  BYTE here = data[size.cx*loc.y+loc.x];
 
 	  // look for a block entry for this color in case we have already checked for it
 	  int i;
 	  for(i = 0; i < checked.size(); i++)
 	    {
-	      if((const DWORD)here == (const DWORD)checked[i])
+	      if(here == checked[i])
 		{
 		  break;
 		}
@@ -698,9 +676,7 @@ area can be spread for increased optimization and efficiency.                  \
 
 	      blocks[bindex] = here;
 
-	      FindRectangles((DWORD *)data,size,loc,block_areas[bindex]);
-
-	      int percent = (int)((float(loc.y+1)/float(size.cy)) * 100.0f);
+	      FindRectangles(data,size,loc,block_areas[bindex]);
 
 	      // let's see if we actually found anything!
 	      if(0 == block_areas[bindex].size())
@@ -711,11 +687,12 @@ area can be spread for increased optimization and efficiency.                  \
 		}
 	      else
 		{
-		  cout << percent << "%->Found " << block_areas[bindex].size() << " block(s) for color " << here << "\n";
+		  cout << "Found " << block_areas[bindex].size()
+                       << " block(s) for color " << (int)here << endl;
 		}
 
 	      // add the current color to the end of the list
-	      checked.resize(checked.size()+1,here);
+	      checked.push_back(here);
 	    }
 
 	  // move to the right by one pixel
@@ -734,15 +711,18 @@ area can be spread for increased optimization and efficiency.                  \
       int i;
       for(i = 0; i < PATTERNAREAS.size(); i++)
 	{
-	  cout << "Checking for patterns of size " << PATTERNAREAS[i].cx << "x" << PATTERNAREAS[i].cy << " . . . \n";
+	  cout << "Checking for patterns of size "
+               << PATTERNAREAS[i].cx << "x" << PATTERNAREAS[i].cy
+               << "..." << endl;
 	  loc.x = 0;
 	  loc.y = 0;
 			
-	  while(true == FindFirstNonTransparentPixel(data,size,loc))
+	  while(FindFirstNonTransparentPixel(data,size,loc))
 	    {
-	      DWORD base = data[size.cx * loc.y + loc.x];
+              //cout << "A";
+	      BYTE base = data[size.cx * loc.y + loc.x];
 
-	      SIZE pat = PATTERNAREAS[i];
+	      SIZE& pat(PATTERNAREAS[i]);
 
 	      if(loc.x + pat.cx > size.cx)
 		{
@@ -760,7 +740,7 @@ area can be spread for increased optimization and efficiency.                  \
 		  break;
 		}
 
-	      if(false == SolidWallOfMeat(data,size.cx,loc,pat))
+	      if(!IsOpaque(data,size.cx,loc,pat))
 		{
 		  if(++loc.x >= size.cx)
 		    {
@@ -775,9 +755,10 @@ area can be spread for increased optimization and efficiency.                  \
 		  continue;
 		}
 
+              //cout << "B";
+
 	      vector<POINT> points;
-	      points.resize(0);
-	      points.resize(2,loc);
+	      points.resize(2, loc);
 	      int ci = points.size()-1; // current index into points
 
 	      // increment x to avoid overlapping with first instance
@@ -793,13 +774,14 @@ area can be spread for increased optimization and efficiency.                  \
 	      max.x = points[0].x;
 	      max.y = points[0].y;
 				
-	      while(true == FindFirstPixel(data,size,points[ci],base)) {
+	      while(FindFirstPixel(data,size,points[ci],base)) {
+                //cout << "C";
 		if(points[ci].y + pat.cy > size.cy) {
 		  break;
 		}
 
 		if(points[ci].x + pat.cx <= size.cx &&
-		   true == SameAndSeparate(data,size.cx,pat,points)) {
+		   SameAndSeparate(data,size.cx,pat,points)) {
 		  // account for the pixel incase it has high coor values
 		  max.y = points[ci].y;
 		  if(points[ci].x > max.x) {
@@ -828,19 +810,15 @@ area can be spread for increased optimization and efficiency.                  \
 		// spread this pattern outwards (down and to the right)
 
 		// first spread to the right
-		while(
-		      ++pat.cx + max.x <= size.cx &&
-		      true == SameAndSeparate(data,size.cx,pat,points) &&
-		      true == SolidWallOfMeat(data,size.cx,points[0],pat)
-		      );
+		while(++pat.cx + max.x <= size.cx &&
+		      SameAndSeparate(data,size.cx,pat,points) &&
+		      IsOpaque(data,size.cx,points[0],pat));
 		pat.cx--;
 
 		// now spread downward
-		while(
-		      ++pat.cy + max.y <= size.cy &&
-		      true == SameAndSeparate(data,size.cx,pat,points) &&
-		      true == SolidWallOfMeat(data,size.cx,points[0],pat)
-		      );
+		while(++pat.cy + max.y <= size.cy &&
+		      SameAndSeparate(data,size.cx,pat,points) &&
+		      IsOpaque(data,size.cx,points[0],pat));
 		pat.cy--;
 
 		if(pat.cx * pat.cy >= MINIMUMPATTERNAREA) {
@@ -864,27 +842,28 @@ area can be spread for increased optimization and efficiency.                  \
 		  break;
 		}
 	      }
-	    }
+            }
 	}
 
+      //cout << "H";
+
       // compile left over data piece
-      vector<vector<WORD> > left_over;
+      vector<vector<BYTE> > left_over;
 
       // each element in that vector is a row
-      //  each row is a vector of WORDS with a size of at least 1
-      //  if the first WORD is 0, then no pixels are on the line
-      //  if the first WORD is x, where x > 0, then there are x trans/meat pairs
-      //  a trans/meat pair has a run of transparent pixels, and a run of
-      //  non-transparent pixels.  For each transmeat pair, there is a number
-      //  which specifies the number of transparent pixels, then a number which
-      //  specifies the number of non-transparent pixels, then the non-transparent
-      //  "meat" part of it.
+      //  each row is a vector of BYTES with a size of at least 1
+      //  if the first BYTE is 0, then no pixels are on the line
+      //  if the first BYTE is x, where x > 0, then there are x
+      //  trans/opaque pairs
+      // a trans/opaque pair has a run of transparent
+      // pixels, and a run of non-transparent pixels.  For each
+      // trans/opaque pair, there is a number which specifies the number
+      // of transparent pixels, then a number which specifies the
+      // number of opaque pixels - 1, then the opaque pixel data.
 
-      // size left_over vector to the right size so it will never be
-      //  resize again
       left_over.resize(size.cy);
 
-      DWORD *data_cursor = data;
+      BYTE *data_cursor = data;
       for(i = 0; i < left_over.size(); i++) {
 	left_over[i].resize(1);
 
@@ -901,43 +880,32 @@ area can be spread for increased optimization and efficiency.                  \
 	    transparent_count++;
 	  }
 
-	  if((const DWORD)j == size.cx) {
-	    // we got to the end, no more of these pairs for this row!
+	  if(j == size.cx) {
+	    // no more pairs for this row
 	    break;
 	  }
 
 	  // another pair
 	  left_over[i][0]++;
 	  // add transparent count
-	  left_over[i].resize(left_over[i].size()+1,(WORD)transparent_count);
+	  left_over[i].push_back((BYTE)transparent_count);
 
 	  // now find number of non-transparent pixels
-	  int non_transparent_count = 0;
+	  int opaque_count = 0;
 	  while(TRANS != data_cursor[j] && j < size.cx) {
 	    j++;
-	    non_transparent_count++;
+	    opaque_count++;
 	  }
 				
 	  // add non-transparent count
-	  left_over[i].resize(left_over[i].size()+1,(WORD)non_transparent_count);
-
-	  // catch what j should be when at the end of the non-transparent
-	  //  pixel run
-	  int j_limit = j;
-
-	  // move j back to normal
-	  j -= non_transparent_count;
+	  left_over[i].push_back((BYTE)(opaque_count - 1));
 
 	  // get non-transparent pixels
-	  for(; j < j_limit; j++) {
-	    DWORD _4b_color = data_cursor[j];
-	    WORD _2b_color = 0;
-	    _2b_color|= GetBValue(_4b_color) >> 3;
-	    _2b_color|= (GetGValue(_4b_color) >> 2) << 5;
-	    _2b_color|= (GetRValue(_4b_color) >> 3) << 11;
-	    left_over[i].resize(left_over[i].size()+1,_2b_color);
+	  for(int k = j - opaque_count; k < j; k++) {
+            left_over[i].push_back(data_cursor[k]);
 	  }
 	}
+
 
 	// go to next row
 	data_cursor += size.cx;
@@ -945,12 +913,11 @@ area can be spread for increased optimization and efficiency.                  \
 
       // shrink down the left_over vector if
       //  some of the last elements are not needed
-      for(i = left_over.size()-1; i >= 0; i--) {
-	if(0 != left_over[i][0]) {break;}
+      while (!left_over.empty() && !left_over[left_over.size() - 1][0]) {
+        left_over.pop_back();
       }
-      left_over.resize(i+1);
 
-      // now that we have translated everything, we can delete data from memory
+      // we have finished translating bitmap data
       delete data;
 
       // write to file
@@ -958,65 +925,54 @@ area can be spread for increased optimization and efficiency.                  \
 
       datafile f(tn);
 		
-      f.put((DWORD)blocks.size());
+      f.putByte((BYTE)blocks.size());
 
-      int j;
-      int k;
+      int j, k;
       for(i = 0; i < blocks.size(); i++) {
 	// print the color
-	f.put((DWORD)blocks[i],true);
+	f.putByte(blocks[i]);
 
 	// how many blocks of it we have
-	f.put((DWORD)block_areas[i].size());
+	f.putUsuallyByte((WORD)block_areas[i].size());
 
 	// now print the blocks bottom,left,right,top
 	for(j = 0; j < block_areas[i].size(); j++) {
-	  f.put((DWORD)block_areas[i][j].bottom);
-	  f.put((DWORD)block_areas[i][j].left);
-	  f.put((DWORD)block_areas[i][j].right);
-	  f.put((DWORD)block_areas[i][j].top);
+          f.putRect(block_areas[i][j]);
 	}
       }
 
       // now print out stuff about our patterns to the file
-      f.put((DWORD)patterns.size());
+      f.putUsuallyByte((WORD)patterns.size());
       for(i = 0; i < patterns.size(); i++) {
 	// print the pattern definition
-	f.put((DWORD)patterns[i][0].size()); // print width
-	f.put((DWORD)patterns[i].size());    // print height
+	f.putUsuallyByte((WORD)patterns[i][0].size()); // print width
+	f.putUsuallyByte((WORD)patterns[i].size());    // print height
 			
 	for(j = 0; j < patterns[i].size(); j++) {
 	  for(k = 0; k < patterns[i][j].size(); k++) {
-	    f.put((DWORD)patterns[i][j][k],true);
+	    f.putByte(patterns[i][j][k]);
 	  }
 	}
 
 	// print how many rects we have of it
-	f.put((DWORD)pattern_coors[i].size());
+	f.putUsuallyByte((WORD)pattern_coors[i].size());
 
-	// print the rects bottom,left,right,top
+	// print the rects locations
 	for(j = 0; j < pattern_coors[i].size(); j++) {
-	  f.put((DWORD)pattern_coors[i][j].bottom);
-	  f.put((DWORD)pattern_coors[i][j].left);
-	  f.put((DWORD)pattern_coors[i][j].right);
-	  f.put((DWORD)pattern_coors[i][j].top);
+          f.putByte(pattern_coors[i][j].left);
+          f.putByte(pattern_coors[i][j].top);
 	}
       }
 
       // now print out stuff about the left over
       // number of rows
-      f.put(left_over.size());
+      f.putUsuallyByte(left_over.size());
       for(i = 0; i < left_over.size(); i++) {
 	for(j = 0; j < left_over[i].size(); j++) {
-	  f.put(left_over[i][j]);
+	  f.putByte(left_over[i][j]);
 	}
       }
 
       cout << "done\n";
     }
-	
-
-  cout << "Goodbye\n";
-
-  batch.close();
 }

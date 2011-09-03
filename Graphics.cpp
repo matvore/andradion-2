@@ -1,576 +1,457 @@
 #include "StdAfx.h"
-#include "Certifiable.h"
-#include "SurfaceLock.h"
-#include "Color.h"
-#include "ColorNP.h"
-#include "Color256.h"
-#include "CompactMap.h"
+#include "Buffer.h"
 #include "Graphics.h"
 #include "logger.h"
-#include "Timer.h"
-#include "Bob.h"
 
-using std::random_shuffle;
 using std::vector;
-
 using std::min;
 using std::max;
+using std::exit;
+using std::auto_ptr;
+using std::set;
+using std::pair;
 
-bool          CGraphics::_15b_color      = false ;
-int           CGraphics::bytes_per_pixel = 0     ;
-int           CGraphics::mode_height     = 0     ;
-int           CGraphics::mode_width      = 0     ;
-IDirectDraw2 *CGraphics::dd              = NULL  ;
+static IDirectDraw2 *dd = 0;
+static IDirectDrawSurface *front_buffer = 0, *back_buffer = 0;
+static IDirectDrawClipper *clipper = 0;
+static RECT simple_clipper_rect;
+static int mode_width, mode_height;
+static DWORD async_blit_flags;
+static bool flatscreen;
+static HWND hWnd;
 
-HRESULT WINAPI EnumSurfacesCallback(
-					   LPDIRECTDRAWSURFACE lpDDSurface,
-					   DDSURFACEDESC *,
-					   void *cgraphics)
-{
-  CGraphics *g = (CGraphics *)cgraphics;
+static HPALETTE gdi_palette;
 
-  int current_buffer_index = g->GetTargetBufferIndex();
+static HRESULT CreateSurfaces();
+static void DestroySurfaces();
 
-  // get the  newer interface of the surface
-  HRESULT res;
-  MemoryAllocFunction
-    (
-     res = lpDDSurface->QueryInterface(IID_IDirectDrawSurface2,(void **)&g->buffers[current_buffer_index]),
-     sizeof(IDirectDrawSurface2),
-     FAILED(res)
-     );
+template <class DDInt> inline void Release(DDInt **x) {
+  if (*x) {
+    (*x)->Release();
+    *x = 0;
+  }
+}
 
-  g->current_buffer = g->buffers[current_buffer_index+1];
+struct surface_info {
+private:
+  IDirectDrawSurface *surface;
+  SurfaceFiller *filler;
+  WORD width, height;
+
+public:  
+  surface_info(int w, int h, auto_ptr<SurfaceFiller> fill)
+    : surface(0), filler(0) {
+    Use(w, h, fill);
+  }
+
+  bool CreateSurface() {
+    assert(InUse());
+
+    if (dd && !surface) {
+      DDSURFACEDESC desc;
+      memset(&desc, 0, sizeof(desc));
+
+      desc.dwSize = sizeof(desc);
+      desc.dwWidth = width;
+      desc.dwHeight = height;
+      desc.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
+      desc.dwFlags = DDSD_CAPS | DDSD_WIDTH | DDSD_HEIGHT;
+
+      dd->CreateSurface(&desc, &surface, 0);
+
+      if (surface) {
+        DDCOLORKEY k = {0, 0};
+        surface->SetColorKey(DDCKEY_SRCBLT, &k);
+      }
+    }
+
+    return bool(surface);
+  }
+
+  void DestroySurface() {assert(InUse()); Release(&surface);}
+
+  IDirectDrawSurface *Surf() {assert(InUse()); return surface;}
+  IDirectDrawSurface *operator ->() {assert(surface); return surface;}
+
+  bool InUse() {return bool(filler);}
+
+  void RefillSurface() {
+    assert(InUse());
+
+    if (surface) {
+      filler->FillSurface(surface);
+    }
+  }
+
+  auto_ptr<SurfaceFiller> DoNotUse() {
+    auto_ptr<SurfaceFiller> old_filler(filler);
+
+    Release(&surface);
+    filler = 0;
+
+    return old_filler;
+  }
+
+  auto_ptr<SurfaceFiller>
+  Use(int w, int h, auto_ptr<SurfaceFiller> fill) {
+    auto_ptr<SurfaceFiller> old_filler(DoNotUse());
+
+    assert(w > 0);
+    assert(h > 0);
+
+    Release(&surface);
+
+    width = w;
+    height = h;
+    filler = fill.release();
+    assert(filler);
+
+    CreateSurface();
+    RefillSurface();
+
+    return old_filler;
+  }
+
+  auto_ptr<SurfaceFiller> ChangeFiller(auto_ptr<SurfaceFiller> fill) {
+    assert(InUse());
+
+    auto_ptr<SurfaceFiller> old_filler(filler);
+
+    if (surface) {
+      fill->FillSurface(surface);
+    }
+
+    filler = fill.release();
+
+    return old_filler;
+  }
+
+  int Width() {assert(InUse()); return width;}
+  int Height() {assert(InUse()); return height;}
+};
+
+typedef vector<surface_info> surface_db;
+static surface_db refs;
+
+GfxLock GfxLock::NewLock(IDirectDrawSurface *surf, int *count,
+                         GfxLock **shared) {
+  assert(surf);
+
+  if (!*count) {
+    DDSURFACEDESC desc;
+    memset(&desc, 0, sizeof(desc));
+    desc.dwSize = sizeof(desc);
+    if (SUCCEEDED(surf->Lock(0, &desc, DDLOCK_WAIT, 0))) {
+      *shared = new GfxLock((BYTE *)desc.lpSurface, desc.lPitch,
+                            surf == front_buffer);
+    } else {
+      *shared = new GfxLock(new BYTE[mode_width], 0, surf == front_buffer);
+    }
+    (*count)++;
+  }
+
+  return **shared;
+}
+
+void GfxLock::Unlock(IDirectDrawSurface *surf, int *count,
+                     GfxLock **shared) {
+  if (1 == --(*count)) {
+    if (pitch) {
+      surf->Unlock(surf);
+    } else {
+      delete surf;
+    }
+
+    delete *shared;
+    *shared = 0;
+  }
+}
+
+int GfxLock::front_locks = 0;
+int GfxLock::back_locks = 0;
+GfxLock *GfxLock::front = 0;
+GfxLock *GfxLock::back = 0;
+
+GfxLock GfxLock::Front() {
+  return NewLock(front_buffer, &front_locks, &front);
+}
+
+GfxLock GfxLock::Back() {
+  return NewLock(back_buffer, &back_locks, &back);
+}
+
+GfxLock::~GfxLock() {
+  if (is_front) {
+    Unlock(front_buffer, &front_locks, &front);
+  } else {
+    Unlock(back_buffer, &back_locks, &back);
+  }
+}
+
+static HRESULT WINAPI EnumSurfacesCallback(IDirectDrawSurface *lpDDSurface,
+                                           DDSURFACEDESC *, void *bb) {
+  IDirectDrawSurface **back_buffer = (IDirectDrawSurface **)bb;
+  *back_buffer = lpDDSurface;
 
   return DDENUMRET_OK; // continue the enumeration
 }
 
-CGraphics::CGraphics(
-		     HWND hWnd_,int allow_mode_x_,int mode_width_,int mode_height_,
-		     int mode_bpp_,int num_buffers_,const GUID& directdraw_driver,
-		     int mode_refresh_,
-		     DWORD advanced_coop_flags_or_,DWORD advanced_coop_flags_and_) :
-  CCertifiable(),
-  hWnd(hWnd_),current_buffer(0),
-  mode_bpp(mode_bpp_),mode_refresh(mode_refresh_),num_buffers(num_buffers_),
-  allow_mode_x(allow_mode_x_),advanced_coop_flags_or(advanced_coop_flags_or_),
-  advanced_coop_flags_and(advanced_coop_flags_and_)
-{
-  assert(NULL == dd);
+static IDirectDrawClipper *CreateClipper() {
+  IDirectDrawClipper *c; 
 
-  this->mode_dim.cx = mode_width_;
-  this->mode_dim.cy = mode_height_;
+  assert(dd);
 
-  // create the directdraw instance
-  CoInitialize(NULL);
-  CoCreateInstance
-    (
-     CLSID_DirectDraw,
-     NULL,
-     CLSCTX_ALL,
-     IID_IDirectDraw2,
-     (void **)&dd
-     );
-
-  HRESULT res;
-  // make a copy of the direct draw driver guid we need that is not
-  //  constant.  For some reason, the directdraw::Initialize function needs
-  //  a non-constant copy.
-  GUID non_const_copy = directdraw_driver;
-  GUID *non_const_ptr = GUID_NULL == non_const_copy ? NULL : &non_const_copy;
-  MemoryAllocFunction(
-		      res = dd->Initialize(non_const_ptr),
-		      sizeof(IDirectDraw2),
-		      DDERR_OUTOFMEMORY == res);
-}
-
-CGraphics::CGraphics() : CCertifiable()
-{
-  assert(NULL == dd);
-
-  // this version of the constructor will
-  //  create a DirectDraw object using the
-  //  default driver
-  CoInitialize(NULL);
-  CoCreateInstance
-    (
-     CLSID_DirectDraw,
-     NULL,
-     CLSCTX_ALL,
-     IID_IDirectDraw2,
-     (void **)&dd
-     );
-
-  HRESULT res;
-		
-  MemoryAllocFunction(
-     res = dd->Initialize(NULL),
-     sizeof(IDirectDraw2),
-     DDERR_OUTOFMEMORY == res);
-}
-
-CGraphics::~CGraphics() {
-  if(Certified()) {
-    Uncertify(); // terminate our graphics mode
+  if (FAILED(dd->CreateClipper(0, &c, 0))) {
+    return 0;
   }
 
-  dd->Release();
-  dd = NULL;
+  // set clip list
+  Buffer region_buffer(sizeof(RGNDATAHEADER) + sizeof(RECT));
 
-  CoUninitialize();
-}
+  // allocate memory for clip list
+  LPRGNDATA cr = LPRGNDATA(region_buffer.Get());
 
-int CGraphics::Certify()
-{
-  if(this->Certified())
-    {
-      return 0; // don't certify twice
-    }
+  cr->rdh.dwSize = sizeof(RGNDATAHEADER);
+  cr->rdh.iType = RDH_RECTANGLES;
+  cr->rdh.nCount = 1;
+  cr->rdh.nRgnSize = sizeof(RECT);
 
-  // check values of various parameters
-  assert(mode_refresh >= 0);
-  assert(num_buffers > 0);
-  assert(num_buffers <= MAX_BUFFERS);
-  assert(mode_dim.cx > 0);
-  assert(mode_dim.cy > 0);
+  cr->rdh.rcBound.left = 0;
+  cr->rdh.rcBound.top = 0;
+  cr->rdh.rcBound.bottom = mode_height;
+  cr->rdh.rcBound.right = mode_width;
 
-  // now set the flags for the coop level
-  DWORD flags = 0;
-
-  // allow these flags nomatter what
-  flags |= DDSCL_FULLSCREEN;
-  flags |= DDSCL_EXCLUSIVE;
-  flags |= DDSCL_ALLOWREBOOT;
-
-  if(MXS_NONE != this->allow_mode_x)
-    {
-      flags |= DDSCL_ALLOWMODEX;
-    }
-
-  flags |= advanced_coop_flags_or;
-  flags &= advanced_coop_flags_and;
-
-  // call the actual set coop level function until we have enough memory
-  HRESULT res; // result of some ddraw calls
-  MemoryAllocFunction(res = TryAndReport(dd->SetCooperativeLevel(this->hWnd,
-								 flags)),
-		      1, FAILED(res));
-
-  res = TryAndReport(dd->SetDisplayMode(mode_dim.cx, mode_dim.cy,
-					mode_bpp, mode_refresh, 0));
-
-  // check for failure
-  if(FAILED(res)) {
-    return 1;
+  *((RECT *)cr->Buffer) = cr->rdh.rcBound;
+    
+  // set clipper clip list
+  if (FAILED(c->SetClipList(cr, 0))) {
+    Release(&c);    
   }
 
-  // create the primary surface
+  return c;
+}
+
+static HRESULT CreateSurfaces() {
+  HRESULT hr;
   DDSURFACEDESC surf;
+
+  DestroySurfaces();
+
   memset((void *)&surf,0,sizeof(surf));
   surf.dwSize = sizeof(surf);
 
   surf.ddsCaps.dwCaps |= DDSCAPS_PRIMARYSURFACE;
 		
-  if(num_buffers > 1) {
-    surf.dwBackBufferCount = num_buffers - 1;
-    surf.dwFlags |= DDSD_BACKBUFFERCOUNT;
-    surf.ddsCaps.dwCaps |= DDSCAPS_COMPLEX;
-    surf.ddsCaps.dwCaps |= DDSCAPS_FLIP;
-  }
-	
+  surf.dwBackBufferCount = 1;
+  surf.dwFlags |= DDSD_BACKBUFFERCOUNT;
+  surf.ddsCaps.dwCaps |= DDSCAPS_COMPLEX;
+  surf.ddsCaps.dwCaps |= DDSCAPS_FLIP;
+
   surf.dwFlags |= DDSD_CAPS;
 
-  LPDIRECTDRAWSURFACE version1_of_primary;
-
-  MemoryAllocFunction(res = TryAndReport(dd->CreateSurface(&surf,
-							   &version1_of_primary,
-							   NULL)),
-		      1, FAILED(res));
-
-  // get the newer version of the direct draw surface interface
-  MemoryAllocFunction(res = TryAndReport(version1_of_primary->
-					 QueryInterface(IID_IDirectDrawSurface2,
-							(void **)buffers)),
-		      1, FAILED(res)
-		      );
-
-  // release the older version of the directdraw surface interface
-  TryAndReport(version1_of_primary->Release());
-
-  if(num_buffers > 1) {
-    current_buffer = buffers[1]; // use current buffer member to keep
-				 // count of enumerated buffers  
-
-    // create the secondary surfaces
-    TryAndReport(buffers[0]->EnumAttachedSurfaces(this,EnumSurfacesCallback));
-
-    current_buffer = buffers[1]; // reset count
+  if (FAILED(hr = dd->CreateSurface(&surf, &front_buffer, 0))
+      || FAILED(hr = front_buffer->EnumAttachedSurfaces
+                (&back_buffer, EnumSurfacesCallback))) {
+    Release(&front_buffer);
   } else {
-    current_buffer = buffers[0];
-  }
-
-  if(mode_bpp > PALETTIZED_COLOR_8B) {
-    DDPIXELFORMAT pf; // pixel format of the new surfaces
-		
-    // setup the pf data structure
-    memset((void *)&pf,0,sizeof(pf));
-    pf.dwSize = sizeof(pf);
-
-    // get the pixel format data
-    this->current_buffer->GetPixelFormat(&pf);
-
-    _15b_color = bool(15 == pf.dwRGBBitCount);
-
-    // find bytes per pixel
-    bytes_per_pixel = pf.dwRGBBitCount / 8;
-    if(0 != pf.dwRGBBitCount%8)
-      {
-	bytes_per_pixel++;
+    for (surface_db::iterator itr = refs.begin();
+	 itr != refs.end(); itr++) {
+      if (itr->InUse() && !itr->CreateSurface()) {
+	Release(&back_buffer);
+	Release(&front_buffer);
+	return E_FAIL;
       }
     }
-  else
-    {
-      // 8-bit palettized mode used
-      CGraphics::_15b_color = false;
-      CGraphics::bytes_per_pixel = 1;
+  }
+  
+  return hr;
+}
+
+static void DestroySurfaces() {
+  for (surface_db::iterator itr = refs.begin();
+       itr != refs.end(); itr++) {
+    if (itr->InUse()) {
+      itr->DestroySurface();
     }
+  }
+
+  Release(&back_buffer);
+  Release(&front_buffer);
+}
+
+bool GfxInFocus(bool tryToRestart) {
+  if (!front_buffer || FAILED(front_buffer->IsLost())) {
+    if (tryToRestart) {
+      CreateSurfaces();
+    }
+    
+    return bool(front_buffer);
+  } else {
+    return true;
+  }
+}
+
+void GfxInit(HWND hWnd_, int mode_width_, int mode_height_,
+             bool flatscreen_) {
+  GfxUninit();
+
+  DWORD refresh = (320 == mode_width_ && flatscreen_) ? 43 : 0;
+  DWORD flags = DDSCL_FULLSCREEN | DDSCL_EXCLUSIVE | DDSCL_ALLOWREBOOT
+    | DDSCL_ALLOWMODEX;
+
+  hWnd = hWnd_;
+  mode_width = mode_width_;
+  mode_height = mode_height_;
+  flatscreen = flatscreen_;
+
+  // create the directdraw instance
+  if (FAILED(CoInitialize(0))) {
+    return;
+  }
+
+  if (FAILED(CoCreateInstance(CLSID_DirectDraw, 0,
+                              CLSCTX_ALL, IID_IDirectDraw2,
+                              (void **)&dd))
+      || FAILED(TryAndReport(dd->Initialize(0)))
+      || ((FAILED(dd->SetCooperativeLevel(hWnd, flags))
+           || FAILED(dd->SetDisplayMode(mode_width, mode_height,
+                                        8, refresh, 0)))
+          && (FAILED(dd->SetCooperativeLevel
+                     (hWnd, flags & ~DDSCL_ALLOWMODEX))
+              || FAILED(dd->SetDisplayMode(mode_width, mode_height,
+                                           8, refresh, 0))))
+      || FAILED(CreateSurfaces()) || !(clipper = CreateClipper())) {
+    DestroySurfaces();
+    Release(&dd);
+    CoUninitialize();
+    return;
+  }
 
   // setup the simple clipper rect to the default
-  this->simple_clipper_rect.left = 0;
-  this->simple_clipper_rect.top = 0;
-  this->simple_clipper_rect.right = this->mode_dim.cx;
-  this->simple_clipper_rect.bottom = this->mode_dim.cy;
+  simple_clipper_rect.left = 0;
+  simple_clipper_rect.top = 0;
+  simple_clipper_rect.right = mode_width;
+  simple_clipper_rect.bottom = mode_height;
 
-  mode_width = this->mode_dim.cx;
-  mode_height = this->mode_dim.cy;
+  async_blit_flags = 0;
+  DDCAPS hw_caps, sw_caps;
+  if (SUCCEEDED(dd->GetCaps(&hw_caps, &sw_caps))) {
+    async_blit_flags = (hw_caps.dwCaps & DDCAPS_BLTQUEUE)
+      ? DDBLT_ASYNC : 0;
+  }
 
-  return CCertifiable::Certify();
 }
 
-int CGraphics::Recertify(int allow_mode_x_,
-			 int mode_width_,int mode_height_,int mode_bpp_,
-			 int num_buffers_,
-			 int mode_refresh_,
-			 DWORD advanced_coop_flags_or_,
-			 DWORD advanced_coop_flags_and_)
+void GfxUninit() {
+  Release(&clipper);
+  DestroySurfaces();
+
+  if (dd) {
+    WriteLog("Closing gfx\n");
+
+    dd->RestoreDisplayMode();
+    dd->Release(), dd = 0;
+
+    CoUninitialize();
+  }
+
+  if (gdi_palette) {
+    DeleteObject(gdi_palette);
+    gdi_palette = 0;
+  }
+
+  WriteLog("Gfx closed\n");
+}
+
+HRESULT GfxFlip() {return front_buffer->Flip(0, DDFLIP_WAIT);}
+
+HRESULT GfxPutScale(surf_t surf, const RECT *target,
+                    bool transparent, const RECT *src_rect)
 {
-  this->Uncertify();
-		
-  this->allow_mode_x = allow_mode_x_;
-  this->mode_dim.cx = mode_width_;
-  this->mode_dim.cy = mode_height_;
-  this->mode_bpp = mode_bpp_;
-  this->num_buffers = num_buffers_;
-  this->mode_refresh = mode_refresh_;
-  this->advanced_coop_flags_or = advanced_coop_flags_or_;
-  this->advanced_coop_flags_and = advanced_coop_flags_and_;		
-
-  return this->Certify();
+  return back_buffer->Blt(const_cast<RECT *>(target),
+                          refs[surf].Surf(), const_cast<RECT *>(src_rect),
+                          DDBLT_WAIT | async_blit_flags
+                          | (transparent ? DDBLT_KEYSRC : 0), 0);
 }
 
-void CGraphics::Uncertify()
+void GfxPut(surf_t surf, int x, int y, bool use_transparency)
 {
-  assert(Certified());
+  DWORD trans_flag = use_transparency
+    ? DDBLTFAST_SRCCOLORKEY : DDBLTFAST_NOCOLORKEY;
 
-  // leave graphics
-  // release all buffers, starting with the last in the chain
-  for(int i = this->num_buffers - 1; i >= 0; i--)
-    {
-      this->buffers[i]->Release();
-    }
-
-  dd->RestoreDisplayMode();
-  dd->SetCooperativeLevel(hWnd,DDSCL_NORMAL);
-
-  CCertifiable::Uncertify();
-}
-
-HRESULT CGraphics::Flip(DWORD flags) {
-  return buffers[0]->Flip(NULL, flags);
-}
-
-HRESULT CGraphics::Put(CBob& bob,DWORD blt_behaviour_flags,DDBLTFX *blt_fx,bool wait_then_blit)
-{
-  HRESULT ret;
-
-  do
-    {
-      ret = this->current_buffer->Blt(&this->current_area,bob.data,&bob.entire,blt_behaviour_flags,blt_fx);
-    }
-  while(true == wait_then_blit && DDERR_WASSTILLDRAWING == ret);
-
-  return ret;
-}
-
-HRESULT CGraphics::RectangleInternal(DWORD c,bool wait_then_blit,DWORD behav)
-{
-  assert(this->Certified());
-  DDBLTFX fx;
-
-  // init fx struct
-  fx.dwSize = sizeof(fx);
-
-  fx.dwFillColor = c;
-
-  HRESULT ret;
-
-  behav |= DDBLT_COLORFILL;
-
-  do
-    {
-      ret = this->current_buffer->Blt(&this->current_area,NULL,NULL,behav,&fx);
-    }
-  while(true == wait_then_blit && DDERR_WASSTILLDRAWING == ret);
-
-  return ret;
-}
-
-HRESULT CGraphics::PutFastClip(CBob& bob,bool use_transparency,bool wait_then_blit,DWORD trans_flags)
-{
-  DWORD base_flag = (true == use_transparency ? DDBLTFAST_SRCCOLORKEY : DDBLTFAST_NOCOLORKEY);
-
-  int x = this->current_area.left;
-  int y = this->current_area.top;
-  int bw = this->current_area.right - x; // bob width
-  int bh = this->current_area.bottom - y; // and height
+  int w = refs[surf].Width(), h = refs[surf].Height();
 
   // create abbreviated local variables
-  int cl = this->simple_clipper_rect.left; // clipper left
-  int cr = this->simple_clipper_rect.right; // clipper right
-  int ct = this->simple_clipper_rect.top; // clipper top
-  int cb = this->simple_clipper_rect.bottom; // clipper bottom
+  int cl = simple_clipper_rect.left; // clipper left
+  int cr = simple_clipper_rect.right; // clipper right
+  int ct = simple_clipper_rect.top; // clipper top
+  int cb = simple_clipper_rect.bottom; // clipper bottom
 
-  RECT s =
-    {
-      max(0,cl-x),
-      max(0,ct-y),
-      min(bw,cr-x),
-      min(bh,cb-y)
-    };
+  RECT s;
+  s.left = max(0, cl-x);
+  s.top = max(0, ct-y);
+  s.right = min(w, cr-x);
+  s.bottom = min(h, cb-y);
 
-  if(x < cl)
-    {
-      x = cl;
-    }
-  if(y < ct)
-    {
-      y = ct;
-    }
+  if(x < cl) {
+    x = cl;
+  }
+  
+  if(y < ct) {
+    y = ct;
+  }
 		
-  if(x+bw > 0 && y+bh > 0 && x < cr && y < cb)
-    {
-      HRESULT ret;
-      do
-	{
-	  ret = this->current_buffer->BltFast(x,y,bob.data,&s,trans_flags|base_flag);
-	}
-      while(true == wait_then_blit && DDERR_WASSTILLDRAWING == ret);
-      return ret;
-    }
-  else
-    {
-      return DD_OK;
-    }
+  if(x + w > 0 && y + h > 0 && x < cr && y < cb) {
+    back_buffer->BltFast(x, y, refs[surf].Surf(), &s,
+                         trans_flag | DDBLTFAST_WAIT);
+  }
 }
 
-HRESULT CGraphics::PutFast(CBob& bob,bool use_transparency,bool wait_then_blit,DWORD trans_flags)
-{
-  DWORD base_flag = (true == use_transparency ? DDBLTFAST_SRCCOLORKEY : DDBLTFAST_NOCOLORKEY);
 
-  HRESULT ret;
+static IDirectDrawPalette *
+CreatePalette(PALETTEENTRY *init, int count) {
+  PALETTEENTRY full_init[256];
 
-  do
-    {
-      ret= this->current_buffer->BltFast(this->current_area.left,
-					 this->current_area.top,
-					 bob.data,
-					 &bob.entire,
-					 trans_flags|base_flag);
-    }
-  while(wait_then_blit == true && DDERR_WASSTILLDRAWING == ret);
+  memcpy(full_init, init, count);
 
-  return ret;
+  for (; count < 256; count++) {
+    full_init[count].peRed = full_init[count].peBlue = 0xff;
+    full_init[count].peGreen = full_init[count].peFlags = 0x00;
+  }
+
+  IDirectDrawPalette *p;
+
+  return SUCCEEDED(TryAndReport
+                   (dd->CreatePalette(DDPCAPS_ALLOW256 | DDPCAPS_8BIT,
+                                      full_init, &p, 0)))
+    ? p : 0;
 }
 
-// clipper creation function
-LPDIRECTDRAWCLIPPER CGraphics::CreateClipper(const vector<RECT>& list,bool set_hwnd) const
-{
-  assert(this->Certified());
+HRESULT GfxRectangle(BYTE c, const RECT *target) {
+  DDBLTFX fx;
 
-  LPDIRECTDRAWCLIPPER c; // the clipper we will return
-  HRESULT res;
+  fx.dwSize = sizeof(fx);
+  fx.dwFillColor = c;
+
+  return back_buffer->Blt(const_cast<RECT *>(target), 0, 0,
+                          DDBLT_COLORFILL | DDBLT_WAIT
+                          | async_blit_flags, &fx);
+}
+
+bool GfxClipLine(int& x0, int& y0, int& x1, int& y1) {
+  assert(dd);
 		
-  MemoryAllocFunction(
-		      res=CGraphics::dd->CreateClipper(0,&c,NULL),
-		      sizeof(IDirectDrawClipper),
-		      DDERR_OUTOFMEMORY == res
-		      );
+  const RECT *c = &simple_clipper_rect; // make a pointer shortcut so we are faster
 
-  assert(DDERR_INVALIDCLIPLIST != res);
-  assert(DDERR_INVALIDOBJECT != res);
-  assert(DDERR_INVALIDPARAMS != res);
-
-  // set clip list:
-  if(list.size() > 0)
-    {
-      // allocate memory for clip list
-      LPRGNDATA cr =
-	LPRGNDATA(new BYTE[sizeof(RGNDATAHEADER)+sizeof(RECT)*list.size()]);
-
-      // figure out rcBound and other members of the rect data header while filling in the rect buffer
-      cr->rdh.dwSize = sizeof(RGNDATAHEADER);
-      cr->rdh.iType = RDH_RECTANGLES;
-      cr->rdh.nCount = list.size();
-      cr->rdh.nRgnSize = sizeof(RECT)*list.size();
-      // initiate rcBound with ridiculous values
-      cr->rdh.rcBound.left = CGraphics::mode_width;
-      cr->rdh.rcBound.top = CGraphics::mode_height;
-      cr->rdh.rcBound.bottom = 0;
-      cr->rdh.rcBound.right = 0;
-      VCTR_RECTANGLE::const_iterator rect_i;
-      RECT *buffer = (RECT *)cr->Buffer;
-      for(rect_i = list.begin(); rect_i != list.end(); rect_i++)
-	{
-	  if(cr->rdh.rcBound.left > rect_i->left)
-	    {
-	      cr->rdh.rcBound.left = rect_i->left;
-	    }
-	  if(cr->rdh.rcBound.top > rect_i->top)
-	    {
-	      cr->rdh.rcBound.top = rect_i->top;
-	    }
-	  if(cr->rdh.rcBound.bottom < rect_i->bottom)
-	    {
-	      cr->rdh.rcBound.bottom = rect_i->bottom;
-	    }
-	  if(cr->rdh.rcBound.right < rect_i->right)
-	    {
-	      cr->rdh.rcBound.right = rect_i->right;
-	    }
-	  memcpy((void *)buffer++,(const void *)&(*rect_i),sizeof(RECT));
-	}			
-	
-      // set clipper clip list
-      MemoryAllocFunction(
-			  res = c->SetClipList(cr,0),
-			  sizeof(RECT)*list.size() + sizeof(RGNDATAHEADER),
-			  FAILED(res)
-			  );
-
-      // done with the region data
-      delete (BYTE *)cr;
-    }
-
-  if(true == set_hwnd)
-    {
-      MemoryAllocFunction(
-			  res = c->SetHWnd(0,this->hWnd),
-			  sizeof(HWND),
-			  DDERR_OUTOFMEMORY == res
-			  );
-    }
-
-  return c;
-}
-
-LPDIRECTDRAWPALETTE CGraphics::CreatePalette(
-					     bool for_primary,
-					     PALETTEENTRY *init,
-					     bool can_change_256,
-					     bool vb_sync,
-					     DWORD advanced_flags_or,
-					     DWORD advanced_flags_and
-					     ) const
-{
-  assert(this->Certified());
-
-  DWORD create = 0; // creation flags
-
-  if(true == for_primary)
-    {
-      create |= DDPCAPS_PRIMARYSURFACE;
-    }
-
-  if(true == vb_sync)
-    {
-      create |= DDPCAPS_VSYNC;
-    }
-
-  if(true == can_change_256)
-    {
-      create |= DDPCAPS_ALLOW256;
-    }
-
-  create |= DDPCAPS_8BIT;
-
-  // add customization to creation flags
-  create |= advanced_flags_or;
-  create &= advanced_flags_and;
-
-  // the creation flags have been setup, so now
-  //  let's do the initiation array
-  vector<PALETTEENTRY> pev(0);
-  if(NULL == init)
-    {
-      PALETTEENTRY default_color = {0,0,0,0};
-      pev.resize(256,default_color);
-      init = &pev[0];
-    }
-
-  LPDIRECTDRAWPALETTE p;
-  HRESULT res;
-
-  MemoryAllocFunction(
-		      res = CGraphics::dd->CreatePalette(create,init,&p,NULL),
-		      sizeof(PALETTEENTRY)*256,
-		      DDERR_OUTOFMEMORY == res
-		      );
-
-  return p;
-}
-
-HRESULT CGraphics::Rectangle(const CColorNP& c,bool wait_then_blit,DWORD behav) 
-{
-  return this->RectangleInternal(c.Color32b(),wait_then_blit,behav);
-}
-
-HRESULT CGraphics::Rectangle(BYTE c,bool wait_then_blit,DWORD behav)
-{
-  return this->RectangleInternal((DWORD)c,wait_then_blit,behav);
-}
-
-LPDIRECTDRAWSURFACE2 CGraphics::Buffer(int i)
-{
-  assert(i >= 0);
-  assert(i < this->num_buffers);
-  assert(this->Certified());
-  return this->buffers[i];
-}
-
-RECT& CGraphics::SimpleClipperRect()
-{
-  assert(this->Certified());
-  return this->simple_clipper_rect;
-}
-
-const RECT& CGraphics::cSimpleClipperRect() const
-{
-  assert(this->Certified());
-  return this->simple_clipper_rect;
-}
-
-bool CGraphics::ClipLine(int& x0,int& y0,int& x1,int& y1) const
-{
-  assert(this->Certified());
-		
-  const RECT *c = &this->simple_clipper_rect; // make a pointer shortcut so we are faster
-
-  /// record whether or not each point is visible by testing them within the clipping region
-  bool visible0 = bool(x0 >= c->left && x0 < c->right && y0 >= c->top && y0 < c->bottom);
-  bool visible1 = bool(x1 >= c->left && x1 < c->right && y1 >= c->top && y1 < c->bottom);
+  /// record whether or not each point is visible by testing them
+  /// within the clipping region 
+  bool visible0
+    = x0 >= c->left && x0 < c->right && y0 >= c->top && y0 < c->bottom;
+  bool visible1
+    = x1 >= c->left && x1 < c->right && y1 >= c->top && y1 < c->bottom;
 				
   // if both points are int the viewport, we have already finished
-  if(true == visible0 && true == visible1)
+  if(visible0 && visible1)
     {
       return true;
     }
@@ -579,34 +460,28 @@ bool CGraphics::ClipLine(int& x0,int& y0,int& x1,int& y1) const
   //  1 both points must be outside the clipping viewport
   //  2 both points must be on the same side of the clipping viewport
 
-  if((const bool)visible0 == visible1)
-    {
-      // neither point is visible
-      //  now do test 2.  If it doesn't pass test 2, then we continue normally
-      if
-	(
-	 (x0 < c->left && x1 < c->left) ||
-	 (x0 >= c->right && x1 >= c->right) ||
-	 (y0 < c->top && y1 < c->top) ||
-	 (y0 >= c->bottom && y1 >= c->bottom)
-	 )
-	{
-	  return false;
-	}
-      // and we're done for completely visible or completely invisible lines
+  if(visible0 == visible1) {
+    // neither point is visible
+    //  now do test 2.  If it doesn't pass test 2, then we continue normally
+    if((x0 < c->left && x1 < c->left) ||
+       (x0 >= c->right && x1 >= c->right) ||
+       (y0 < c->top && y1 < c->top) ||
+       (y0 >= c->bottom && y1 >= c->bottom)) {
+      return false;
     }
+    // and we're done for completely visible or completely invisible lines
+  }
 
   bool right_edge = false;
   bool left_edge = false;
   bool top_edge = false;
   bool bottom_edge = false;
 
-  int xi; // points of intersection
-  int yi;
+  int xi, yi; // points of intersection
 
   bool success;
 
-  if(visible1 == false || visible0 == true)
+  if(!visible1 || visible0)
     {
       // compute deltas
       int dx = x1 - x0;
@@ -700,7 +575,7 @@ bool CGraphics::ClipLine(int& x0,int& y0,int& x1,int& y1) const
   // now we have to do the same friggin thing for the second endpoint
 	
 
-  if(true == visible1 || false == visible0)
+  if(visible1 || !visible0)
     {
       // compute deltas
       int dx = x0 - x1;
@@ -780,222 +655,185 @@ bool CGraphics::ClipLine(int& x0,int& y0,int& x1,int& y1) const
   return success;
 }
 
-DWORD CGraphics::Screenshot(HANDLE file)
-{
-  assert(this->current_area.left < this->current_area.right);
-  assert(this->current_area.top < this->current_area.bottom);
+int GfxModeWidth() {assert(dd); return mode_width;}
+int GfxModeHeight() {assert(dd); return mode_height;}
+IDirectDrawSurface *GfxBackBuffer() {return back_buffer;}
+IDirectDrawSurface *GfxFrontBuffer() {return front_buffer;}
+RECT& GfxSimpleClipperRect() {assert(dd); return simple_clipper_rect;}
 
-  // calculate bytes per pixel
-  int bypp = CGraphics::bytes_per_pixel;
+void SurfaceFiller::FillSurface(IDirectDrawSurface *surf) throw() {
+  DDSURFACEDESC desc;
+  memset(&desc, 0, sizeof(desc));
 
-  // let's create an offscreen surface to contain the
-  //  image data
+  desc.dwSize = sizeof(desc);
 
-  DDSURFACEDESC surf_desc;
-  memset((void *)&surf_desc,0,sizeof(surf_desc));
-
-  // set the appropriate data members so we will create a surface
-  //  equal to the width and height of the current area
-  surf_desc.dwSize = sizeof(surf_desc);
-  surf_desc.dwFlags = (DDSD_WIDTH | DDSD_HEIGHT | DDSD_CAPS);
-  surf_desc.dwWidth = this->current_area.right - this->current_area.left;
-  surf_desc.dwHeight = this->current_area.bottom - this->current_area.top;
-  surf_desc.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN;
-
-  LPDIRECTDRAWSURFACE version1_of_surf;
-  if(FAILED(CGraphics::dd->CreateSurface(&surf_desc,&version1_of_surf,NULL)))
-    {
-      return 0;
-    }
-
-  // get the newer version of the surface
-  LPDIRECTDRAWSURFACE2 surf;
-  HRESULT res;
-  MemoryAllocFunction(
-		      res = version1_of_surf->QueryInterface(IID_IDirectDrawSurface2,(void **)&surf),
-		      sizeof(IDirectDrawSurface2),
-		      FAILED(res)
-		      );
-
-  // release the older version of the surface
-  version1_of_surf->Release();
-
-  // now copy the front buffer to this offscreen buffer
-  while(DDERR_WASSTILLDRAWING == surf->Blt(NULL,this->buffers[0],&this->current_area,0,NULL));
-
-  // lock the offscreen buffer
-  LONG pitch;
-  LONG width = this->current_area.right - this->current_area.left;
-  LONG height = this->current_area.bottom - this->current_area.top;
-  BYTE *buffer8;
-  bool must_convert_555_to_565;
-  if(FAILED(surf->Lock(NULL,&surf_desc,DDLOCK_WAIT|DDLOCK_READONLY,NULL)))
-    {
-      // the lock failed... synthesize the variables so the rest of the
-      //  function doesn't know that!
-      buffer8 = new BYTE[width*bypp];
-      pitch = 0;
-      surf->Release();
-      surf = NULL; // make surface NULL so we know we didn't lock it
-      must_convert_555_to_565 = false;
-			
-    }
-  else
-    {
-      // the lock succeeded, so stuff some precalculated values and typing shortcuts
-      //  into the following variables for convenience
-      buffer8 = (BYTE *)surf_desc.lpSurface;
-      pitch = surf_desc.lPitch;
-      must_convert_555_to_565 = bool(15 == surf_desc.ddpfPixelFormat.dwRGBBitCount);
-    }
-		
-  DWORD return_value = 0;
-
-  // make an extra copy of the buffer
-  //  buffer16 will be used during the copy process
-  //  buffer8 will mark the beginning of the buffer
-  //   and will be used to delete it at the end
-  //   in the case where the lock failed
-  WORD *buffer16 = (WORD *)(buffer8 + (height-1) * pitch);
-
-  // now we will write the results to a bmp file
-  DWORD size_of_not_last_sections = // calculate a head of time the size of the non-color data of the bmp
-    sizeof(BITMAPFILEHEADER)+ // size of bitmap, involves some complicated calculations:
-    sizeof(BITMAPINFOHEADER)+
-    (1 == bypp ? 1024 : 0);
-
-  // some data we need to write is defined here:
-  BITMAPFILEHEADER bmp_file_header =
-    {
-      0x4d42, // file type; bmp's are file type 4d42h
-      size_of_not_last_sections + width * height * bypp,
-      0, // reserved; must be zero
-      0, // also reserved, debe ser zero tambien
-      size_of_not_last_sections
-    };
-
-  // now we must write the bitmap info structure to the file
-  BITMAPINFOHEADER bmp_info_header =
-    {
-      sizeof(bmp_info_header), // size of this structure
-      width,  // dimensions of bitmap
-      height, //
-      1, // number of planes, must be 1 i think
-      (WORD)(bypp * 8), // bits per pixel
-      BI_RGB, // "compression" type
-      width * height * bypp, // size of image in bytes (technically can be omitted for our format, but just to be safe...)
-      // stupid numbers no one uses:
-      100,100,0,0
-    };
-
-  // setup the palette data we need to get in 8-bit color mode
-  RGBQUAD palette_data[256];
-  if(1 == bypp)
-    {
-      HPALETTE pal = CColor256::GetGDIPalette();
-      if(NULL != pal)
-	{
-	  // we can get the palette entries and put them in the file
-	  GetPaletteEntries(pal,0,256,(PALETTEENTRY *)palette_data);
-	}
-      for(int i = 0; i < 256; i++)
-	{
-	  // make sure each reserved element is zero, or it may cause
-	  //  problems when the bmp file is opened by Paint or whatever
-	  palette_data[i].rgbReserved = 0;
-
-	  // now we also have to reverse the red and blue order
-	  //  because of how the palette data is stored in bitmap
-	  //  format compared to stored by the GDI
-	  BYTE *a = &palette_data[i].rgbRed, *b = &palette_data[i].rgbBlue, t;
-	  t = *a;
-	  *a = *b;
-	  *b = t;
-	}
-    }
-				
-  DWORD written;
-  if
-    (
-     FALSE != WriteFile(file,(void *)&bmp_file_header,sizeof(bmp_file_header),&written,NULL) &&
-     FALSE != WriteFile(file,(void *)&bmp_info_header,sizeof(bmp_info_header),&written,NULL) &&
-     (1 != bypp || FALSE != WriteFile(file,(void *)palette_data,1024,&written,NULL))
-     )
-    {
-      // now we can copy the surface data from "buffer16" to the handle "file"
-      if(false == must_convert_555_to_565)
-	{
-	  DWORD write_at_a_time = width * bypp;
-	  for(int y = 0; y < height; y++,buffer16 = (WORD *)((BYTE *)buffer16 - pitch))
-	    {
-	      if(FALSE == WriteFile(file,(void *)buffer16,write_at_a_time,&written,NULL))
-		{
-		  return_value = GetLastError();
-		}
-	    }
-	}
-      else
-	{
-	  for(int y = 0; y < height; y++,buffer16 -= pitch/2)
-	    {
-	      for(int x = 0; x < width; x++)
-		{
-		  // convert 555 buffer16[x] to 565 in file
-		  int color_data; // results of conversion will be placed here
-
-		  // transfer blue data:
-		  color_data =  ((int)buffer16[x] & 0x001f)     ;
-						
-		  // transfer green data:
-		  color_data |= ((int)buffer16[x] & 0x03e0) << 1;
-
-		  // transfer red data:
-		  color_data |= ((int)buffer16[x] & 0x7c00) << 1;
-
-		  if(FALSE == WriteFile(file,(void *)&color_data,sizeof(WORD),&written,NULL))
-		    {
-		      return_value = GetLastError();
-		    } // end if failed write file
-		} // end for x
-	    } // end for y
-	} // end if don't have to convert 555 to 565
-    }
-  else
-    {
-      return_value = GetLastError();
-    }
-		
-  if(NULL != surf)
-    {
-      // unlock the offscreen surface we needed
-      surf->Unlock(NULL);
-
-      // release the offscreen surface, because we are done with it
-      surf->Release();
-    }
-  else
-    {
-      delete buffer8;
-    }
-
-  // at this point, the file handle is still open;
-  //  it should be closed by the caller process afterwards
-  return return_value;
+  if (SUCCEEDED(surf->Lock(0, &desc, DDLOCK_WAIT | DDLOCK_WRITEONLY, 0))) {
+    FillSurface((BYTE *)desc.lpSurface, desc.lPitch,
+                desc.dwWidth, desc.dwHeight);
+    surf->Unlock(desc.lpSurface);
+  }
 }
 
-int CGraphics::GetTargetBufferIndex() const
-{
-  //assert(Certified());
-  if(this->current_buffer == this->buffers[0])
-    {
-      return 0;
+void SurfaceFiller::FillSurface(BYTE *desc, int pitch,
+                                int width, int height) throw() {
+  WriteLog("Call to unimplemented FillSurface()\n");
+  exit(1);
+}
+
+void BitmapLoadingSurfaceFiller::FillSurface(IDirectDrawSurface *surf)
+  throw() {
+  DDSURFACEDESC desc;
+  HDC surfDC;
+  memset(&desc, 0, sizeof(desc));
+  desc.dwSize = sizeof(desc);
+
+  surf->GetSurfaceDesc(&desc);
+
+  HBITMAP bmp = (HBITMAP)LoadImage(hInst, res_name, IMAGE_BITMAP,
+                                   desc.dwWidth, desc.dwHeight,
+                                   LR_CREATEDIBSECTION);
+
+  if (!bmp || FAILED(surf->GetDC(&surfDC))) {
+    DeleteObject(bmp);
+    return;
+  }
+
+  HDC bit_dc = CreateCompatibleDC(surfDC);
+  HGDIOBJ old_bmp = SelectObject(bit_dc, bmp);
+  HPALETTE prev_pal = SelectPalette(surfDC, gdi_palette, FALSE);
+
+  BitBlt(surfDC, 0, 0, desc.dwWidth, desc.dwHeight,
+         bit_dc, 0, 0, SRCCOPY);
+
+  SelectPalette(surfDC, prev_pal, FALSE);
+
+  surf->ReleaseDC(surfDC);
+
+  SelectObject(bit_dc, old_bmp);
+  DeleteObject(bmp);
+  DeleteDC(bit_dc);
+}
+
+surf_t GfxCreateSurface(int width, int height,
+                        std::auto_ptr<SurfaceFiller> filler) {
+  WriteLog("GfxCreateSurface of size %dx%d\n" LogArg(width) LogArg(height));
+
+  for (surface_db::iterator sitr = refs.begin();
+       sitr != refs.end(); sitr++) {
+    if (!sitr->InUse()) {
+      sitr->Use(width, height, filler);
+      WriteLog("Reusing old handle for surface\n");
+      return sitr - refs.begin();
     }
-  else if(this->current_buffer == this->buffers[1])
-    {
-      return 1;
+  }
+
+  refs.push_back(surface_info(width, height, filler));
+
+  WriteLog("New handle for surface\n");
+
+  return refs.size() - 1;
+}
+
+auto_ptr<SurfaceFiller> GfxDestroySurface(surf_t surf) {
+  WriteLog("Dest surf %d\n" LogArg(surf));
+
+  assert(refs[surf].InUse());
+
+  auto_ptr<SurfaceFiller> old_filler(refs[surf].DoNotUse());
+
+  while (!refs.empty() && !refs.back().InUse()) {
+    refs.pop_back();
+  }
+
+  return old_filler;
+}
+
+std::auto_ptr<SurfaceFiller>
+GfxChangeSurfaceFiller(surf_t surf,
+                       std::auto_ptr<SurfaceFiller> filler) {
+  return refs[surf].ChangeFiller(filler);
+}
+
+void GfxRefillSurfaces() {
+  for (surface_db::iterator itr = refs.begin(); itr != refs.end(); itr++) {
+    if (itr->InUse()) {
+      itr->RefillSurface();
+    } 
+  }
+}
+
+surf_t BitmapLoadingSurfaceFiller
+::CreateSurfaceFromBitmap(HINSTANCE hInst, const char *res_name) {
+  HBITMAP bmp = (HBITMAP)LoadImage(hInst, res_name, IMAGE_BITMAP, 0, 0,
+                                   LR_CREATEDIBSECTION | LR_DEFAULTSIZE);
+  BITMAP bmp_info;
+
+  GetObject(bmp, sizeof(bmp_info), &bmp_info);
+  DeleteObject(bmp);
+
+  return GfxCreateSurface
+    (bmp_info.bmWidth, bmp_info.bmHeight,
+     auto_ptr<SurfaceFiller>(new BitmapLoadingSurfaceFiller(hInst,
+                                                            res_name)));
+}
+
+BYTE GfxGetPaletteEntry(COLORREF clr) {
+  return gdi_palette
+    ? GetNearestPaletteIndex(gdi_palette, clr)
+    : rand() & 0xff;
+}
+
+void GfxSetPalette(PALETTEENTRY *pe, int entry_count,
+                   bool set_gdi_palette) {
+  IDirectDrawPalette *pal = 0;
+
+  assert(front_buffer);
+
+  if (FAILED(front_buffer->GetPalette(&pal))) {
+    pal = TryAndReport(CreatePalette(pe, entry_count));
+
+    if (!pal) {
+      return;
     }
-  else
-    {
-      return 2;
+
+    TryAndReport(front_buffer->SetPalette(pal));
+  } 
+
+  pal->SetEntries(0, 0, entry_count, pe);
+
+  pal->Release();
+
+  if (set_gdi_palette) {
+    if (gdi_palette) {
+      DeleteObject(gdi_palette);
     }
+
+    Buffer log_palette_buffer(sizeof(PALETTEENTRY) * entry_count
+                              + sizeof(LOGPALETTE));
+    LOGPALETTE *log = (LOGPALETTE *)log_palette_buffer.Get();
+
+    log->palVersion = 0x300;
+    log->palNumEntries = entry_count;
+    memcpy(log->palPalEntry, pe, sizeof(PALETTEENTRY) * entry_count);
+    gdi_palette = CreatePalette(log);
+  }
+}
+
+HPALETTE GfxGDIPalette() {return gdi_palette;}
+
+void GfxFlipToGDISurface() {
+  assert(dd);
+  dd->FlipToGDISurface();
+}
+
+void GfxAttachScalingClipper() {
+  assert(back_buffer);
+
+  back_buffer->SetClipper(clipper);
+}
+
+void GfxDetachScalingClipper() {
+  assert(back_buffer);
+
+  back_buffer->SetClipper(0);
 }

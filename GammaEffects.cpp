@@ -1,59 +1,54 @@
 #include "StdAfx.h"
-#include "Certifiable.h"
 #include "Graphics.h"
 #include "Fixed.h"
-#include "GammaEffects.h"
 #include "Logger.h"
+#include "GammaEffects.h"
 #include "Palette.h"
-#include "SurfaceLock.h"
-#include "SurfaceLock256.h"
-#include "Weather.h"
-
-enum {GESTATE_UNINITIALIZED, GESTATE_INITIALIZED}; // gamma effects states
-enum {GETYPE_NONE,GETYPE_BLOOD,GETYPE_HEALTH,GETYPE_AMMO}; // gamma effects types
 
 // effects parameters
 const int GE_FRAMESTOBLOOD =  18;
 const int GE_FRAMESTOAMMO =   6;
 const int GE_FRAMESTOHEALTH = 6;
 
-static int state = GESTATE_UNINITIALIZED;
 static DWORD frames_since_effect_started;
 static int effect_type;
 static FIXEDNUM previous_health;
 
-void GamOneFrame() {
-  assert(GESTATE_UNINITIALIZED != state);
-
+void GamOneFrame(FIXEDNUM overall_brightness) {
   if(GETYPE_NONE == effect_type) {
+    PalSetBrightnessFactor(overall_brightness,
+                           overall_brightness, overall_brightness);
     return;
   }
 
   FIXEDNUM scale = FixedCnvTo<long>(frames_since_effect_started);
   int lim = 0;
   DWORD max_time;
-  const FIXEDNUM weather = WtrBrightness();
 
   switch(effect_type) {
   case GETYPE_BLOOD:
     scale /= GE_FRAMESTOBLOOD;
-    scale = FixedMul(weather, scale);
-    PalSetBrightnessFactor(weather, scale, scale);
+    scale = FixedMul(overall_brightness, scale);
+    PalSetBrightnessFactor(overall_brightness, scale, scale);
 
     max_time = GE_FRAMESTOBLOOD;
     break;
   case GETYPE_HEALTH:
     scale /= GE_FRAMESTOHEALTH;
 
-    scale = FixedMul(scale, weather);
-    PalSetBrightnessFactor(weather * 2 - scale, weather * 2 - scale, weather * 2 - scale);
+    scale = FixedMul(scale, overall_brightness);
 
-    max_time =	GE_FRAMESTOHEALTH;
+    overall_brightness = overall_brightness * 2 - scale;
+    
+    PalSetBrightnessFactor(overall_brightness, overall_brightness,
+                           overall_brightness);
+
+    max_time = GE_FRAMESTOHEALTH;
     break;
   case GETYPE_AMMO:
     scale /= GE_FRAMESTOAMMO;
-    scale = FixedMul(scale, weather);
-    PalSetBrightnessFactor(scale, weather, scale);
+    scale = FixedMul(scale, overall_brightness);
+    PalSetBrightnessFactor(scale, overall_brightness, scale);
 
     max_time = GE_FRAMESTOAMMO;
   }
@@ -61,46 +56,28 @@ void GamOneFrame() {
   if(++frames_since_effect_started > max_time) {
     effect_type = GETYPE_NONE;
   }
-
-  PalApplyBrightnessFactor();
-
 }
 
-void GamInitialize(CGraphics &gr)
-{
-  assert(GESTATE_UNINITIALIZED == state);
-  effect_type = GETYPE_NONE;
-  state = GESTATE_INITIALIZED; // assume we are not using it
+void GamInitializeWithMenuPalette() {
+  PalInitializeWithMenuPalette();
 }
 
-void GamRelease() {
-  state = GESTATE_UNINITIALIZED;
+void GamInitializeWithIntroPalette() {
+  PalInitializeWithIntroPalette();
 }
 
-void GamPickupAmmo()
-{
-  assert(GESTATE_UNINITIALIZED != state);
-  effect_type = GETYPE_AMMO;
-  frames_since_effect_started = 0;
-}
+const BYTE *GamInitialize(const BYTE *ifs) {return PalInitialize(ifs);}
 
-void GamPickupHealth(FIXEDNUM current_health)
-{
-  assert(GESTATE_UNINITIALIZED != state);
-  effect_type = GETYPE_HEALTH;
+void GamDoEffect(int type, FIXEDNUM current_health) {
+  assert(type == GETYPE_NONE || type == GETYPE_BLOOD
+         || type == GETYPE_HEALTH || type == GETYPE_AMMO);
+
+  effect_type = type;
   frames_since_effect_started = 0;
   previous_health = current_health;
 }
 
-void GamGetShot(FIXEDNUM current_health)
-{
-  assert(GESTATE_UNINITIALIZED != state);
-  effect_type = GETYPE_BLOOD;
-  frames_since_effect_started = 0;
-  previous_health = current_health;
-}
-
-bool GamShowHealth() {
+bool GamHealthChanging() {
   return GETYPE_HEALTH == effect_type || GETYPE_BLOOD == effect_type;
 }
 

@@ -3,7 +3,8 @@
 #include <string>
 #include <fstream>
 #include <cassert>
-#include "../resource.h"
+#include "../Fixed.h"
+#include "../Glue.h"
 
 using std::vector;
 using std::string;
@@ -181,14 +182,12 @@ static void LoadCurrentLevel() {
 
   // get both sets of palettes
   int a;
-  for(int i = 0; i < 2; i++) {
-    in >> a;
-    pre_data.resize(pre_data.size()+1,a);
-    for(int j = 0; j < a*3; j++) {
-      int input;
-      in >> input;
-      pre_data.resize(pre_data.size()+1,input);
-    }
+  in >> a;
+  pre_data.resize(pre_data.size()+1, a);
+  for(int j = 0; j < a*3; j++) {
+    int input;
+    in >> input;
+    pre_data.resize(pre_data.size()+1,input);
   }
 
   // get level width, height, and weather pattern index

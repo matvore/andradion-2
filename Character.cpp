@@ -3,26 +3,24 @@
 
 #include "StdAfx.h"
 #include "Fixed.h"
-#include "SharedConstants.h"
-#include "Certifiable.h"
-#include "Graphics.h"
+#include "Logger.h"
 #include "GammaEffects.h"
 #include "Net.h"
 #include "PowerUp.h"
-#include "Character.h"
-#include "Fire.h"
 #include "Glue.h"
-#include "Profiler.h"
-#include "Logger.h"
-#include "Color.h"
-#include "Color256.h"
+#include "Fire.h"
+#include "Character.h"
+#include "Graphics.h"
 
 using std::pair;
 using std::max;
 using std::min;
 using std::swap;
 
-// constants for this module
+// a small secret, if all the arrow keys are
+//  pressed except one direction, the hero
+//  will run in the direction opposite of the unpressed button
+
 const FIXEDNUM HEALTHBONUSPERPACK[] = {Fixed(0.4),Fixed(0.25),Fixed(0.20)};
 const FIXEDNUM AMMOCAPACITY[] = {Fixed(130),Fixed(500),Fixed(6)};
 const FIXEDNUM AMMOSTARTING[] = {Fixed(25 ),Fixed( 0 ),Fixed(0)};
@@ -31,6 +29,10 @@ const FIXEDNUM MIN_ALIGNMENT = Fixed(3); // how close an alien should be before 
 const int FRAMESTORECOVER_HERO = 15;
 const int FRAMESTORECOVER_ALIEN = 15;
 const FIXEDNUM HURTFACTOR = Fixed(0.5);
+const FIXEDNUM HEROSPEED            = Fixed(2.80f);
+const FIXEDNUM HEROSPEED_MPFACTOR   = Fixed(1.20f);
+const FIXEDNUM HEROSPEED_HURTFACTOR = Fixed(0.75f);
+const FIXEDNUM HEROSPEED_RUNNINGFACTOR = Fixed(1.414f);
 
 // speeds are in pixels per frame
 const FIXEDNUM ALIENSPEED[3] = {Fixed(1), Fixed(2), Fixed(3)};
@@ -98,8 +100,11 @@ const int RECOIL_RANGE[] = {5, 5, 0};
 const int RECOIL_RANGE_OFFSET[] = {-2, -2, 0};
 const FIXEDNUM RECOIL_UNIT = Fixed(1.5);
 
-void CCharacter::Setup(FIXEDNUM x,FIXEDNUM y,int model_,bool doing_mp) // used for enemies or hero in sp
-{
+CCharacter hero;
+vector<CCharacter> enemies;
+
+// used for enemies or hero in sp
+void CCharacter::Setup(FIXEDNUM x,FIXEDNUM y,int model_,bool doing_mp) {
   this->model                   = model_;
   this->coor.first.x            = x;
   this->coor.first.y            = y+Fixed(TILE_HEIGHT/2);
@@ -110,19 +115,16 @@ void CCharacter::Setup(FIXEDNUM x,FIXEDNUM y,int model_,bool doing_mp) // used f
   this->frames_not_having_sworn = 0;
   this->frames_since_last_fire  = 0;
 
-  if(CHAR_TURNER != this->model && false == doing_mp)
-    {
-      // simple single-player alien guy
-      this->current_weapon = model_;
-      this->state = CHARSTATE_UNKNOWING;
-    }
-  else
-    {
-      this->reset_gamma = true;
-      this->current_weapon = WEAPON_PISTOL;
-      this->state = CHARSTATE_ALIVE;
-      ResetAmmo();
-    }
+  if(CHAR_TURNER != this->model && !doing_mp) {
+    // simple single-player alien guy
+    this->current_weapon = model_;
+    this->state = CHARSTATE_UNKNOWING;
+  } else {
+    this->reset_gamma = true;
+    this->current_weapon = WEAPON_PISTOL;
+    this->state = CHARSTATE_ALIVE;
+    ResetAmmo();
+  }
 }
 
 void CCharacter::PlaySound()
@@ -130,8 +132,8 @@ void CCharacter::PlaySound()
   int wav;
   FIXEDNUM x_dist;
   FIXEDNUM y_dist;
-  x_dist = GLUhero.X();
-  y_dist = GLUhero.Y();
+  x_dist = hero.X();
+  y_dist = hero.Y();
   x_dist *= -1;
   y_dist *= -1;
   x_dist += this->coor.first.x;
@@ -150,53 +152,40 @@ void CCharacter::PlaySound()
   GluPlaySound(wav,x_dist,y_dist);
 }
 
-void CCharacter::Logic(const CCharacter& target)
+bool CCharacter::Logic(const CCharacter& target)
 {
-  BeginProfile(Enemy_Logic);
-
   // xd and yd are the distance in each dimension from the target
-  FIXEDNUM xd = abs(GLUcenter_screen_x - (this->coor.first.x                            ));
-  FIXEDNUM yd = abs(GLUcenter_screen_y - (this->coor.first.y - Fixed(TILE_HEIGHT/2)));
+  FIXEDNUM xd = abs(GLUcenter_screen_x - (coor.first.x));
+  FIXEDNUM yd = abs(GLUcenter_screen_y - (coor.first.y - Fixed(TILE_HEIGHT/2)));
 
   // make sure we aren't off the side
   //  of the screen
-  if(xd >= Fixed((GAME_MODEWIDTH + TILE_WIDTH)/2) || yd >= Fixed((GAME_PORTHEIGHT + TILE_HEIGHT)/2))
-    {
-      return;
-    }
+  if(xd >= Fixed((GAME_MODEWIDTH + TILE_WIDTH)/2)
+     || yd >= Fixed((GAME_PORTHEIGHT + TILE_HEIGHT)/2)) {
+    return false;
+  }
 
-  // if we got here, we were not off the side of the screen, so
-  //  add ourselves to the drawing order list
-  GLUdrawing_order.insert(TCharacterPointer(this));
-
-  if(CHARSTATE_HURT != this->state && CHARSTATE_DYING != this->state)
-    {
-      // we can consider not going through logic this time
-      if
-	(
-	 CHARSTATE_DEAD == target.state                   ||
-	 CHARSTATE_DEAD == this->state                    ||
-	 GluWalkingData(target.X(),target.Y()) !=
-	 GluWalkingData(this->coor.first.x,this->coor.first.y - Fixed(TILE_HEIGHT/2))
-	 )
-	{
-	  return;
-	}
+  if(CHARSTATE_HURT != state && CHARSTATE_DYING != state) {
+    // we can consider not going through logic this time
+    if (CHARSTATE_DEAD == target.state || CHARSTATE_DEAD == state
+        || GluWalkingData(target.X(),target.Y())
+        != GluWalkingData(coor.first.x,
+                          coor.first.y - Fixed(TILE_HEIGHT/2))) {
+      return true;
     }
+  }
 	
   xd = target.coor.first.x - this->coor.first.x;
   yd = target.coor.first.y - this->coor.first.y;
   FIXEDNUM speed;
 
-  this->frames_since_last_fire++;
-
+  frames_since_last_fire++;
 
   if(CHARSTATE_UNKNOWING == state) {
 #if !defined(TESTMODE)
-    // figure out if the hero is close
-    //  enough to be noticed
-    xd = FixedMul(xd,xd); // square xd
-    yd = FixedMul(yd,yd); // square yd
+    // figure out if the hero is close enough to be noticed
+    xd = FixedMul(xd,xd); 
+    yd = FixedMul(yd,yd); 
     if(MIN_SAFEDISTANCESQUARED > xd + yd) {
       // this computer player is no longer unaware of turner's presence
       //  so change the state to ALIVE
@@ -204,10 +193,10 @@ void CCharacter::Logic(const CCharacter& target)
     }
 #endif
 
-    return;
+    return true;
   }
 
-  GLUhero.CheckForEnemyCollision(*this);
+  hero.CheckForEnemyCollision(*this);
 
   FIXEDNUM xm, ym; // movement
 
@@ -220,14 +209,14 @@ void CCharacter::Logic(const CCharacter& target)
       // lining up horizontally and firing vertically
       direction = yd > 0 ? DSOUTH : DNORTH;
 
-      return;
+      return true;
     } else if(abs(yd) <= MIN_ALIGNMENT) {
       state = CHARSTATE_FIRING;
 
       // lining up vertically and firing horizontally
       direction = xd > 0 ? DEAST : DWEST;
 
-      return;
+      return true;
     } else {
       speed = ALIENSPEED[this->model];
 
@@ -282,233 +271,169 @@ void CCharacter::Logic(const CCharacter& target)
     }
 
     TryToFire();
-  } else /* we are hurt or are dying */ if(++frames_in_this_state > FRAMESTORECOVER_ALIEN) {
+  } else if(++frames_in_this_state > FRAMESTORECOVER_ALIEN) {
     state = CHARSTATE_DYING == state ? CHARSTATE_DEAD : CHARSTATE_WALKING;
     frames_in_this_state = 0;
   }
-  EndProfile(); // enemy logic
+  
+  return true;
 }
 
-void CCharacter::Logic()
-{
-  BeginProfile(Hero_Logic);
-  GLUdrawing_order.insert(TCharacterPointer(this));
-  this->frames_since_last_fire++;
+void CCharacter::Logic() {
   static bool firing_last_frame = false;
+  
+  frames_since_last_fire++;
 
-  if(this->coor.first.x < 0 || this->coor.first.y < 0)
-    {
-      GluGetRandomStartingSpot(this->coor.first);
-      this->coor.first.y += Fixed(TILE_HEIGHT/2);
-      this->coor.second = this->coor.first;
+  if(coor.first.x < 0 || coor.first.y < 0) {
+    GluGetRandomStartingSpot(coor.first);
+    coor.first.y += Fixed(TILE_HEIGHT/2);
+    coor.second = coor.first;
+  }
+
+  if(CHARSTATE_ALIVE == state || CHARSTATE_WALKING == state) {
+    if(++frames_in_this_state > FRAMESTOSTEP
+       && CHARSTATE_HURT != state) {
+      frames_in_this_state = 0;
+      state = !state;
     }
 
-  if(CHARSTATE_ALIVE == this->state || CHARSTATE_WALKING == this->state)
-    {
-      if(++this->frames_in_this_state > FRAMESTOSTEP && CHARSTATE_HURT != this->state) 
-	{
-	  this->frames_in_this_state = 0;
-	  this->state = !this->state;
-	}
-
-      // change weapons if necessary
-      if(GLUkeyb[DIK_1] & EIGHTHBIT && WEAPON_PISTOL != this->current_weapon)
-	{
-	  if(!(GLUkeyb[DIK_2] & EIGHTHBIT) && !(GLUkeyb[DIK_3] & EIGHTHBIT))
-	    {
-	      GluPlaySound(WAV_GUNNOISE,Fixed(1),false);
-	      this->current_weapon = WEAPON_PISTOL;
-	      NetSendWeaponChangeMessage(WEAPON_PISTOL);
-	    }
-	}
-      else if(GLUkeyb[DIK_2] & EIGHTHBIT && WEAPON_MACHINEGUN != this->current_weapon)
-	{
-	  if(!(GLUkeyb[DIK_1] & EIGHTHBIT) && !(GLUkeyb[DIK_3] & EIGHTHBIT))
-	    {
-	      GluPlaySound(WAV_GUNNOISE,Fixed(1),false);
-	      this->current_weapon = WEAPON_MACHINEGUN;
-	      NetSendWeaponChangeMessage(WEAPON_MACHINEGUN);
-	    }
-	}
-      else if(GLUkeyb[DIK_3] & EIGHTHBIT && WEAPON_BAZOOKA != this->current_weapon)
-	{
-	  if(!(GLUkeyb[DIK_1] & EIGHTHBIT) && !(GLUkeyb[DIK_2] & EIGHTHBIT))
-	    {
-	      GluPlaySound(WAV_GUNNOISE,Fixed(1),false);
-	      this->current_weapon = WEAPON_BAZOOKA;
-	      NetSendWeaponChangeMessage(WEAPON_BAZOOKA);
-	    }
-	}
+    // change weapons if necessary
+    if((GLUkeyb[DIK_1] & EIGHTHBIT)
+       && WEAPON_PISTOL != current_weapon) {
+      if(!(GLUkeyb[DIK_2] & EIGHTHBIT)
+         && !(GLUkeyb[DIK_3] & EIGHTHBIT)) {
+        GluPlaySound(WAV_GUNNOISE, Fixed(1), false);
+        current_weapon = WEAPON_PISTOL;
+      }
+    } else if((GLUkeyb[DIK_2] & EIGHTHBIT)
+              && WEAPON_MACHINEGUN != current_weapon) {
+      if(!(GLUkeyb[DIK_1] & EIGHTHBIT)
+         && !(GLUkeyb[DIK_3] & EIGHTHBIT)) {
+        GluPlaySound(WAV_GUNNOISE, Fixed(1), false);
+        current_weapon = WEAPON_MACHINEGUN;
+      }
+    } else if((GLUkeyb[DIK_3] & EIGHTHBIT)
+              && WEAPON_BAZOOKA != current_weapon) {
+      if(!(GLUkeyb[DIK_1] & EIGHTHBIT)
+         && !(GLUkeyb[DIK_2] & EIGHTHBIT)) {
+        GluPlaySound(WAV_GUNNOISE, Fixed(1), false);
+        current_weapon = WEAPON_BAZOOKA;
+      }
     }
-  else if(CHARSTATE_HURT == this->state)
-    {
-      if(++this->frames_in_this_state > FRAMESTORECOVER_HERO)
-	{
-	  this->frames_in_this_state = 0;
-	  this->state = CHARSTATE_ALIVE;
-	  this->reset_gamma = true;
-	}
+  } else if(CHARSTATE_HURT == state) {
+    if(++frames_in_this_state > FRAMESTORECOVER_HERO) {
+      frames_in_this_state = 0;
+      state = CHARSTATE_ALIVE;
+      reset_gamma = true;
     }
-  else if(CHARSTATE_DYING == this->state)
-    {
-      this->reset_gamma = true;
-      GluPostSPKilledMessage();
+  } else if(CHARSTATE_DYING == state) {
+    reset_gamma = true;
+    GluPostSPKilledMessage();
 
-      if(++this->frames_in_this_state > FRAMESTODIE)
-	{
-	  this->reset_gamma = true;
-	  this->frames_in_this_state = 0;
-	  if(true == NetInGame())
-	    {
-				// resurrect ourselves into a new starting spot
-	      GluGetRandomStartingSpot(this->coor.first);
-	      this->coor.first.y += Fixed(TILE_HEIGHT/2);
-	      this->coor.second = this->coor.first;
-	      this->state = CHARSTATE_ALIVE;
-	      this->health = Fixed(1);
-	      ResetAmmo();
-	      this->current_weapon = WEAPON_PISTOL;
-	    }
-	  else
-	    {
-	      this->state = CHARSTATE_DEAD;
-	    }
-	}
+    if(++frames_in_this_state > FRAMESTODIE) {
+      reset_gamma = true;
+      frames_in_this_state = 0;
+      if(NetInGame()) {
+        // resurrect ourselves into a new starting spot
+        GluGetRandomStartingSpot(coor.first);
+        coor.first.y += Fixed(TILE_HEIGHT/2);
+        coor.second = coor.first;
+        state = CHARSTATE_ALIVE;
+        health = Fixed(1);
+        ResetAmmo();
+        current_weapon = WEAPON_PISTOL;
+      } else {
+        state = CHARSTATE_DEAD;
+      }
     }
+  }
 
-  bool walked = true; // assume we are walking
+  NetSetWeapon(current_weapon);
+
+  bool walked = true;
 
   // now take care of movement
-  if(CHARSTATE_WALKING == this->state || CHARSTATE_ALIVE == this->state || CHARSTATE_HURT == this->state)
-    {
-      FIXEDNUM speed = HEROSPEED;
-      int new_direction = -1;
+  if(CHARSTATE_WALKING == state
+     || CHARSTATE_ALIVE == state
+     || CHARSTATE_HURT == state) {
+    DWORD directional_buttons = 0;
+    bool running;
+    int old_direction = direction;
+    
+    if(GLUkeyb[DIK_RIGHT] & EIGHTHBIT) {directional_buttons |= 1;}
+    if(GLUkeyb[DIK_UP   ] & EIGHTHBIT) {directional_buttons |= 2;}
+    if(GLUkeyb[DIK_LEFT ] & EIGHTHBIT) {directional_buttons |= 4;}
+    if(GLUkeyb[DIK_DOWN ] & EIGHTHBIT) {directional_buttons |= 8;}
 
-      DWORD directional_buttons = 0;
-      if(GLUkeyb[DIK_RIGHT] & EIGHTHBIT) {directional_buttons |= 1;}
-      if(GLUkeyb[DIK_UP   ] & EIGHTHBIT) {directional_buttons |= 2;}
-      if(GLUkeyb[DIK_LEFT ] & EIGHTHBIT) {directional_buttons |= 4;}
-      if(GLUkeyb[DIK_DOWN ] & EIGHTHBIT) {directional_buttons |= 8;}
-
-      // may apply mp factor (multiplayers walk faster)
-      FIXEDNUM running_factor;
-      if(true == NetInGame())
-	{
-	  speed = FixedMul(speed,HEROSPEED_MPFACTOR);
-	  running_factor = Fixed(1.0f); // no running in MP
-	}
-      else
-	{
-	  running_factor = HEROSPEED_RUNNINGFACTOR;
-	}
-
-      switch(directional_buttons) {
-      case 11: case 1 : new_direction = DEAST ; break;
-      case 7 : case 2 : new_direction = DNORTH; break;
-      case 14: case 4 : new_direction = DWEST ; break;
-      case 13: case 8 : new_direction = DSOUTH; break;
-      case 3 : new_direction = DNE; break;
-      case 6 : new_direction = DNW; break;
-      case 9 : new_direction = DSE; break;
-      case 12: new_direction = DSW; break;
-      default: // turner ain't moving his feet
-	walked = false;
-	speed = 0;
-      }
-
-      // check if three buttons are pressed
-      if(11 == directional_buttons ||
-	 7 == directional_buttons ||
-	 14 == directional_buttons ||
-	 13 == directional_buttons ||
-	 ((GLUkeyb[DIK_LCONTROL] & EIGHTHBIT || GLUkeyb[DIK_RCONTROL] & EIGHTHBIT) && new_direction < RENDERED_DIRECTIONS)
-	 )
-	{
-	  speed = FixedMul(speed,running_factor);
-	}
-		
-      if(true == walked)
-	{
-	  FIXEDNUM mx;
-	  FIXEDNUM my;
-	  GluInterpretDirection(new_direction,mx,my);
-
-	  // may apply hurt factor
-	  if(CHARSTATE_HURT == this->state)
-	    {
-	      speed = FixedMul(speed,HEROSPEED_HURTFACTOR);
-	    }
-
-	  mx = FixedMul(mx,speed);
-	  my = FixedMul(my,speed);
-
-	  this->coor.second.x = this->coor.first.x + mx;
-	  this->coor.second.y = this->coor.first.y + my;
-
-	  if(!(GLUkeyb[DIK_LSHIFT] & EIGHTHBIT) && !(GLUkeyb[DIK_RSHIFT] & EIGHTHBIT))
-	    {
-	      this->direction = new_direction;
-	    }
-	  else if(this->direction >= RENDERED_DIRECTIONS)
-	    {
-	      this->direction -= RENDERED_DIRECTIONS;
-	    }
-	  this->TryToMove();
-	}
-    }
-  else
-    {
+    switch(directional_buttons) {
+    case 11: case 1 : direction = DEAST ; break;
+    case 7 : case 2 : direction = DNORTH; break;
+    case 14: case 4 : direction = DWEST ; break;
+    case 13: case 8 : direction = DSOUTH; break;
+    case 3 : direction = DNE; break;
+    case 6 : direction = DNW; break;
+    case 9 : direction = DSE; break;
+    case 12: direction = DSW; break;
+    default: // turner ain't moving his feet
       walked = false;
     }
 
-  // now see if they are trying to fire the gun . . .
-  if(GLUkeyb[DIK_SPACE] & EIGHTHBIT && 0 != this->ammo[this->current_weapon])
-    {
-      this->TryToFire();
-      if(false == firing_last_frame && WEAPON_BAZOOKA != this->current_weapon)
-	{
-	  firing_last_frame = true;
-	  if(WEAPON_MACHINEGUN == this->current_weapon)
-	    {
-	      NetSendMachineGunFireStartMessage();
-	    }
-	}		
-    }
-  else
-    {
-      if(true == firing_last_frame && WEAPON_BAZOOKA != this->current_weapon)
-	{
-	  firing_last_frame = false;
-	  if(WEAPON_PISTOL == this->current_weapon)
-	    {
-	      this->frames_since_last_fire = FRAMESTORELOAD[WEAPON_PISTOL];
-	    }
-	  else
-	    {
-	      NetSendMachineGunFireStopMessage();
-	    }
-	}
-    }
+    // check if three buttons are pressed
+    running = (11 == directional_buttons ||
+               7 == directional_buttons ||
+               14 == directional_buttons ||
+               13 == directional_buttons ||
+               ((GLUkeyb[DIK_LCONTROL] & EIGHTHBIT
+                 || GLUkeyb[DIK_RCONTROL] & EIGHTHBIT)
+                && direction < RENDERED_DIRECTIONS));
+		
+    if(walked) {
+      Walk(running);
 
-  if(false == walked)
-    {
-      if(CHARSTATE_WALKING == this->state || CHARSTATE_ALIVE == this->state)
-	{
-	  this->frames_in_this_state = 0;
-	}
+      if((GLUkeyb[DIK_LSHIFT] & EIGHTHBIT)
+         || (GLUkeyb[DIK_RSHIFT] & EIGHTHBIT)) {
+          direction = old_direction;
+      }
+      
+      TryToMove();
     }
-  else
-    {
-      this->PowerUpCollisions();
+  } else {
+    walked = false;
+  }
+
+  NetSetPosition(FixedCnvFrom<long>(coor.first.x),
+                 FixedCnvFrom<long>(coor.first.y) - TILE_HEIGHT/2,
+                 direction);
+  
+  // now see if they are trying to fire the gun . . .
+  if(GLUkeyb[DIK_SPACE] & EIGHTHBIT && 0 != ammo[current_weapon]) {
+    TryToFire();
+    if(!firing_last_frame && WEAPON_BAZOOKA != current_weapon) {
+      firing_last_frame = true;
+    }		
+  } else {
+    if(firing_last_frame && WEAPON_BAZOOKA != current_weapon) {
+      firing_last_frame = false;
+      if(WEAPON_PISTOL == current_weapon) {
+        frames_since_last_fire = FRAMESTORELOAD[WEAPON_PISTOL];
+      }
     }
-  EndProfile(); // hero logic
+  }
+
+  NetFireMachineGun(WEAPON_MACHINEGUN == current_weapon
+                    && firing_last_frame);
+
+  if(!walked) {
+    if(CHARSTATE_WALKING == state || CHARSTATE_ALIVE == state) {
+      frames_in_this_state = 0;
+    }
+  } else {
+    PowerUpCollisions();
+  }
 }
 
-bool CCharacter::DrawCharacter(CGraphics& gr) {
-  BeginProfile(Draw_Character);
-
-  RECT *const target = &gr.TargetScreenArea();
-  int bmp;
+bool CCharacter::DrawCharacter() {
+  int bmp, target_x, target_y;
   int vd; // virtual direction
   FIXEDNUM tx, ty; // screen coordinates to put character
 
@@ -520,9 +445,7 @@ bool CCharacter::DrawCharacter(CGraphics& gr) {
   } else if(CHARSTATE_DYING == state) {
     bmp = BMPSET_DECAPITATE+(rand()&1);
   } else {
-    bmp = BMPSET_CHARACTERS
-      + model * ANIMATIONFRAMESPERCHARACTER
-      + vd;
+    bmp = BMPSET_CHARACTERS + model * ANIMATIONFRAMESPERCHARACTER + vd;
 
     if(CHARSTATE_WALKING == state) {
       bmp += RENDERED_DIRECTIONS;
@@ -537,13 +460,11 @@ bool CCharacter::DrawCharacter(CGraphics& gr) {
   tx = coor.first.x - GLUcenter_screen_x + Fixed(GAME_MODEWIDTH/2) - Fixed(TILE_WIDTH/2);
   ty = coor.first.y - GLUcenter_screen_y + Fixed(GAME_PORTHEIGHT/2) - Fixed(TILE_HEIGHT);
 
-  target->left = FixedCnvFrom<long>(tx);
-  target->right = FixedCnvFrom<long>(tx) + TILE_WIDTH;
-  target->top = FixedCnvFrom<long>(ty);
-  target->bottom = FixedCnvFrom<long>(ty) + TILE_HEIGHT;
+  target_x = FixedCnvFrom<long>(tx);
+  target_y = FixedCnvFrom<long>(ty);
 
   if(donot_draw_weapon) {
-    gr.PutFastClip(*GLUbitmaps[bmp]);
+    GluDraw(bmp, target_x, target_y);
   } else {
     int weapon_bmp = BMPSET_WEAPONS
       + this->current_weapon * RENDERED_DIRECTIONS + vd;
@@ -552,13 +473,13 @@ bool CCharacter::DrawCharacter(CGraphics& gr) {
       swap(bmp, weapon_bmp);
     }
 
-    gr.PutFastClip(*GLUbitmaps[weapon_bmp]);
-    gr.PutFastClip(*GLUbitmaps[bmp]);
+    GluDraw(weapon_bmp, target_x, target_y);
+    GluDraw(bmp, target_x, target_y);
   }
 
   // draw blood if we are hurt
-  if(CHARSTATE_HURT == this->state) {
-    gr.PutFastClip(*GLUbitmaps[BMPSET_DECAPITATE+(rand()&1)]);
+  if(CHARSTATE_HURT == state) {
+    GluDraw(BMPSET_DECAPITATE+(rand()&1), target_x, target_y);
   }
 
   if (coor.first.x != coor.second.x || coor.first.y != coor.second.y) {
@@ -567,441 +488,404 @@ bool CCharacter::DrawCharacter(CGraphics& gr) {
   } else {
     return false;
   }
-
-  EndProfile(); // draw character
 }
 
-void CCharacter::DrawMeters(CGraphics& gr,int show_health)
-{
-  BeginProfile(Draw_Meters);
-  RECT *target = &gr.TargetScreenArea();
+void CCharacter::DrawMeters(int show_health) {
+  RECT target;
 
-  if(SHOWHEALTH_YES == show_health || ((GamShowHealth()
+  if(SHOWHEALTH_YES == show_health || ((GamHealthChanging()
 					|| CHARSTATE_HURT == this->state)
-				       && SHOWHEALTH_IFHURT == show_health))
-    {
-      const FIXEDNUM virtual_health = GamShowHealth() ? GamVirtualHealth(health) : health;
-      // set target screen area for the health meter
-      target->left = HEALTH_METER_DISTANCE_FROM_SIDES_OF_SCREEN;
-      target->bottom = GAME_PORTHEIGHT - HEALTH_METER_DISTANCE_FROM_SIDES_OF_SCREEN;
-      target->top = target->bottom - HEALTH_METER_HEIGHT;
+				       && SHOWHEALTH_IFHURT == show_health)) {
+     const FIXEDNUM virtual_health = GamHealthChanging()
+       ? GamVirtualHealth(health) : health;
+     // set target screen area for the health meter
+     target.left = HEALTH_METER_DISTANCE_FROM_SIDES_OF_SCREEN;
+     target.bottom = GAME_PORTHEIGHT
+       - HEALTH_METER_DISTANCE_FROM_SIDES_OF_SCREEN;
+     target.top = target.bottom - HEALTH_METER_HEIGHT;
 
-      // figure how long the meter will be, and draw it if it is
-      //  more than zero
-      target->right = target->left + FixedCnvFrom<long>((GAME_MODEWIDTH - 2 * HEALTH_METER_DISTANCE_FROM_SIDES_OF_SCREEN) * FixedMul(virtual_health, virtual_health));
+     // figure how long the meter will be, and draw it if it is
+     //  more than zero
+     target.right = target.left + FixedCnvFrom<long>
+       ((GAME_MODEWIDTH - 2 * HEALTH_METER_DISTANCE_FROM_SIDES_OF_SCREEN)
+        * FixedMul(virtual_health, virtual_health));
 
-      if(target->right > target->left)
-	{
-	  // make the color unique
-	  CColor256 meters;
-	  meters.SetColor(HEALTH_METER_R,HEALTH_METER_G,HEALTH_METER_B);
-	  meters.Certify();
-
-	  // draw our cool rectangle
-	  gr.Rectangle(meters.Color());
-	}
-    }
+     if(target.right > target.left) {
+        GfxRectangle(GfxGetPaletteEntry(RGB(HEALTH_METER_R,
+                                            HEALTH_METER_G,
+                                            HEALTH_METER_B)), &target);
+     }
+  }
 
   // now the ammo meter - first draw the background border (which is black)
-  target->right = GAME_MODEWIDTH - AMMO_METER_DISTANCE_FROM_SIDES_OF_SCREEN;
-  target->left = target->right - AMMO_METER_WIDTH;
-  target->bottom = GAME_PORTHEIGHT - AMMO_METER_DISTANCE_FROM_SIDES_OF_SCREEN;
-  target->top = target->bottom - AMMO_METER_HEIGHT;
+  target.right = GAME_MODEWIDTH - AMMO_METER_DISTANCE_FROM_SIDES_OF_SCREEN;
+  target.left = target.right - AMMO_METER_WIDTH;
+  target.bottom = GAME_PORTHEIGHT - AMMO_METER_DISTANCE_FROM_SIDES_OF_SCREEN;
+  target.top = target.bottom - AMMO_METER_HEIGHT;
 
   // draw the rectangle outline of the ammo meter
-  gr.Rectangle(0);
+  GfxRectangle(0, &target);
 
   // make the actual measurement rectangle slightly thinner
-  target->left++;
-  target->right--;
+  target.left++;
+  target.right--;
 
   FIXEDNUM what_to_measure;
 
   // set what_to_measure to the percentage of ammo we have
-  what_to_measure = FixedCnvTo<long>(this->frames_since_last_fire) / FRAMESTORELOAD[WEAPON_BAZOOKA];
+  what_to_measure = FixedCnvTo<long>(frames_since_last_fire)
+    / FRAMESTORELOAD[WEAPON_BAZOOKA];
 	
   // we will show an alternate meter measuring time left to load if the player is using a bazooka
-  if(WEAPON_BAZOOKA != this->current_weapon || what_to_measure >= Fixed(1.0f) || 0 == this->ammo[WEAPON_BAZOOKA])
-    {
-      what_to_measure = FixedCnvTo<double>(sqrt(FixedCnvFrom<double>(this->ammo[this->current_weapon])));
+  if (WEAPON_BAZOOKA != current_weapon
+      || what_to_measure >= Fixed(1.0f)
+      || 0 == ammo[WEAPON_BAZOOKA]) {
+    what_to_measure = FixedCnvTo<double>
+      (sqrt(FixedCnvFrom<double>(ammo[current_weapon])));
     }
 
-  target->top += AMMO_METER_HEIGHT - FixedCnvFrom<long>(what_to_measure * AMMO_METER_HEIGHT);
+  target.top += AMMO_METER_HEIGHT
+    - FixedCnvFrom<long>(what_to_measure * AMMO_METER_HEIGHT);
 
-  if(target->top < target->bottom)
-    {
-      // make the color unique
-      CColor256 meters;
-      meters.SetColor(AMMO_METER_R,AMMO_METER_G,AMMO_METER_B);
-      meters.Certify();
-
-      // draw our cool rectangle
-      gr.Rectangle(meters.Color());
-    }
-
-  EndProfile(); // draw meters
+  if(target.top < target.bottom) {
+     GfxRectangle(GfxGetPaletteEntry(RGB(AMMO_METER_R,
+                                         AMMO_METER_G,
+                                         AMMO_METER_B)), &target);
+  }
 }
-
+ 
 void CCharacter::SubtractHealth(int fire_type)
 {
-  if(CHARSTATE_DEAD == this->state)
-    {
-      return;
-    }
-
   FIXEDNUM pain; // how much is actually taken away is calculated now
-
-  bool we_are_hero = (&GLUhero == this);
+  bool we_are_hero = (&hero == this);
+  
+  if(CHARSTATE_DEAD == this->state) {
+    return;
+  }
 	
   // figure out if we're the hero
-  if(true == we_are_hero)
-    {
-      // we are the hero
+  if(we_are_hero) {
+    // we are the hero
 
-      // do gamma effects
-      GamGetShot(health);
+    // do gamma effects
+    GamDoEffect(GETYPE_BLOOD, health);
 
-      if(WEAPON_BAZOOKA != fire_type)
-	{
-	  pain = HERO_WEAPONDAMAGE[GLUdifficulty][fire_type];
-	  if(CHARSTATE_HURT == this->state)
-	    {
-	      pain = FixedMul(pain,HURTFACTOR);
-	    }
-	  else
-	    {
-	      this->state = CHARSTATE_HURT;
-	      this->frames_in_this_state = 0;
-	    }
-	}
-      else
-	{
-	  // getting hit with bazooka
-	  if(CHARSTATE_HURT == this->state)
-	    {
-	      pain = HERO_BAZOOKADAMAGE[GLUdifficulty];
-	    }
-	  else
-	    {
-	      pain = 0;
-	      this->state = CHARSTATE_HURT;
-	    }
-	  this->frames_in_this_state = 0;
-	}
-    }
-  else
-    {
-      // we are not the hero
-      if(WEAPON_BAZOOKA != fire_type)
-	{
-	  pain = ENEMY_WEAPONDAMAGE[GLUdifficulty][fire_type];
-	}
-      else
-	{
-	  if(CHARSTATE_HURT == this->state)
-	    {
-	      pain = ENEMY_BAZOOKADAMAGE[GLUdifficulty];
-	    }
-	  else
-	    {
-	      pain = 0;
-	    }
-	}			
-      this->state = CHARSTATE_HURT;
+    if(WEAPON_BAZOOKA != fire_type) {
+      pain = HERO_WEAPONDAMAGE[GLUdifficulty][fire_type];
+      if(CHARSTATE_HURT == this->state) {
+        pain = FixedMul(pain,HURTFACTOR);
+      } else {
+        this->state = CHARSTATE_HURT;
+        this->frames_in_this_state = 0;
+      }
+    } else {
+      // getting hit with bazooka
+      if(CHARSTATE_HURT == this->state) {
+        pain = HERO_BAZOOKADAMAGE[GLUdifficulty];
+      } else {
+        pain = 0;
+        this->state = CHARSTATE_HURT;
+      }
       this->frames_in_this_state = 0;
     }
+  } else {
+    // we are not the hero
+    if(WEAPON_BAZOOKA != fire_type) {
+      pain = ENEMY_WEAPONDAMAGE[GLUdifficulty][fire_type];
+    } else {
+      if(CHARSTATE_HURT == this->state) {
+        pain = ENEMY_BAZOOKADAMAGE[GLUdifficulty];
+      } else {
+        pain = 0;
+      }
+    }	
+    this->state = CHARSTATE_HURT;
+    this->frames_in_this_state = 0;
+  }
 
   this->health = max(Fixed(0),this->health-pain);
 
   // put ourselves in a hurting state
-  if(0 == this->health)
-    {
-      if(CHAR_EVILTURNER == this->model && false == we_are_hero)
-	{
-	  // we just lost our disguise . . .
-	  this->Setup(this->coor.first.x,this->coor.first.y-Fixed(TILE_HEIGHT/2),CHAR_SALLY,false);
-	  this->state = CHARSTATE_HURT; // override setup function's value of CHARSTATE_UNKNOWING
-	  this->PlaySound();
-	  GluChangeScore(GluScoreDiffKill(CHAR_EVILTURNER));
-	}
-      else
-	{
-	  // we are really dead . . .
-	  this->state = CHARSTATE_DYING;
-	  this->PlaySound();
-	  this->frames_in_this_state = 0;
+  if(0 == health) {
+    if(CHAR_EVILTURNER == model && !we_are_hero) {
+      // we just lost our disguise . . .
+      Setup(coor.first.x, coor.first.y-Fixed(TILE_HEIGHT/2),CHAR_SALLY,false);
+      state = CHARSTATE_HURT; // override setup function's value of CHARSTATE_UNKNOWING
+      PlaySound();
+      GluChangeScore(GluScoreDiffKill(CHAR_EVILTURNER));
+    } else {
+      // we are really dead . . .
+      state = CHARSTATE_DYING;
+      PlaySound();
+      frames_in_this_state = 0;
 			
-	  if(false == we_are_hero)
-	    {
-	      GluChangeScore(GluScoreDiffKill(this->model));
-	    }
-	  else if(true == NetInGame())
-	    {
-	      NetSendDeathMessage(this->ammo);
-	    }
-	}
+      if(!we_are_hero) {
+        GluChangeScore(GluScoreDiffKill(model));
+      } else {
+        WORD compressed_ammo[NUM_WEAPONS];
+
+        for (int i = 0; i < NUM_WEAPONS; i++) {
+          compressed_ammo[i] = ammo[i] & 0xffff0000
+            ? 0x0000ffff : ammo[i];
+        }
+
+        NetDied(compressed_ammo);
+      }
     }
-  else
-    {
-      if
-	(
-	 CHARSTATE_HURT != this->state ||
-	 WEAPON_PISTOL == fire_type ||
-	 ++this->frames_not_having_sworn > FRAMESTOSWEARAGAIN
-	 )
-	{
-	  this->PlaySound(); 
-	  this->frames_not_having_sworn = 0;
-	  NetSendAdmitHitMessage(); // we've been hit!
-	}
-    }
+  } else if(CHARSTATE_HURT != state ||
+            WEAPON_PISTOL == fire_type ||
+            ++frames_not_having_sworn > FRAMESTOSWEARAGAIN) {
+    PlaySound(); 
+    frames_not_having_sworn = 0;
+    NetAdmitHit();
+  }
 }
 
 void CCharacter::TryToFire()
 {
-  bool we_are_hero = bool(this == &GLUhero);
+  bool we_are_hero = bool(this == &hero);
 
-  if(false == we_are_hero)
- {
-      // we are not the hero; make sure we are in a firing state
-      if(CHARSTATE_FIRING != this->state || this->IsOffScreen())
-	{
-	  return;
-	}
-    }
-  else if(CHARSTATE_DYING == this->state || CHARSTATE_DEAD == this->state)
-    {
+  if(!we_are_hero) {
+    // we are not the hero; make sure we are in a firing state
+    if(CHARSTATE_FIRING != state || IsOffScreen()) {
       return;
     }
+  } else if(CHARSTATE_DYING == state || CHARSTATE_DEAD == state) {
+    return;
+  }
 
   // look for a good slot to use
   int i;
-  for(i = 0; i < MAX_FIRES; i++)
-    {
-      if(GLUfires[i].OkayToDelete())
-	{
-	  // we found memory that the CFire object can occupy
-	  break;
-	}
+  for(i = 0; i < MAX_FIRES; i++) {
+    if(fires[i].OkayToDelete()) {
+      // we found memory that the CFire object can occupy
+      break;
     }
+  }
 
-  if(MAX_FIRES == i)
-    {
-      // no slot available yet
-      return;
-    }
+  if(MAX_FIRES == i) {
+    // no slot available yet
+    return;
+  }
 
-  if(this->frames_since_last_fire < FRAMESTORELOAD[this->current_weapon])
-    {
-      return;
-    }
+  if(frames_since_last_fire < FRAMESTORELOAD[current_weapon]) {
+    return;
+  }
 
-  FIXEDNUM bullets = FixedMul(this->ammo[current_weapon],AMMOCAPACITY[current_weapon]);
-  if(true == we_are_hero && bullets < Fixed(0.5))
-    {
-      // oh, out of ammo, nevermind
-      return;
-    }
+  FIXEDNUM bullets = FixedMul(ammo[current_weapon],
+                              AMMOCAPACITY[current_weapon]);
+  if(we_are_hero && bullets < Fixed(0.5)) {
+    // oh, out of ammo, nevermind
+    return;
+  }
 
   bullets -= Fixed(1);
 
   // convert bullets back into percentage
   bullets = FixedDiv(bullets,AMMOCAPACITY[current_weapon]);
 
-  if(bullets < 0) {bullets = 0;}
+  if (bullets < 0) {
+    bullets = 0;
+  }
 
-  this->ammo[this->current_weapon] = bullets;
+  ammo[current_weapon] = bullets;
 
-  GLUfires[i].Setup(this->coor.second.x,this->coor.second.y-Fixed(TILE_HEIGHT/2),this->direction,this->current_weapon,false);
+  fires[i].Setup(coor.second.x, coor.second.y-Fixed(TILE_HEIGHT/2),
+                 direction, current_weapon, false);
+  if (WEAPON_PISTOL == current_weapon) {
+    NetFirePistol(direction);
+  }
 
-  this->frames_since_last_fire = 0;
+  frames_since_last_fire = 0;
 }
 
-void CCharacter::PowerUpCollisions()
-{
+void CCharacter::PowerUpCollisions() {
   // checks to see if the character has found a powerup
 
-  for(VCTR_POWERUP::iterator iterate = GLUpowerups.begin(); iterate != GLUpowerups.end(); iterate++)
-    {
-      int type = iterate->Type();
+  for(VCTR_POWERUP::iterator iterate = GLUpowerups.begin();
+      iterate != GLUpowerups.end(); iterate++) {
+    int type = iterate->Type(), index = iterate - GLUpowerups.begin();
 
-      int j;
+    switch(iterate->Collides(*this)) {
+    case POWERUPCOLLIDES_PICKEDUPANDWILLNOTREGENERATE:
+      // we just got an ammo set
+      if (!(index & ~0xffff)) {
+        NetPickUpPowerUp((unsigned short)index);
+      }
 
-      switch(iterate->Collides(*this))
-	{
-	case POWERUPCOLLIDES_NOTHINGHAPPENED:
-	  break;
-	case POWERUPCOLLIDES_PICKEDUPANDWILLNOTREGENERATE:
-	  // we just got an ammo set
-	  NetSendPowerUpPickUpMessage(iterate-GLUpowerups.begin());
-
-	  for(j = 0; j < NUM_WEAPONS; j++)
-	    {
-	      this->ammo[j] += min(Fixed(1),this->ammo[type]+iterate->Ammo(j));
-	    }
+      for(int j = 0; j < NUM_WEAPONS; j++) {
+        ammo[j] += min(Fixed(1), ammo[type] + iterate->Ammo(j));
+      }
 		
-	  GLUpowerups.erase(iterate);
+      GLUpowerups.erase(iterate);
 
-	  // we erased something, so retry this index by doing i-=1
-	  iterate--;
+      GamDoEffect(GETYPE_AMMO, health);
+      return;
+    case POWERUPCOLLIDES_PICKEDUPANDWILLREGENERATE:
+      if (!(index & 0xffff)) {
+        NetPickUpPowerUp(short(index));
+      }
 
-	  GamPickupAmmo();
-	  break;
-	default:
-	  //case POWERUPCOLLIDES_PICKEDUPANDWILLREGENERATE:
-	  NetSendPowerUpPickUpMessage(iterate-GLUpowerups.begin());
-
-	  if(POWERUP_HEALTHPACK == type)
-	    {
-	      GamPickupHealth(health);
-	      this->health = min(Fixed(1),this->health+HEALTHBONUSPERPACK[GLUdifficulty]);
-	    }
-	  else
-	    {
-	      this->ammo[type] = min(Fixed(1),this->ammo[type]+FixedDiv(AMMOPERPACK[GLUdifficulty][type],AMMOCAPACITY[type]));
-	      GamPickupAmmo();
-	    }
-	}
+      if(POWERUP_HEALTHPACK == type) {
+        GamDoEffect(GETYPE_HEALTH, health);
+        health = min(Fixed(1),
+                     health + HEALTHBONUSPERPACK[GLUdifficulty]);
+      } else {
+        ammo[type] = min(Fixed(1), ammo[type]
+                         + FixedDiv(AMMOPERPACK[GLUdifficulty][type],
+                                    AMMOCAPACITY[type]));
+        GamDoEffect(GETYPE_AMMO, health);
+      }
+      
+      return;
     }
+  }
 }
 
-#pragma warning (disable : 4035)
-
-bool CCharacter::IsOffScreen() const
-{
-  return
-    (
-     abs(GLUcenter_screen_x - this->coor.first.x) > Fixed((GAME_MODEWIDTH + TILE_WIDTH)/2) ||
-     abs(GLUcenter_screen_y - (this->coor.first.y-Fixed(TILE_HEIGHT/2))) > Fixed((GAME_PORTHEIGHT + TILE_HEIGHT)/2)
-     );
+bool CCharacter::IsOffScreen() const {
+  return abs(GLUcenter_screen_x - coor.first.x)
+    > Fixed((GAME_MODEWIDTH + TILE_WIDTH)/2)
+    || abs(GLUcenter_screen_y - (coor.first.y-Fixed(TILE_HEIGHT/2)))
+    > Fixed((GAME_PORTHEIGHT + TILE_HEIGHT)/2);
 }
 
-#pragma warning (default : 4035)
+void CCharacter::TryToMove() {
+  pair<POINT, POINT> l = coor; 
 
-void CCharacter::TryToMove()
-{
-  // called by CGlue when the surface is locked and we can try to move
+  if(l.first.x != l.second.x) {
+    if(l.first.y != l.second.y) {
+      // moving diagonally, let's try recursion
 
-  pair<POINT,POINT> l = this->coor; // keep a local copy of our coordinates
+      // first move horizontally, and then move vertically
+      coor.second.y = coor.first.y;
 
-  if((const int)l.first.x != l.second.x)
-    {
-      if((const int)l.first.y != l.second.y)
-	{
-	  // moving diagonally, let's try recursion
+      TryToMove();
 
-	  // first move horizontall,y and then move vertically
-	  this->coor.second.y = this->coor.first.y;
+      coor.first = coor.second;
 
-	  this->TryToMove();
+      coor.second.y = l.second.y;
 
-	  this->coor.first = this->coor.second;
+      TryToMove();
 
-	  this->coor.second.y = l.second.y;
+      coor.first = l.first;
+    } else {
+      // moving horizontally
+      if(l.first.x < l.second.x) {
+        // moving to the right
 
-	  this->TryToMove();
+        pair<POINT, POINT> a, b;
 
-	  this->coor.first = l.first;
-	}
-      else
-	{
-	  // moving horizontally
-	  if(l.first.x < l.second.x)
-	    {
-				// moving to the right
-
-	      pair<POINT,POINT> a;
-	      pair<POINT,POINT> b;
-
-	      a.first.y = a.second.y = l.first.y                    ;
-	      b.first.y = b.second.y = l.first.y - Fixed(TILE_HEIGHT/2);
+        a.first.y = a.second.y = l.first.y;
+        b.first.y = b.second.y = l.first.y - Fixed(TILE_HEIGHT/2);
 				
-	      a.first.x = l.first.x+Fixed(TILE_WIDTH/4)               ;
-	      a.second.x = l.second.x+Fixed(TILE_WIDTH/4)              ;
-	      b.first.x = a.first.x;
-	      b.second.x = a.second.x;
+        a.first.x = l.first.x+Fixed(TILE_WIDTH/4);
+        a.second.x = l.second.x+Fixed(TILE_WIDTH/4);
+        b.first.x = a.first.x;
+        b.second.x = a.second.x;
 				
-	      GluFilterMovement(a);
-	      GluFilterMovement(b);
+        GluFilterMovement(&a.first, &a.second);
+        GluFilterMovement(&b.first, &b.second);
 
-	      this->coor.second.x = min(a.second.x,b.second.x)-Fixed(TILE_WIDTH/4);
+        coor.second.x = min(a.second.x, b.second.x)
+          - Fixed(TILE_WIDTH/4);
 
-				//assert(this->coor.second.x >= this->coor.first.x);
-				//assert((const)this->coor.second.y == (const)this->coor.first.y);
-	    }
-	  else
-	    {
-				// moving to the left
+        //assert(this->coor.second.x >= this->coor.first.x);
+        //assert((const)this->coor.second.y == (const)this->coor.first.y);
+      } else {
+        // moving to the left
 
-	      pair<POINT,POINT> a;
-	      pair<POINT,POINT> b;
+        pair<POINT, POINT> a, b;
 
-	      a.first.y = a.second.y = l.first.y;
-	      b.first.y = b.second.y = l.first.y - Fixed(TILE_HEIGHT/2);
+        a.first.y = a.second.y = l.first.y;
+        b.first.y = b.second.y = l.first.y - Fixed(TILE_HEIGHT/2);
 				
-	      a.first.x = l.first.x-Fixed(TILE_WIDTH/4);
-	      a.second.x = l.second.x-Fixed(TILE_WIDTH/4);
-	      b.first.x = a.first.x;
-	      b.second.x = a.second.x;
+        a.first.x = l.first.x-Fixed(TILE_WIDTH/4);
+        a.second.x = l.second.x-Fixed(TILE_WIDTH/4);
+        b.first.x = a.first.x;
+        b.second.x = a.second.x;
 				
-	      GluFilterMovement(a);
-	      GluFilterMovement(b);
+        GluFilterMovement(&a.first, &a.second);
+        GluFilterMovement(&b.first, &b.second);
 
-	      this->coor.second.x = max(a.second.x,b.second.x)+Fixed(TILE_WIDTH/4);
-	    }
-	}
+        coor.second.x = max(a.second.x, b.second.x)
+          + Fixed(TILE_WIDTH/4);
+      }
     }
-  else if((const int)l.first.y != l.second.y)
-    {
-      // moving vertically
-      if(l.first.y < l.second.y)
-	{
-	  // moving down
-	  pair<POINT,POINT> a;
-	  pair<POINT,POINT> b;
-	  a.first.x = a.second.x = l.first.x + Fixed(TILE_WIDTH/4);
-	  b.first.x = b.second.x = l.first.x - Fixed(TILE_WIDTH/4);
-	  a.first.y = b.first.y = l.first.y;
-	  a.second.y = b.second.y = l.second.y ;
-	  GluFilterMovement(a);
-	  GluFilterMovement(b);
-	  this->coor.second.y = min(a.second.y,b.second.y);
-	}
-      else
-	{
-	  // moving up
-	  pair<POINT,POINT> a;
-	  pair<POINT,POINT> b;
-	  a.first.x = a.second.x = l.first.x + Fixed(TILE_WIDTH/4);
-	  b.first.x = b.second.x = l.first.x - Fixed(TILE_WIDTH/4);
-	  a.first.y = b.first.y = l.first.y-Fixed(TILE_HEIGHT/2);
-	  a.second.y = b.second.y = l.second.y-Fixed(TILE_HEIGHT/2);
-	  GluFilterMovement(a);
-	  GluFilterMovement(b);
-	  this->coor.second.y = max(a.second.y,b.second.y)+Fixed(TILE_HEIGHT/2);
-	}
+  } else if(l.first.y != l.second.y) {
+    // moving vertically
+    if(l.first.y < l.second.y) {
+      // moving down
+      pair<POINT, POINT> a, b;
+      a.first.x = a.second.x = l.first.x + Fixed(TILE_WIDTH/4);
+      b.first.x = b.second.x = l.first.x - Fixed(TILE_WIDTH/4);
+      a.first.y = b.first.y = l.first.y;
+      a.second.y = b.second.y = l.second.y ;
+      GluFilterMovement(&a.first, &a.second);
+      GluFilterMovement(&b.first, &b.second);
+      coor.second.y = min(a.second.y, b.second.y);
+    } else {
+      // moving up
+      pair<POINT, POINT> a, b;
+      a.first.x = a.second.x = l.first.x + Fixed(TILE_WIDTH/4);
+      b.first.x = b.second.x = l.first.x - Fixed(TILE_WIDTH/4);
+      a.first.y = b.first.y = l.first.y - Fixed(TILE_HEIGHT/2);
+      a.second.y = b.second.y = l.second.y - Fixed(TILE_HEIGHT/2);
+      GluFilterMovement(&a.first, &a.second);
+      GluFilterMovement(&b.first, &b.second);
+      coor.second.y = max(a.second.y, b.second.y)
+        + Fixed(TILE_HEIGHT/2);
     }
+  }
 }
 
-void CCharacter::ResetAmmo()
-{
-  for(int i = 0; i < NUM_WEAPONS; i++)
-    {
-      this->ammo[i] = FixedDiv(AMMOSTARTING[i],AMMOCAPACITY[i]);
-    }
+void CCharacter::ResetAmmo() {
+  for(int i = 0; i < NUM_WEAPONS; i++) {
+    ammo[i] = FixedDiv(AMMOSTARTING[i], AMMOCAPACITY[i]);
+  }
 }
 
-void CCharacter::CheckForEnemyCollision(const CCharacter& enemy)
-{
-  if(abs(this->coor.second.x - enemy.coor.first.x) < FATNESS && abs(this->coor.second.y - enemy.coor.first.y) < FATNESS)
-    {
-      this->coor.second = this->coor.first;
-    }
+void CCharacter::CheckForEnemyCollision(const CCharacter& enemy) {
+  if(abs(coor.second.x - enemy.coor.first.x) < FATNESS
+     && abs(coor.second.y - enemy.coor.first.y) < FATNESS) {
+    coor.second = coor.first;
+  }
 }
 
-void CCharacter::CalculateSector(int& row,int& col)
-{
-  this->sector_row = row = (FixedCnvFrom<long>(this->coor.first.y) - TILE_HEIGHT/2) / SECTOR_HEIGHT;
-  this->sector_col = col = FixedCnvFrom<long>(this->coor.first.x)  / SECTOR_WIDTH;
+void CCharacter::CalculateSector(int& row,int& col) {
+  sector_row = row = (FixedCnvFrom<long>(coor.first.y) - TILE_HEIGHT/2)
+    / SECTOR_HEIGHT;
+  sector_col = col = FixedCnvFrom<long>(coor.first.x)  / SECTOR_WIDTH;
+}
+
+void CCharacter::Setup(unsigned int model_) {
+  model = model_;
+  current_weapon = 0;
+  state = 0;
+  direction = DSOUTH;
+  coor.first.x = 0;
+  coor.first.y = 0;
+  coor.second = coor.first;
+}
+
+void CCharacter::Walk(bool running) {
+  FIXEDNUM speed = HEROSPEED, mx, my;
+
+  if (NetInGame()) {
+    speed = FixedMul(speed, HEROSPEED_MPFACTOR);
+  } else if (running) {
+    speed = FixedMul(speed, HEROSPEED_RUNNINGFACTOR);
+  }
+
+  if (CHARSTATE_HURT == state) {
+    speed = FixedMul(speed, HEROSPEED_HURTFACTOR);
+  }
+
+  GluInterpretDirection(direction, mx, my);
+
+  mx = FixedMul(mx, speed);
+  my = FixedMul(my, speed);
+
+  coor.second.x = coor.first.x + mx;
+  coor.second.y = coor.second.y + my;
 }
 

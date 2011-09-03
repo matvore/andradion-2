@@ -1,29 +1,28 @@
-// RobotMusic.cpp - simple library to play MIDI files
 #include "StdAfx.h"
 #include "MusicLib.h"
 #include "Logger.h"
 
 // here are the interfaces and objects:
-static IDirectMusicPerformance *performance = NULL;
-static IDirectMusicSegment *segment = NULL;
-static IDirectMusicLoader *loader = NULL;
+static IDirectMusicPerformance *performance = 0;
+static IDirectMusicSegment *segment = 0;
+static IDirectMusicLoader *loader = 0;
 static double original_tempo;
 
-IDirectMusicPerformance *Performance(void) {return performance;} 
-IDirectMusicSegment *Segment(void) {return segment;} 
-IDirectMusicLoader *Loader(void) {return loader;} 
+IDirectMusicPerformance *Performance() {return performance;} 
+IDirectMusicSegment *Segment() {return segment;} 
+IDirectMusicLoader *Loader() {return loader;} 
 double DefaultTempo() {return original_tempo;}
 
-int MusicInit(HWND w, LPDIRECTSOUND ds) {
+int MusicInit(HWND w, IDirectSound *ds) throw(std::bad_alloc) {
   HRESULT hr;
 
-  assert(NULL == performance);
-  assert(NULL == segment);
-  assert(NULL == loader);
+  assert(!performance);
+  assert(!segment);
+  assert(!loader);
 
   WriteLog("MusicInit called");
   
-  CoInitialize(NULL);
+  CoInitialize(0);
 
   // create performance:
   if(FAILED(CoCreateInstance(CLSID_DirectMusicPerformance,
@@ -34,13 +33,17 @@ int MusicInit(HWND w, LPDIRECTSOUND ds) {
     return MUSICLIBERR_DMUSICNOTAVAIL;
   }
 
-  MemoryAllocFunction(hr = performance->Init(NULL, ds, w), 1, FAILED(hr));
-  MemoryAllocFunction(hr = performance->AddPort(NULL),1,E_OUTOFMEMORY == hr);
-
-  if(FAILED(hr)) {
+  if (FAILED(performance->Init(NULL, ds, w))) {
     performance->CloseDown();
     performance->Release();
-    performance = NULL;
+    performance = 0;
+    return MUSICLIBERR_OUTOFMEMORY;
+  }
+  
+  if (FAILED(performance->AddPort(NULL))) {
+    performance->CloseDown();
+    performance->Release();
+    performance = 0;
     return MUSICLIBERR_PORTNOTAVAIL;
   }
 

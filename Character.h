@@ -1,5 +1,3 @@
-using std::pair;
-
 class CCharacter;
 
 struct TCharacterPointer {
@@ -8,12 +6,6 @@ struct TCharacterPointer {
 };
 
 class CCharacter {
-  friend BOOL FAR PASCAL EnumPlayersCB(DPID dpId, DWORD dwPlayerType,
-				       LPCDPNAME lpName,
-				       DWORD dwFlags,
-				       LPVOID lpContext); 
-  
-  friend bool NetRemoteLogic();
   friend bool operator >(const TCharacterPointer&,
 			 const TCharacterPointer&);
   friend bool operator <(const TCharacterPointer&,
@@ -25,58 +17,87 @@ class CCharacter {
   //  the row and col parameters to match
   void CalculateSector(int& row,int& col);
   bool IsOffScreen() const;
-  void Logic(const CCharacter& target);
+
+  /**
+   * Performs a single frame of logic as if this
+   * character were a computer-controlled entity.
+   * @param target probably the hero: the character that the enemy
+   *  wants to kill.
+   * @return true iff the enemy is not off the side of the screen.
+   */
+  bool Logic(const CCharacter& target);
 	
   void Logic();
   
   // used for locals (enemies or hero):
   void Setup(FIXEDNUM x, FIXEDNUM y, int model_, bool doing_mp);
+
+  // used for remotes
+  void Setup(unsigned int model_);
   
-  bool DrawCharacter(CGraphics& gr); // returns true if character has moved
-  void DrawMeters(CGraphics& gr, int show_health);
+  bool DrawCharacter(); // returns true if character has moved
+  void DrawMeters(int show_health);
   void SubtractHealth(int fire_type);
   void TryToFire();
   void CheckForEnemyCollision(const CCharacter&);
 
-  inline void GetLocation(FIXEDNUM& x,FIXEDNUM& y) const {
-    x = this->coor.first.x;
-    y = this->coor.first.y - Fixed(TILE_HEIGHT/2);
+  inline void GetLocation(FIXEDNUM& x, FIXEDNUM& y) const {
+    x = coor.first.x;
+    y = coor.first.y - Fixed(TILE_HEIGHT/2);
   }
   
-  inline FIXEDNUM X() const {return this->coor.first.x;}
-  inline FIXEDNUM Y() const {return this->coor.first.y
-			       - Fixed(TILE_HEIGHT/2);}
-  inline int Model() const {return this->model;}
-  inline bool Dead() const {return CHARSTATE_DEAD == this->state
-			      || CHARSTATE_DYING == this->state;}
+  inline FIXEDNUM X() const {return coor.first.x;}
+  inline FIXEDNUM Y() const {return coor.first.y - Fixed(TILE_HEIGHT/2);}
+  inline int Model() const {return model;}
+  inline bool Dead() const {return CHARSTATE_DEAD == state
+			      || CHARSTATE_DYING == state;}
 
   inline void GetSector(int& row,int& col) const {
-    row = this->sector_row;
-    col = this->sector_col;
+    row = sector_row;
+    col = sector_col;
   }
 
-  inline bool HasFullHealth() const {
-    return Fixed(1) == this->health;
-  }
+  inline bool HasFullHealth() const {return Fixed(1) == health;}
   
   inline bool HasFullAmmo(int weapon_type) const {
-    return Fixed(1) == this->ammo[weapon_type];
+    return Fixed(1) == ammo[weapon_type];
   }
   
-  inline FIXEDNUM Health() const {return this->health;}
+  inline FIXEDNUM Health() const {return health;}
 
- private:
-  // function that resets ammo to original count (some pistol ammo, no
-  //  machine gun or bazooka) 
-  void ResetAmmo(); 
+  inline int Direction() const {return direction;}
+  inline void SetDirection(int d) {direction = d;}
+
+  inline void SetWeapon(int w) {current_weapon = w;}
+
+  inline void SetPosition(FIXEDNUM x, FIXEDNUM y) {
+    coor.first.x = x;
+    coor.first.y = y + Fixed(TILE_HEIGHT/2);
+    coor.second = coor.first;
+  }
+
+  void Walk(bool running);
+
+  inline void Hurt() {
+    state = CHARSTATE_HURT;
+    frames_in_this_state = 0;
+  }
+  
   void TryToMove();
+  
+ private:
+  /** Resets ammo to original count (some pistol ammo, no
+   * machine gun or bazooka).
+   */
+  void ResetAmmo();
+  
   void PlaySound();
   void PowerUpCollisions();
 
   // these members are utilized for
   //  all kinds of characters
   int current_weapon, model, direction, state, sector_row, sector_col;
-  pair<POINT,POINT> coor;
+  std::pair<POINT, POINT> coor;
   bool reset_gamma; // used by draw function
 
   DWORD frames_since_last_fire;
@@ -91,14 +112,15 @@ class CCharacter {
 //  drawing order
 inline bool operator >(const TCharacterPointer& l,
 		       const TCharacterPointer& r) {
-  return l.ch->coor.first.y > r.ch->coor.first.y
-    || true == r.ch->Dead();
+  return l.ch->coor.first.y > r.ch->coor.first.y || r.ch->Dead();
 }
 
 inline bool operator <(const TCharacterPointer& l,
 		       const TCharacterPointer& r) {
-  return l.ch->coor.first.y < r.ch->coor.first.y
-    || true == l.ch->Dead();
+  return l.ch->coor.first.y < r.ch->coor.first.y || l.ch->Dead();
 }
 
-typedef std::vector<CCharacter> VCTR_CHARACTER;
+extern CCharacter hero;
+
+/** Remote players or local aliens. */
+extern std::vector<CCharacter> enemies;

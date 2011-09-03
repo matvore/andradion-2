@@ -1,3 +1,7 @@
+// mundane constants
+const int SECONDSPERMINUTE = 60;
+const int HUNDREDTHSPERSECOND = 100;
+
 class CTimer {
   friend bool operator <(const CTimer&,const CTimer&);
   friend bool operator >(const CTimer&,const CTimer&);

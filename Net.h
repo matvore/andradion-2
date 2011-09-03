@@ -1,113 +1,328 @@
-void NetInitialize();
-void NetRelease();
+/** Indicates the player was disconnected from the game.
+ */
+class NetSessionLost : public std::exception {
+public:
+  virtual const char *what() const throw() {
+    return "Disconnected from network game";
+  }
+};
 
-// use this function when the weather state changes.
-//  it will return true if you are the host and
-//  have the right to change the weather, or it will
-//  return false if you are not the host and need to
-//  stay in the current state
-bool NetSendWeatherStateMessage(int weather_state);
+/** Indicates it was impossible to join a game in a particular room.
+ */
+class NetJoinFailure : public std::exception {
+public:
+  virtual const char *what() const throw() {
+    return "Unable to join game";
+  }
+};
 
-// if you are the host, this function will
-//  set the description of the session.
-// if you are joining, it will receive
-//  host's welcome messages and everybody
-//  else's welcome messages, and you send
-//  out your welcome message
-void NetWelcome();
+/** Indicates it was impossible to create and host a new game in a
+ * particular room.
+ */
+class NetCreateFailure : public std::exception {
+public:
+  virtual const char *what() const throw() {
+    return "Unable to create game";
+  }
+};
 
-int NetProtocolCount();
-const char *NetProtocolName(int protocol_index);
+/** Allows the Net module to talk back to another part of the
+ * application code in order to indicate what is happening in the
+ * network game.
+ */
+class NetFeedback {
+public:
+  NetFeedback() throw() {}
+  virtual ~NetFeedback() throw() {}
 
-// the only way this function can fail is if you give an out-of-range index
-//  or you already have a protocol started.  If you do either, it fails
-//  an assertion
-int NetInitializeProtocol(DWORD index);
+  /** Indicates that the host has changed the weather. This method
+   * will not be called if this computer is the host.
+   * @param new_state the new value of the weather state indicator.
+   */
+  virtual void SetWeatherState(unsigned int new_state) throw() = 0;
 
-// releases any currently used protocol
-//  fails assertion if no protocol is available
-void NetReleaseProtocol();
+  /** Indicates that another player has fired the bazooka.
+   * @param index the index of the enemy character.
+   * @param x_hit the exact x-coordinate where the bazooka hit.
+   * @param y_hit the exact y-coordinate where the bazooka hit.
+   */
+  virtual void EnemyFiresBazooka(unsigned int index,
+                                 unsigned short x_hit,
+                                 unsigned short y_hit) throw() = 0;
 
-// returns true if a protocol is initiated
-bool NetProtocolInitialized();
+  /** Indicates that some enemy has fired the pistol.
+   * @param index the index of the enemy firing the pistol.
+   * @param direction the direction in which the pistol was fired.
+   */
+  virtual void EnemyFiresPistol(unsigned int index) throw() = 0;
 
-// this function JOINS an already playing game
-//  return codes:
-// JOINGAME_FAILURE
-// 0-based index of the level
-//
-// fails assertion if invalid index is given or no
-//  protocol is used.  Gets player name from CGlue accessor
-int NetJoinGame(int index);
+  /** Indicates that some enemy has fired the machine gun.
+   * The direction is not indicated by this method; it is assumed to
+   * be the direction in which the enemy is known to be facing at the
+   * moment.
+   */
+  virtual void EnemyFiresMachineGun(unsigned int index) throw() = 0;
 
-// this function CREATES a game for an index
-//  return codes:
-// CREATEGAME_FAILURE
-// CREATEGAME_SUCCESS
-// fails assertion if invalid index is given,
-//  non-positive sync rate is given, invalid
-//  level is given, or no protocol is initiated
-//  level,syncrate, and name are retrieved by
-//  calling accessors of the CGlue class
-int NetCreateGame(int index);
+  /** Indicates that some enemy has grabbed a power up.
+   * @param index an index indicating which power up was picked up.
+   */
+  virtual void PickUpPowerUp(unsigned short index) throw() = 0;
 
-// leaves a currently open game
-//  fails assertion if no game is loaded
-void NetLeaveGame();
+  /** Indicates that the enemies are about to be recounted. A call to
+   * this will be followed by any number of consecutive calls to
+   * <tt>CreateEnemy(unsigned int)</tt>.
+   */
+  virtual void ClearEnemyArray() throw() = 0;
 
-// returns true if we are playing a game
-bool NetInGame();
+  /** Indicates that a new enemy was found. The index assigned to the
+   * enemy is determined by the order in which the enemies were
+   * created. For example, upon the first call to this function, the 
+   * enemy created will have the index of 0. Upon the second call to
+   * this function, the enemy created will have the index of 1, and so
+   * on.
+   * @param model the model that this enemy should appear as.
+   */  
+  virtual void CreateEnemy(unsigned int model) throw() = 0;
+  
+  virtual void SetEnemyWeapon(unsigned int index,
+                              unsigned int weapon) throw() = 0;
+  virtual void SetEnemyPosition(unsigned int index,
+                                unsigned short x,
+                                unsigned short y) throw() = 0;
+  
+  virtual void SetEnemyDirection(unsigned int index,
+                                 unsigned int direction) throw() = 0;
+  
+  virtual void WalkEnemy(unsigned int index) throw() = 0;
+  
+  virtual void KillEnemy(unsigned int index, WORD *ammo)
+    throw() = 0;
+  virtual void HurtEnemy(unsigned int index) throw() = 0;
+  virtual void HurtHero(unsigned int weapon_type) throw() = 0;
 
-// should be called every now and then
-//  fails assertion if not in  a game
-// returns true if the game was just left
-//  and the protocol was just released due
-//  to the fact that ya just had to leave
-// false is the okay alarm!
-bool NetCheckForSystemMessages();
+  virtual void PlayerLeaving(const char *name) throw() = 0;
+  virtual void PlayerJoining(const char *name) throw() = 0;
+};
 
-// performs logic for remote players, returns false if you should be using AI
-//  like in a single-player game
-bool NetRemoteLogic(); 
+/** Initializes the Net module. If the computer does not seem to have
+ * DirectPlay installed, then this function does not throw an error but
+ * rather acts as if DirectPlay exists and no protocols are installed.
+ * @throw std::bad_alloc if an out-of-memory error occurs or if
+ *  there is a "catastrophic failure" as indicated by the
+ *  <em>Microsoft COM SDK Documentation</em>.
+ * @post the Net module is initialized.
+ */
+void NetInitialize() throw(std::bad_alloc);
 
-// called by hero, don't have to be in game, pass coordinates of explosion
-void NetSendBazookaFireMessage(FIXEDNUM x,FIXEDNUM y);
+/** Closes the Net module.
+ * @post the Net module is not initialized.
+ */
+void NetRelease() throw();
 
-// stop firing (let go of spacebar), don't have to be in game
-void NetSendMachineGunFireStopMessage();
+/** This should be called after you initialize the Net module but
+ * before you create or join a game. It permits connection using a
+ * particular network protocol. It requires that the given protocol
+ * index be less than the protocol count, because it is a zero-based
+ * index. It is reasonable to expect no exceptions will be thrown
+ * because upon enumeration of all the network protocols, each one is
+ * tested to see if it is available for use. If any protocol is
+ * already initialized, then it is released before this one is
+ * initialized.
+ * @param index the index of the protocol to initialize.
+ * @pre the Net module is initialized, and that
+ *  <tt>index < NetProtocolCount()</tt>
+ * @post <tt>NetProtocolInitialized()</tt> returns true.
+ */
+void NetInitializeProtocol(unsigned int index) throw();
 
-// start firing (pressing spacebar), don't have to be in game
-void NetSendMachineGunFireStartMessage();
+/** Releases the currently in-use protocol. If no protocol is
+ * initialized, then this function has no effect.
+ * @post <tt>NetInGame()</tt> and
+ *  <tt>NetProtocolInitialized()</tt> return false.
+ */
+void NetReleaseProtocol() throw();
 
-// changing weapons, don't have to be in game to call
-void NetSendWeaponChangeMessage(int type);
+/** Joins a game on the network already in progress. If any game is
+ * already in progress, then it is left.
+ * @param index the index of the room in which to play.
+ * @param player_model a number indicating the model that the
+ *  player using this computer will use.
+ * @param player_name the name of the player using this computer.
+ * @param fb allows the Net module to communicate events and data
+ *  back to the caller of the function.
+ * @return index of the level.
+ * @throw NetJoinFailure if it was impossible to join the given game
+ *  for any reason. For example, the game may not exist.
+ * @pre <tt>NetProtocolInitialized()</tt> returns true.
+ * @post <tt>NetInGame()</tt> returns true and <tt>NetIsHost()</tt>
+ *  returns false.
+ */
+unsigned int NetJoinGame(unsigned int index,
+                         unsigned int player_model,
+                         const char *player_name,
+                         std::auto_ptr<NetFeedback> fb)
+  throw(NetJoinFailure);
 
-// just lost all health, must be in game to call
-void NetSendDeathMessage(FIXEDNUM *ammo);
+/** Creates a game in a given room, making this computer the host. If
+ * any game is already in progress, then that game is left.
+ * @param index the index of the room in which to create the game.
+ * @param sr the sync rate that will be used for the new
+ *  game. The same sync rate will be in use by all players who join.
+ * @param initial_weather_state this value will be communicated to all
+ *  players who join before the first change in weather.
+ * @param player_model the model that the player using this computer
+ *  will use.
+ * @param player_name the name of the player using this computer.
+ * @param fb allows the Net module to communicate data and events back
+ *  to the caller of this function.
+ * @throw NetCreateFailure if the game could not be created. For
+ *  example, the game may already be hosted in the given room.
+ * @pre the Net module is initialized.
+ * @post <tt>NetInGame()</tt> and <tt>NetIsHost()</tt> return true.
+ */
+void NetCreateGame(unsigned int index,
+                   unsigned int sr,
+                   unsigned int initial_weather_state,
+                   unsigned int player_model,
+                   const char *player_name,
+                   std::auto_ptr<NetFeedback> fb)
+  throw(NetCreateFailure);
 
-// call if being hurt by anything
-//  not each frame, just when you swear
-//  don't have to be in game to call
-void NetSendAdmitHitMessage();
+/** Sets the level index and allows players to join the game. This function
+ * only has an effect if <tt>NetIsHost()</tt> is true.
+ * No players will join your game until this function is called.
+ * @param index the index of the level on which this game will be played.
+ * @pre This function has not been called since the game was created.
+ */
+void NetSetLevelIndex(unsigned int index) throw(NetSessionLost);
 
-// call if hit somebody with machine gun or pistol (bazookas don't count)
-//  pass amount of damage you should be dealing.  Player will respond with
-//  AdmitHit message sent to all players.  Pass index of remote player
-//  don't have to be in game to call.  Will call the subtract health
-//  function of corresponding enemy if you are playing a single
-//  player game
-void NetSendHitMessage(int player,int weapon_type);
+/** Leaves a currently open game. If a game is not in progress, then
+ * nothing happens.
+ * @pre the Net module is initialized.
+ * @post <tt>NetInGame()</tt> returns false.
+ */
+void NetLeaveGame() throw();
 
-// call if you should be picking up a powerup
-//  Can be "picked up" and marked as
-//  used right after/before sending the message
-//  do not have to be in game to call
-void NetSendPowerUpPickUpMessage(int powerup_index);
+/** Determines if a protocol is in use.
+ * @return true iff a protocol is in use, meaning it has been
+ *  initialized by <tt>NetInitializeProtocol(unsigned int)</tt>.
+ * @pre the Net module is initialized.
+ */
+bool NetProtocolInitialized() throw();
 
-// call if you fired a pistol.  As a visual cue
-//  on other computers, a pistol bullet will be
-//  rendered as closely as possible to the one 
-//  fired on your screen.  Don't have to be in
-//  game to call
-void NetSendPistolFireMessage(int direction);
+/** Determines if we are playing a game.
+ * @return true iff a game is in progress.
+ */
+bool NetInGame() throw();
 
+/** Determines if we are playing a game and we are the host of that
+ * game.
+ * @return true iff we are the host of a game in progress.
+ */
+bool NetIsHost() throw();
+
+/** Determines the number of protocols available to connect with.
+ * @pre the Net module is initialized.
+ * @return the number of protocols available to connect with.
+ */
+unsigned int NetProtocolCount() throw();
+
+/** Supplies a label that can be used to identify the protocol of the
+ * given index.
+ * @pre The Net module is initialized and
+ *  <tt>protocol_index < NetProtocolCount()</tt>
+ * @param protocol_index the index of the protocol whose label is
+ *  needed.
+ * @return a C-string that identifies the given protocol index.
+ */
+const char *NetProtocolName(unsigned int protocol_index) throw();
+
+/** Performs one frame of logic for all the remote players according to
+ * the information gathered about them. Also processes
+ * messages that are sent by other players. If no game is in progress,
+ * then this function has no effect.
+ * @throw NetSessionLost if we were disconnected from the game.
+ * @throw std::bad_alloc if there was a lack of sufficient system
+ *  memory.
+ */
+void NetLogic() throw(NetSessionLost, std::bad_alloc); 
+
+/** Indicates to the other players in the game that the player fired
+ * the bazooka. This function has no effect if a game is not in
+ * progress.
+ * @param x the x-coordinate at which the bazooka hits.
+ * @param y the y-coordinate at which the bazooka hits.
+ */
+void NetFireBazooka(unsigned short x, unsigned short y) throw();
+
+/** Indicates to the other players in the game whether or not the
+ * player is firing the machine gun for this frame. This function
+ * should be called every frame.
+ */
+void NetFireMachineGun(bool firing) throw();
+
+/** Indicates to the other players in the game what weapon the player
+ * is holding. This function should be called every frame and has no
+ * effect if a game is not in progress.
+ */
+void NetSetWeapon(unsigned int type) throw();
+
+/** Indicates to the other players in the game that the player has
+ * died and left some ammo in his place. This function has no effect
+ * if a game is not in progress.
+ * @param ammo the ammo the player had as he died.
+ */
+void NetDied(WORD *ammo) throw();
+
+/** Indicates to the other players what position the player is in this
+ * frame. This function should be called every frame and has no effect
+ * if a game is not in progress.
+ * @param new_x the x-coordinate of the player for this frame.
+ * @param new_y the y-coordinate of the player for this frame.
+ * @param new_dir the direction the player is facing for the current
+ *  frame. 
+ */
+void NetSetPosition(unsigned short new_x, unsigned short new_y,
+                    unsigned int new_dir) throw();
+
+/** Indicates to the other players that we have just played a sound
+ * indicating we are hurt. Using this function it is possible for the
+ * other players to know when this player is hurt. This function has
+ * no effect if a game is not in progress.
+ */
+void NetAdmitHit() throw();
+
+/** Indicates to another player that you have hit him with a pistol
+ * bullet or the machine gun. The other player should respond with a
+ * <tt>NetAdmitHit()</tt> call, which will notify all players of his
+ * pain. This function has no effect if a game is not in progress.
+ * @param player the index of the player that was hit.
+ * @param weapon_type a weapon index indicating either pistol or
+ *  machine gun.
+ */
+void NetHit(unsigned int player,
+            unsigned int weapon_type) throw();
+
+/** Indicates to the other players that you have picked up a power
+ * up. This function has no effect if a game is not in progress.
+ * @param powerup_index the index of the power up that was picked up.
+ */
+void NetPickUpPowerUp(unsigned short powerup_index) throw();
+
+/** Indicates to the other players that you have fired a pistol in
+ * some direction. The pistol that results on the screens of other
+ * players is only a visual indicator. In order to cause another
+ * player to be hurt, call <tt>NetHit(unsigned int, unsigned
+ * int)</tt>. If a game is not in progress, then this function has no
+ * effect.
+ * @param dir indicates which direction the pistol was fired
+ *  in.
+ */
+void NetFirePistol(unsigned int dir) throw();
+
+/** If you are the host, indicates to the other players that the
+ * weather has changed. If you are not the host, or if a game is not
+ * in progress, then this function has no effect.
+ * @param new_weather a number indicating the new weather state.
+ */
+void NetChangeWeather(unsigned int new_weather) throw();
