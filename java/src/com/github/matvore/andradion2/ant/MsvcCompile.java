@@ -29,7 +29,7 @@ public class MsvcCompile extends Task {
 
   public static class IncludePath {
     private File path;
-    
+
     public void setPath(File path) {
       this.path = path;
     }
@@ -56,11 +56,14 @@ public class MsvcCompile extends Task {
   /**
    * Adds a path to include in the search path for {@code #include} directives.
    */
-  public void addIncludePath(IncludePath includePath) {
+  public void addInclude(IncludePath includePath) {
     includePaths.add(includePath);
   }
 
   public void execute() throws BuildException {
-    
+    System.out.println("Hello world");
+    for (IncludePath path : includePaths) {
+      System.out.println(path.getPath());
+    }
   }
 }

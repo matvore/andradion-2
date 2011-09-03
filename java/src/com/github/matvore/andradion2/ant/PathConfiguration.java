@@ -17,6 +17,7 @@ limitations under the License.
 package com.github.matvore.andradion2.ant;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -46,10 +47,21 @@ public class PathConfiguration {
       return msvcCompiler;
     }
 
-    Process regQueryProcess = Runtime.getRuntime().exec(
-        "REG QUERY HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\VisualStudio\\" +
-        "9.0\\Setup\\VC /v ProductDir");
-    ProcessResult regQuery = ProcessResult.of(regQueryProcess);
+    Process regQueryProcess;
+    ProcessResult regQuery;
+
+    try {
+      regQueryProcess = Runtime.getRuntime().exec(
+          "REG QUERY HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\VisualStudio\\" +
+          "9.0\\Setup\\VC /v ProductDir");
+      regQuery = ProcessResult.of(regQueryProcess);
+    } catch (IOException e) {
+      throw new RegQueryProcessFailedException(
+          "IOException when running REG QUERY process.", e);
+    } catch (InterruptedException e) {
+      throw new RegQueryProcessFailedException(
+          "Interrupted when waiting for REG QUERY process to finish.", e);
+    }
 
     if (regQuery.getExitCode() != 0) { 
       throw new RegQueryProcessFailedException("Non-zero exit code " +

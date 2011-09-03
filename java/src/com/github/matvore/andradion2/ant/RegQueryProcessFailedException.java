@@ -20,4 +20,8 @@ class RegQueryProcessFailedException extends RuntimeException {
   public RegQueryProcessFailedException(String message) {
     super(message);
   }
+
+  public RegQueryProcessFailedException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

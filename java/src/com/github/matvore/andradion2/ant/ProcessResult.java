@@ -17,6 +17,7 @@ limitations under the License.
 package com.github.matvore.andradion2.ant;
 
 import java.io.InputStream;
+import java.io.IOException;
 
 public class ProcessResult {
   private final String stdout;
@@ -39,7 +40,8 @@ public class ProcessResult {
     return exitCode;
   }
 
-  public static ProcessResult of(Process process) {
+  public static ProcessResult of(Process process)
+      throws IOException, InterruptedException {
     InputStream processOutput = process.getInputStream();
     StringBuilder stdoutBuilder = new StringBuilder();
 
