@@ -103,7 +103,50 @@ public class LevelFormats {
 
   public static void toBinary(Level level, OutputStream output)
       throws IOException {
-    
+    List<Color> palette = level.getPalette();
+    writeByte(output, palette.size());
+    for (Color color : palette) {
+      writeByte(output, color.getRed());
+      writeByte(output, color.getGreen());
+      writeByte(output, color.getBlue());
+    }
+
+    Dimension levelSize = level.getLevelSize();
+    writeWord(output, levelSize.width);
+    writeWord(output, levelSize.height);
+
+    writeByte(output, level.getWeatherPattern().ordinal());
+
+    Point playerStartLocation = level.getPlayerStartLocation();
+    writeWord(output, playerStartLocation.x);
+    writeWord(output, playerStartLocation.y);
+
+    List<Rectangle> indoorRectangles = level.getIndoorRectangles();
+    writeByte(output, indoorRectangles.size());
+    for (Rectangle indoorRectangle : indoorRectangles) {
+      writeWord(output, indoorRectangle.x);
+      writeWord(output, indoorRectangle.y);
+      writeWord(output, indoorRectangle.x + indoorRectangle.width);
+      writeWord(output, indoorRectangle.y + indoorRectangle.height);
+    }
+
+    List<LevelEnd> levelEnds = level.getLevelEnds();
+    writeByte(output, levelEnds.size());
+    for (LevelEnd levelEnd : levelEnds) {
+      writeByte(output, levelEnd.getToLevel().ordinal());
+      writeWord(output, levelEnd.getLocation().x);
+      writeWord(output, levelEnd.getLocation().y);
+    }
+
+    Map<Entity, List<Point>> entities = level.getEntities();
+    for (Entity entityType : Entity.values()) {
+      List<Point> locations = entities.get(entityType);
+      writeByte(output, locations.size());
+      for (Point location : locations) {
+        writeWord(output, location.x);
+        writeWord(output, location.y);
+      }
+    }
   }
 
   private static void writeByte(OutputStream output, int value)
