@@ -28,35 +28,13 @@ import java.util.Map;
 public class MsvcCompile extends Task {
   private File input, output;
   private List<Arg> args = new ArrayList<Arg>();
-  private PathConfiguration pathConfiguration = PathConfiguration.getInstance();
   private boolean detectWindowsSdkHeaderDir = true;
   private boolean detectMsvcHeaderDir = true;
 
-  public static class Arg {
-    private String flag;
-    private File path;
-
-    public void setFlag(String flag) {
-      this.flag = flag;
-    }
-
-    /**
-     * Set a file to append to the end of the flag. No white space is put
-     * between the flag and the file. Optional.
-     */
-    public void setPath(File path) {
-      this.path = path;
-    }
-
-    @Override
-    public String toString() {
-      if (path == null) {
-        return flag;
-      } else {
-        return flag + path.toString();
-      }
-    }
-  }
+  private final EnvironmentPaths environmentPaths =
+      EnvironmentPaths.getInstance();
+  private final PathConfiguration pathConfiguration =
+      PathConfiguration.getInstance();
 
   /**
    * Set to {@code true} to automatically detect and use the Windows SDK
@@ -100,28 +78,6 @@ public class MsvcCompile extends Task {
     this.args.add(arg);
   }
 
-  /**
-   * Adds the given path to the {@code PATH} environment variable.
-   */
-  private void addPath(Map<String, String> environment, File newPath) {
-    String pathKey = null, path = null;
-
-    for (Map.Entry<String, String> entry : environment.entrySet()) {
-      if (entry.getKey().toUpperCase().equals("PATH")) {
-        path = entry.getValue();
-        pathKey = entry.getKey();
-        break;
-      }
-    }
-
-    if (pathKey == null) {
-      environment.put("PATH", newPath.toString());
-    } else {
-      path = newPath.toString() + File.pathSeparator + path;
-      environment.put(pathKey, path);
-    }
-  }
-
   public void execute() throws BuildException {
     File msvcPath = pathConfiguration.getMsvcVcDirectory();
     msvcPath = new File(msvcPath, "bin" + File.separator + "CL.EXE");
@@ -149,9 +105,9 @@ public class MsvcCompile extends Task {
     command.add(input.toString());
 
     // Add MSVC\Common7\IDE to PATH variable
-    File common7ide = PathConfiguration.getInstance().getMsvcCommonDirectory();
+    File common7ide = pathConfiguration.getInstance().getMsvcCommonDirectory();
     common7ide = new File(common7ide, "IDE");
-    addPath(processBuilder.environment(), common7ide);
+    environmentPaths.add("PATH", processBuilder.environment(), common7ide);
 
     ProcessResult result;
     try {

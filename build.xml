@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-<project name="Andradion 2" default="buildCpp" basedir=".">
+<project name="Andradion 2" default="linkExe" basedir=".">
   <target name="buildCustomTasks">
     <mkdir dir="out/java/src" />
     <javac srcdir="java/src" destdir="out/java/src" />
@@ -24,6 +24,9 @@ limitations under the License.
   <target name="declareCustomTasks" depends="buildCustomTasks">
     <taskdef name="msvcCompile"
              classname="com.github.matvore.andradion2.ant.MsvcCompile"
+             classpath="out/java/src" />
+    <taskdef name="msvcLink"
+             classname="com.github.matvore.andradion2.ant.MsvcLink"
              classpath="out/java/src" />
   </target>
 
@@ -61,4 +64,31 @@ limitations under the License.
     <compileOneCpp name="WinMain" />
   </target>
 
+  <target name="linkExe" depends="buildCpp">
+    <msvcLink output="out/andradion2.exe">
+      <input path="out/BitMatrix.obj" />
+      <input path="out/Character.obj" />
+      <input path="out/CompactMap.obj" />
+      <input path="out/Deeds.obj" />
+      <input path="out/Fire.obj" />
+      <input path="out/Fixed.obj" />
+      <input path="out/GammaEffects.obj" />
+      <input path="out/Glue.obj" />
+      <input path="out/Graphics.obj" />
+      <input path="out/LevelEnd.obj" />
+      <input path="out/Menu.obj" />
+      <input path="out/MusicLib.obj" />
+      <input path="out/Net.obj" />
+      <input path="out/Palette.obj" />
+      <input path="out/PowerUp.obj" />
+      <input path="out/Profiler.obj" />
+      <input path="out/RawLoad.obj" />
+      <input path="out/Timer.obj" />
+      <input path="out/Weather.obj" />
+      <input path="out/WinMain.obj" />
+      <standardLib name="gdi32.lib" />
+      <standardLib name="ole32.lib" />
+      <standardLib name="user32.lib" />
+    </msvcLink>
+  </target>
 </project>
