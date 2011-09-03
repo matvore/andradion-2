@@ -48,5 +48,17 @@ limitations under the License.
                  output="out/Net.obj">
       <include path="./dxinclude" />
     </msvcCompile>
+    <msvcCompile input="RawLoad.cpp"
+                 output="out/RawLoad.obj">
+      <include path="./dxinclude" />
+    </msvcCompile>
+    <msvcCompile input="Character.cpp"
+                 output="out/RawLoad.obj">
+      <include path="./dxinclude" />
+    </msvcCompile>
+    <msvcCompile input="Fixed.cpp"
+                 output="out/Fixed.obj">
+      <include path="./dxinclude" />
+    </msvcCompile>
   </target>
 </project>
