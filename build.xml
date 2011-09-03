@@ -29,7 +29,7 @@ limitations under the License.
 
   <target name="build" depends="declareCustomTasks">
     <msvcCompile input="Glue.cpp"
-                 output="out/java/src">
+                 output="out/Glue.obj">
       <include path="./dxinclude" />
     </msvcCompile>
   </target>

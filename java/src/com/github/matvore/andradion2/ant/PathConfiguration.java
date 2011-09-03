@@ -28,7 +28,8 @@ import java.util.regex.Pattern;
 public class PathConfiguration {
   private static final PathConfiguration INSTANCE = new PathConfiguration();
 
-  private File msvcCompiler;
+  private File msvcVcDirectory;
+  private File windowsSdkDirectory;
 
   private PathConfiguration() {
     // Nothing to do.
@@ -38,22 +39,12 @@ public class PathConfiguration {
     return INSTANCE;
   }
 
-  /**
-   * Returns the path of the Microsoft Visual C++ compiler and linker, or
-   * {@code cl.exe}.
-   */
-  public synchronized File getMsvcCompiler() {
-    if (null != msvcCompiler) {
-      return msvcCompiler;
-    }
-
+  private String runRegQuery(String command) {
     Process regQueryProcess;
     ProcessResult regQuery;
 
     try {
-      regQueryProcess = Runtime.getRuntime().exec(
-          "REG QUERY HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\VisualStudio\\" +
-          "9.0\\Setup\\VC /v ProductDir");
+      regQueryProcess = Runtime.getRuntime().exec(command);
       regQuery = ProcessResult.of(regQueryProcess);
     } catch (IOException e) {
       throw new RegQueryProcessFailedException(
@@ -68,15 +59,59 @@ public class PathConfiguration {
           regQuery.getExitCode() + ": " + regQuery.getStdout());
     }
 
-    Pattern pathCapture = Pattern.compile(
-        "\\s+ProductDir\\s+REG_SZ\\s+([^\\r\\n]+)[\\r\\n]");
-    Matcher matcher = pathCapture.matcher(regQuery.getStdout());
-    if (!matcher.find()) {
-      throw new CouldNotParseRegQueryOutputException(
-          "REG QUERY output: " + regQuery.getStdout());
+    return regQuery.getStdout();
+  }
+
+  /**
+   * Returns the install path of Microsoft Visual C++, for instance
+   * {@code c:\Program Files\Microsoft Visual Studio 9.0\VC}.
+   */
+  public synchronized File getMsvcVcDirectory() {
+    if (null != msvcVcDirectory) {
+      return msvcVcDirectory;
     }
 
-    msvcCompiler = new File(matcher.group(1));
-    return msvcCompiler;
+    String stdout = runRegQuery(
+        "REG QUERY HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\VisualStudio\\" +
+        "9.0\\Setup\\VC /v ProductDir");
+    Pattern pathCapture = Pattern.compile(
+        "\\s+ProductDir\\s+REG_SZ\\s+([^\\r\\n]+)[\\r\\n]");
+    Matcher matcher = pathCapture.matcher(stdout);
+    if (!matcher.find()) {
+      throw new CouldNotParseRegQueryOutputException(
+          "REG QUERY output: " + stdout);
+    }
+
+    msvcVcDirectory = new File(matcher.group(1));
+    return msvcVcDirectory;
+  }
+
+  /**
+   * For example, {@code C:\Program Files\Microsoft Visual Studio 9.0\Common7}.
+   */
+  public File getMsvcCommonDirectory() {
+    return new File(getMsvcVcDirectory(), ".." + File.separator + "Common7");
+  }
+
+  /**
+   * For example, {@code C:\Program Files\Microsoft SDKs\Windows\v7.0}.
+   */
+  public synchronized File getWindowsSdkDirectory() {
+    if (null != windowsSdkDirectory) {
+      return windowsSdkDirectory;
+    }
+    String stdout = runRegQuery(
+        "REG QUERY \"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Microsoft SDKs\\" +
+        "Windows\" /v CurrentInstallFolder");
+    Pattern pathCapture = Pattern.compile(
+        "\\s+CurrentInstallFolder\\s+REG_SZ\\s+([^\\r\\n]+)[\\r\\n]");
+    Matcher matcher = pathCapture.matcher(stdout);
+    if (!matcher.find()) {
+      throw new CouldNotParseRegQueryOutputException(
+          "REG QUERY output: " + stdout);
+    }
+
+    windowsSdkDirectory = new File(matcher.group(1));
+    return windowsSdkDirectory;
   }
 }
