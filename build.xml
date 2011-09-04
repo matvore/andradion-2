@@ -118,6 +118,8 @@ limitations under the License.
     <levelTextToBinary input="levels/2b.dat"
                        output="out/levels/2b.lvl" />
     <levelTextToBinary input="levels/3a.dat"
+                       output="out/levels/3a.lvl" />
+    <levelTextToBinary input="levels/3b.dat"
                        output="out/levels/3b.lvl" />
     <levelTextToBinary input="levels/4_.dat"
                        output="out/levels/4_.lvl" />
@@ -212,6 +214,7 @@ limitations under the License.
   <target name="linkExe" depends="buildCpp">
     <msvcLink>
       <arg flag="/OUT:" path="out/andradion2.exe" />
+      <arg path="out/Andradion 2.res" />
       <arg path="out/BitMatrix.obj" />
       <arg path="out/Character.obj" />
       <arg path="out/CompactMap.obj" />
