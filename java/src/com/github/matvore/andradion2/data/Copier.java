@@ -25,22 +25,25 @@ public interface Copier<T> {
 
   Copier<Rectangle> FOR_RECTANGLE = new Copier<Rectangle>() {
     @Override
-    public Rectangle copy(Rectangle x) {
-      return (Rectangle)x.clone();
+    @SuppressWarnings("unchecked")
+    public <U extends Rectangle> U copy(U x) {
+      return (U)x.clone();
     }
   };
 
   Copier<Point> FOR_POINT = new Copier<Point>() {
     @Override
-    public Point copy(Point x) {
-      return (Point)x.clone();
+    @SuppressWarnings("unchecked")
+    public <U extends Point> U copy(U x) {
+      return (U)x.clone();
     }
   };
 
   Copier<Dimension> FOR_DIMENSION = new Copier<Dimension>() {
     @Override
-    public Dimension copy(Dimension x) {
-      return (Dimension)x.clone();
+    @SuppressWarnings("unchecked")
+    public <U extends Dimension> U copy(U x) {
+      return (U)x.clone();
     }
   };
 }
