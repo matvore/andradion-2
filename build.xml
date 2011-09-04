@@ -16,6 +16,12 @@ limitations under the License.
 -->
 
 <project name="Andradion 2" default="linkExe" basedir=".">
+  <target name="clean">
+    <delete dir="out" />
+    <delete file="StdAfx.obj" />
+    <delete file="StdAfx.pch" />
+  </target>
+
   <target name="buildJavaSource">
     <mkdir dir="out/java/src" />
     <javac debug="true" srcdir="java/src" destdir="out/java/src">
@@ -213,6 +219,7 @@ limitations under the License.
 
   <target name="linkExe" depends="buildCpp">
     <msvcLink>
+      <arg flag="/MACHINE:X86" />
       <arg flag="/OUT:" path="out/andradion2.exe" />
       <arg path="out/Andradion 2.res" />
       <arg path="out/BitMatrix.obj" />
