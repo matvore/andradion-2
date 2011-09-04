@@ -36,6 +36,9 @@ limitations under the License.
     <taskdef name="runCompacterMapper"
              className="com.github.matvore.andradion2.ant.RunCompacterMapper"
              classpath="out/java/src" />
+    <taskdef name="wav2raw"
+             className="com.github.matvore.andradion2.ant.Wav2Raw"
+             classPath="out/java/src" />
   </target>
 
   <target name="compacterMapper" depends="declareCustomTasks">
@@ -51,6 +54,59 @@ limitations under the License.
     <compacterMapperForLevel levelId="6b" />
     <compacterMapperForLevel levelId="7a" />
     <compacterMapperForLevel levelId="7b" />
+  </target>
+
+  <target name="sfx" depends="declareCustomTasks">
+    <mkdir dir="out/resource/wav" />
+    <wav2raw output="out/resource/wav/sfx.dat">
+      <input path="resource/wav/Warpout.wav" />
+      <input path="resource/wav/lightrain.wav" />
+      <input path="resource/wav/heavyrain.wav" />
+      <input path="resource/wav/crickets.wav" />
+      <input path="resource/wav/thunder1.wav" />
+      <input path="resource/wav/thunder2.wav" />
+      <input path="resource/wav/thunder3.wav" />
+      <input path="resource/wav/okgotit.wav" />
+      <input path="resource/wav/step.wav" />
+      <input path="resource/wav/gunnoise.wav" />
+      <input path="resource/wav/pistol.wav" />
+      <input path="resource/wav/machinegun.wav" />
+      <input path="resource/wav/bazooka.wav" />
+      <input path="resource/wav/alienhit1.wav" />
+      <input path="resource/wav/alienhit2.wav" />
+      <input path="resource/wav/alienhit3.wav" />
+      <input path="resource/wav/aliendeath1.wav" />
+      <input path="resource/wav/aliendeath2.wav" />
+      <input path="resource/wav/aliendeath3.wav" />
+      <input path="resource/wav/turnerhit1.wav" />
+      <input path="resource/wav/turnerhit2.wav" />
+      <input path="resource/wav/turnerhit3.wav" />
+      <input path="resource/wav/turnerdeath.wav" />
+      <input path="resource/wav/switzhit1.wav" />
+      <input path="resource/wav/switzhit2.wav" />
+      <input path="resource/wav/switzhit3.wav" />
+      <input path="resource/wav/switzdeath.wav" />
+      <input path="resource/wav/charminhit1.wav" />
+      <input path="resource/wav/charminhit2.wav" />
+      <input path="resource/wav/charminhit3.wav" />
+      <input path="resource/wav/charmindeath.wav" />
+      <input path="resource/wav/pepsihit1.wav" />
+      <input path="resource/wav/pepsihit2.wav" />
+      <input path="resource/wav/pepsihit3.wav" />
+      <input path="resource/wav/pepsideath.wav" />
+      <input path="resource/wav/cokehit1.wav" />
+      <input path="resource/wav/cokehit2.wav" />
+      <input path="resource/wav/cokehit3.wav" />
+      <input path="resource/wav/cokedeath.wav" />
+      <input path="resource/wav/koolaidehit1.wav" />
+      <input path="resource/wav/koolaidehit2.wav" />
+      <input path="resource/wav/koolaidehit3.wav" />
+      <input path="resource/wav/koolaidedeath.wav" />
+      <input path="resource/wav/zap.wav" />
+      <input path="resource/wav/wammo.wav" />
+      <input path="resource/wav/pow.wav" />
+      <input path="resource/wav/bing.wav" />
+    </wav2raw>
   </target>
 
   <target name="levelBinaries" depends="declareCustomTasks">
