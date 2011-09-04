@@ -5,7 +5,7 @@
 #include <winresrc.h>
 #define IDC_STATIC -1
 
-SFX DAT DISCARDABLE "resource\\sfx.dat"
+SFX DAT DISCARDABLE "out\\resource\\wav\\sfx.dat"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -302,7 +302,7 @@ STRINGTABLE DISCARDABLE
 BEGIN
     IDS_STRING208           "What goes up must come SPLAT! Excuse me"
     IDS_STRING209           "3A"
-    IDS_STRING210           "Super Mario Super Fun Zone"
+    IDS_STRING210           "Super Turner Super Fun Zone"
     IDS_STRING211           "3B"
     IDS_STRING212           "Switzerland"
     IDS_STRING213           "4_"
@@ -324,27 +324,27 @@ BEGIN
     IDS_STRING225           "8A"
 END
 
-1__ CMP DISCARDABLE "Resource\\1__.cmpset"
-2a_ CMP DISCARDABLE "Resource\\2a_.cmpset"
-2b_ CMP DISCARDABLE "Resource\\2b_.cmpset"
-3a_ CMP DISCARDABLE "Resource\\3a_.cmpset"
-3b_ CMP DISCARDABLE "Resource\\3b_.cmpset"
-4__ CMP DISCARDABLE "Resource\\4__.cmpset"
-5__ CMP DISCARDABLE "Resource\\5__.cmpset"
-6a_ CMP DISCARDABLE "Resource\\6a_.cmpset"
-6b_ CMP DISCARDABLE "Resource\\6b_.cmpset"
-7a_ CMP DISCARDABLE "Resource\\7a_.cmpset"
-7b_ CMP DISCARDABLE "Resource\\7b_.cmpset"
+1__ CMP DISCARDABLE "out\\levels\\1__.cmpset"
+2a_ CMP DISCARDABLE "out\\levels\\2a_.cmpset"
+2b_ CMP DISCARDABLE "out\\levels\\2b_.cmpset"
+3a_ CMP DISCARDABLE "out\\levels\\3a_.cmpset"
+3b_ CMP DISCARDABLE "out\\levels\\3b_.cmpset"
+4__ CMP DISCARDABLE "out\\levels\\4__.cmpset"
+5__ CMP DISCARDABLE "out\\levels\\5__.cmpset"
+6a_ CMP DISCARDABLE "out\\levels\\6a_.cmpset"
+6b_ CMP DISCARDABLE "out\\levels\\6b_.cmpset"
+7a_ CMP DISCARDABLE "out\\levels\\7a_.cmpset"
+7b_ CMP DISCARDABLE "out\\levels\\7b_.cmpset"
 
-1_u CMP DISCARDABLE "Resource\\1_u.cmpset"
-2au CMP DISCARDABLE "Resource\\2au.cmpset"
-2bu CMP DISCARDABLE "Resource\\2bu.cmpset"
-3au CMP DISCARDABLE "Resource\\3au.cmpset"
-3bu CMP DISCARDABLE "Resource\\3bu.cmpset"
-4_u CMP DISCARDABLE "Resource\\4_u.cmpset"
-5_u CMP DISCARDABLE "Resource\\5_u.cmpset"
-6au CMP DISCARDABLE "Resource\\6au.cmpset"
-6bu CMP DISCARDABLE "Resource\\6bu.cmpset"
-7au CMP DISCARDABLE "Resource\\7au.cmpset"
-7bu CMP DISCARDABLE "Resource\\7bu.cmpset"
+1_u CMP DISCARDABLE "out\\levels\\1_u.cmpset"
+2au CMP DISCARDABLE "out\\levels\\2au.cmpset"
+2bu CMP DISCARDABLE "out\\levels\\2bu.cmpset"
+3au CMP DISCARDABLE "out\\levels\\3au.cmpset"
+3bu CMP DISCARDABLE "out\\levels\\3bu.cmpset"
+4_u CMP DISCARDABLE "out\\levels\\4_u.cmpset"
+5_u CMP DISCARDABLE "out\\levels\\5_u.cmpset"
+6au CMP DISCARDABLE "out\\levels\\6au.cmpset"
+6bu CMP DISCARDABLE "out\\levels\\6bu.cmpset"
+7au CMP DISCARDABLE "out\\levels\\7au.cmpset"
+7bu CMP DISCARDABLE "out\\levels\\7bu.cmpset"
 
