@@ -16,8 +16,10 @@ limitations under the License.
 
 package com.github.matvore.andradion2.build;
 
+import com.github.matvore.andradion2.data.BinaryOutputStream;
 import com.github.matvore.andradion2.data.Copier;
 import com.github.matvore.andradion2.data.ImmutableList;
+import com.github.matvore.andradion2.data.Lists;
 
 import java.awt.Color;
 import java.awt.Dimension;
@@ -26,7 +28,6 @@ import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,57 +55,114 @@ public class CompacterMapper {
     }
   }
 
+  private static final class TransparentOpaquePair {
+    private final int transparentPixels;
+    private final byte[] opaquePixels;
+
+    private TransparentOpaquePair(int transparentPixels, byte[] opaquePixels) {
+      this.opaquePixels = opaquePixels;
+      this.transparentPixels = transparentPixels;
+    }
+
+    public int getTransparentPixels() {
+      return transparentPixels;
+    }
+
+    public int getOpaquePixelCount() {
+      return opaquePixels.length;
+    }
+
+    public void writeOpaquePixelsTo(BinaryOutputStream stream)
+        throws IOException {
+      stream.putBytes(opaquePixels);
+    }
+
+    public static TransparentOpaquePair readFrom(
+        ByteMatrix data, int x, int y, byte transparentColor) {
+      int dataIndex = data.index(x, y);
+      int transparentPixels = 0;
+
+      while (true) {
+        if (x + transparentPixels == data.width) {
+          return null;
+        }
+        if (data.bytes[dataIndex + transparentPixels] != transparentColor) {
+          break;
+        }
+        transparentPixels++;
+      }
+
+      int opaquePixels = 0;
+      while (true) {
+        if (x + transparentPixels + opaquePixels == data.width ||
+            data.bytes[dataIndex + transparentPixels + opaquePixels] ==
+                transparentColor) {
+          break;
+        }
+        opaquePixels++;
+      }
+
+      byte[] opaqueData = new byte[opaquePixels];
+      System.arraycopy(data.bytes, dataIndex + transparentPixels,
+          opaqueData, 0, opaquePixels);
+
+      return new TransparentOpaquePair(transparentPixels, opaqueData);
+    }
+  }
+
   private enum ColorThat {IS, IS_NOT}
 
   private final byte transparentColor;
   private final int minimumColorBlockArea;
-  private final List<Dimension> patternAreas;
+  private final List<Dimension> patternSizes;
   private final int minimumPatternArea;
 
   private CompacterMapper(byte transparentColor,
-      int minimumColorBlockArea, List<Dimension> patternAreas,
+      int minimumColorBlockArea, List<Dimension> patternSizes,
       int minimumPatternArea) {
     this.transparentColor = transparentColor;
     this.minimumColorBlockArea = minimumColorBlockArea;
-    this.patternAreas = patternAreas;
+    this.patternSizes = patternSizes;
     this.minimumPatternArea = minimumPatternArea;
   }
 
   public static CompacterMapper of(byte transparentColor,
-      int minimumColorBlockArea, List<Dimension> patternAreas,
+      int minimumColorBlockArea, List<Dimension> patternSizes,
       int minimumPatternArea) {
     return new CompacterMapper(transparentColor, minimumColorBlockArea,
-        ImmutableList.copyOf(patternAreas, Copier.FOR_DIMENSION),
+        ImmutableList.copyOf(patternSizes, Copier.FOR_DIMENSION),
         minimumPatternArea);
   }
 
-  private static List<Rectangle> uniformDimensionRectangleList(
-      List<Point> locations, Dimension dimension) {
-    List<Rectangle> result = new ArrayList<Rectangle>();
-    for (Point location : locations) {
-      result.add(new Rectangle(location, dimension));
-    }
-    return result;
-  }
-
   private static void drawRectangle(
-      ByteMatrix data, byte color, Rectangle area) {
-    int index = data.index(area.x, area.y);
-    for (int y = 0; y < area.height; y++) {
-      for (int x = 0; x < area.width; x++) {
-        data.bytes[index + x] = color;
+      ByteMatrix data, byte color, int x, int y, int width, int height) {
+    int index = data.index(x, y);
+    for (int cy = 0; cy < height; cy++) {
+      for (int cx = 0; cx < width; cx++) {
+        data.bytes[index + cx] = color;
       }
       index += data.width;
     }
   }
 
-  private static ByteMatrix makeCopy(ByteMatrix source, Rectangle area) {
-    ByteMatrix result = new ByteMatrix(area.width, area.height);
-    int sourceIndex = source.index(area.x, area.y);
+  private static void drawRectangle(
+      ByteMatrix data, byte color, Rectangle area) {
+    drawRectangle(data, color, area.x, area.y, area.width, area.height);
+  }
+
+  private static void drawRectangle(
+      ByteMatrix data, byte color, Point location, Dimension size) {
+    drawRectangle(data, color, location.x, location.y, size.width, size.height);
+  }
+
+  private static ByteMatrix makeCopy(
+      ByteMatrix source, Point location, Dimension size) {
+    ByteMatrix result = new ByteMatrix(size.width, size.height);
+    int sourceIndex = source.index(location.x, location.y);
     int resultIndex = 0;
-    for (int y = 0; y < area.height; y++) {
+    for (int y = 0; y < size.height; y++) {
       System.arraycopy(
-          source.bytes, sourceIndex, result.bytes, resultIndex, area.width);
+          source.bytes, sourceIndex, result.bytes, resultIndex, size.width);
       resultIndex += result.width;
       sourceIndex += source.width;
     }
@@ -112,18 +170,29 @@ public class CompacterMapper {
   }
 
   private static boolean areaIs(ColorThat target, byte color,
-      ByteMatrix data, Rectangle area) {
+      ByteMatrix data, int x, int y, int width, int height) {
     boolean xor = (target == ColorThat.IS_NOT);
-    int index = data.index(area.x, area.y);
-    for (int y = 0; y < area.height; y++) {
-      for (int x = 0; x < area.width; x++) {
-        if ((data.bytes[index + x] != color) ^ xor) {
+    int index = data.index(x, y);
+    for (int cy = 0; cy < height; cy++) {
+      for (int cx = 0; cx < width; cx++) {
+        if ((data.bytes[index + cx] != color) ^ xor) {
           return false;
         }
       }
       index += data.width;
     }
     return true;
+  }
+
+  private static boolean areaIs(ColorThat target, byte color, ByteMatrix data,
+      Rectangle area) {
+    return areaIs(target, color, data, area.x, area.y, area.width, area.height);
+  }
+
+  private static boolean areaIs(ColorThat target, byte color, ByteMatrix data,
+      Point point, Dimension size) {
+    return areaIs(
+        target, color, data, point.x, point.y, size.width, size.height);
   }
 
   /**
@@ -135,7 +204,7 @@ public class CompacterMapper {
    */
   private List<Rectangle> findAndClearColorBlocks(
       ByteMatrix data, int startX, int startY) {
-    List<Rectangle> result = new ArrayList<Rectangle>();
+    List<Rectangle> result = Lists.newArrayList();
     int currX = startX, currY = startY;
     int dataPosition = data.index(currX, currY);
     byte baseColor = data.bytes[dataPosition];
@@ -313,8 +382,8 @@ public class CompacterMapper {
       throws IOException {
     Map<Byte, List<Rectangle>> colorBlocks =
         new HashMap<Byte, List<Rectangle>>();
-    List<ByteMatrix> patterns = new ArrayList<ByteMatrix>();
-    List<List<Rectangle>> patternAreas = new ArrayList<List<Rectangle>>();
+    List<ByteMatrix> patterns = Lists.newArrayList();
+    List<List<Point>> patternCoors = Lists.newArrayList();
     data = data.clone();
 
     // Search for color blocks.
@@ -326,13 +395,14 @@ public class CompacterMapper {
 
     while ((nonTransparentCoor = findPixel(
         ColorThat.IS_NOT, transparentColor, data, locX, locY)) != null) {
-      Byte colorHere = data.bytes[
-          data.index(nonTransparentCoor.x, nonTransparentCoor.y)];
+      locX = nonTransparentCoor.x;
+      locY = nonTransparentCoor.y;
+      Byte colorHere = data.bytes[data.index(locX, locY)];
 
       // Only process if we have not processed this color before.
       if (!colorBlocks.containsKey(colorHere)) {
         List<Rectangle> colorBlockAreas = findAndClearColorBlocks(
-           data, nonTransparentCoor.x, nonTransparentCoor.y);
+           data, locX, locY);
 
         colorBlocks.put(colorHere, colorBlockAreas);
       }
@@ -346,5 +416,211 @@ public class CompacterMapper {
     }
 
     // Find patterns.
+    for (Dimension patternSize : patternSizes) {
+      locX = 0;
+      locY = 0;
+
+      while ((nonTransparentCoor = findPixel(
+          ColorThat.IS_NOT, transparentColor, data, locX, locY)) != null) {
+        locX = nonTransparentCoor.x;
+        locY = nonTransparentCoor.y;
+        byte baseColor = data.bytes[data.index(locX, locY)];
+        if (locX + patternSize.width > data.width) {
+          // Over the right-hand side, must go to start of next line
+          locX = 0;
+          locY++;
+          continue;
+        }
+
+        if (locY + patternSize.height > data.height) {
+          // Over the bottom edge, start over with different pattern size
+          break;
+        }
+
+        if (!areaIs(ColorThat.IS_NOT, transparentColor, data,
+            locX, locY, patternSize.width, patternSize.height)) {
+          if (++locX >= data.width) {
+            locX = 0;
+            if (++locY >= data.height) {
+              break;
+            }
+          }
+          continue;
+        }
+
+        List<Point> currentPatternCoors = Lists.newArrayList();
+        currentPatternCoors.add(new Point(locX, locY));
+
+        // Increment x to avoid overlapping with first instance.
+        int patternCoorX = locX + patternSize.width;
+        int patternCoorY = locY;
+        if (patternCoorX + patternSize.width > data.width) {
+          patternCoorX = 0;
+          patternCoorY++;
+        }
+
+        Point max = (Point)currentPatternCoors.get(0).clone();
+
+        Point matchFirstPixelCoor;
+        while ((matchFirstPixelCoor = findPixel(ColorThat.IS, baseColor,
+            data, patternCoorX, patternCoorY)) != null) {
+          patternCoorX = matchFirstPixelCoor.x;
+          patternCoorY = matchFirstPixelCoor.y;
+          if (patternCoorY + patternSize.height > data.height) {
+            break;
+          }
+
+          if (patternCoorX + patternSize.width <= data.width &&
+              sameAndSeparate(data, patternSize,
+                  Lists.listPlusOneElement(
+                      currentPatternCoors, matchFirstPixelCoor))) {
+            currentPatternCoors.add(matchFirstPixelCoor);
+            max.y = matchFirstPixelCoor.y;
+            if (matchFirstPixelCoor.x > max.x) {
+              max.x = matchFirstPixelCoor.x;
+            }
+          }
+
+          if (++patternCoorX + patternSize.width > data.width) {
+            patternCoorX = 0;
+            if (++patternCoorY + patternSize.height > data.height) {
+              // We're done finding extra instances.
+              break;
+            }
+          }
+        }
+
+        if (currentPatternCoors.size() > 1) {
+          // Spread this pattern outwards (down and to the right)
+          Dimension expandedPatternSize = (Dimension)patternSize.clone();
+
+          // First spread to the right
+          while (++expandedPatternSize.width + max.x <= data.width &&
+              sameAndSeparate(data, expandedPatternSize,
+                  currentPatternCoors) &&
+              areaIs(ColorThat.IS_NOT, transparentColor, data,
+                  currentPatternCoors.get(0), expandedPatternSize)) {
+            // Do nothing.
+          }
+          expandedPatternSize.width--;
+
+          // Now spread downward
+          while (++expandedPatternSize.height + max.y <= data.height &&
+              sameAndSeparate(data, expandedPatternSize,
+                  currentPatternCoors) &&
+              areaIs(ColorThat.IS_NOT, transparentColor, data,
+                  currentPatternCoors.get(0), expandedPatternSize)) {
+            // Do nothing.
+          }
+          expandedPatternSize.height--;
+
+          if (expandedPatternSize.width * expandedPatternSize.height >=
+              minimumPatternArea) {
+            patterns.add(makeCopy(
+                data, currentPatternCoors.get(0), expandedPatternSize));
+            patternCoors.add(currentPatternCoors);
+
+            for (Point patternCoor : currentPatternCoors) {
+              drawRectangle(
+                  data, transparentColor, patternCoor, expandedPatternSize);
+            }
+          }
+        }
+
+        if (++locX + patternSize.width > data.width) {
+          locX = 0;
+          if (++locY + patternSize.height > data.height) {
+            break;
+          }
+        }
+      }
+    }
+
+    // Compile left over data pieces.
+    List<List<TransparentOpaquePair>> leftOvers = Lists.newArrayList();
+
+    for (int y = 0; y < data.height; y++) {
+      List<TransparentOpaquePair> leftOverRow = Lists.newArrayList();
+      int x = 0;
+      TransparentOpaquePair next = null;
+      while ((next = TransparentOpaquePair.readFrom(
+          data, x, y, transparentColor)) != null) {
+        leftOverRow.add(next);
+        x += next.getTransparentPixels() +
+            next.getOpaquePixelCount();
+      }
+      leftOvers.add(leftOverRow);
+    }
+
+    // shrink down the leftOvers vector if
+    //  some of the last elements are not needed
+    while (leftOvers.get(leftOvers.size() - 1).isEmpty()) {
+      leftOvers.remove(leftOvers.size() - 1);
+    }
+
+    // Write to file
+    BinaryOutputStream out = BinaryOutputStream.of(output);
+
+    for (Map.Entry<Byte, List<Rectangle>> blockColors :
+        colorBlocks.entrySet()) {
+      if (blockColors.getValue().isEmpty()) {
+        continue;
+      }
+
+      // print the color
+      out.putByte(blockColors.getKey().intValue());
+
+      // how many blocks of it we have
+      out.putWordThatIsUsuallyByte(blockColors.getValue().size());
+
+      for (Rectangle block : blockColors.getValue()) {
+        out.putByte(block.x);
+        out.putByte(block.y);
+        out.putByte(block.width - 1);
+        out.putByte(block.height -1);
+      }
+    }
+
+    // now print out stuff about our patterns to the file
+    out.putWordThatIsUsuallyByte(patterns.size());
+    for (int i = 0; i < patterns.size(); i++) {
+      // print the pattern definition
+      out.putWordThatIsUsuallyByte(patterns.get(i).width);
+      out.putWordThatIsUsuallyByte(patterns.get(i).height);
+      out.putBytes(patterns.get(i).bytes);
+
+      // print how many rects we have of it
+      List<Point> coors = patternCoors.get(i);
+      out.putWordThatIsUsuallyByte(coors.size());
+
+      // print the rects' locations
+      for (Point coor : coors) {
+        out.putByte(coor.x);
+        out.putByte(coor.y);
+      }
+    }
+
+    // now print out stuff about the left over number of rows
+    // In the left overs, each row is a vector of BYTES with a size of at least
+    //  1. If the first BYTE is 0, then no pixels are on the line
+    //  If the first BYTE is x, where x > 0, then there are x
+    //  trans/opaque pairs
+    // a trans/opaque pair has a run of transparent
+    // pixels, and a run of non-transparent pixels.  For each
+    // trans/opaque pair, there is a number which specifies the number
+    // of transparent pixels, then a number which specifies the
+    // number of opaque pixels - 1, then the opaque pixel data.
+
+   out.putWordThatIsUsuallyByte(leftOvers.size());
+
+    for (List<TransparentOpaquePair> leftOverRow : leftOvers) {
+      out.putByte(leftOverRow.size());
+
+      for (TransparentOpaquePair pair : leftOverRow) {
+        out.putByte(pair.getTransparentPixels());
+        out.putByte(pair.getOpaquePixelCount() - 1);
+        pair.writeOpaquePixelsTo(out);
+      }
+    }
   }
 }
