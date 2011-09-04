@@ -18,7 +18,7 @@ limitations under the License.
 <project name="Andradion 2" default="linkExe" basedir=".">
   <target name="buildJavaSource">
     <mkdir dir="out/java/src" />
-    <javac srcdir="java/src" destdir="out/java/src" />
+    <javac debug="true" srcdir="java/src" destdir="out/java/src" />
   </target>
 
   <target name="declareCustomTasks" depends="buildJavaSource">
@@ -31,6 +31,15 @@ limitations under the License.
     <taskdef name="levelTextToBinary"
              className="com.github.matvore.andradion2.ant.LevelTextToBinary"
              classpath="out/java/src" />
+    <taskdef name="runCompacterMapper"
+             className="com.github.matvore.andradion2.ant.RunCompacterMapper"
+             classpath="out/java/src" />
+  </target>
+
+  <target name="compacterMapper" depends="declareCustomTasks">
+    <mkdir dir="out/levels" />
+    <compacterMapperForLevel levelId="1_" />
+    <compacterMapperForLevel levelId="2a" />
   </target>
 
   <target name="levelBinaries" depends="declareCustomTasks">
@@ -71,6 +80,30 @@ limitations under the License.
 
         <arg path="@{name}.cpp" />
       </msvcCompile>
+    </sequential>
+  </macrodef>
+
+  <macrodef name="compacterMapperForLevel">
+    <attribute name="levelId" />
+    <sequential>
+      <runCompacterMapper input="levels/@{levelId}_.png"
+                          output="out/levels/@{levelId}_.cmpset"
+                          levelFile="levels/@{levelId}.dat"
+                          minimumColorBlockArea="16"
+                          minimumPatternArea="16"
+                          sectorWidth="160"
+                          sectorHeight="120">
+        <patternSize width="4" height="4" />
+      </runCompacterMapper>
+      <runCompacterMapper input="levels/@{levelId}u.png"
+                          output="out/levels/@{levelId}u.cmpset"
+                          levelFile="levels/@{levelId}.dat"
+                          minimumColorBlockArea="16"
+                          minimumPatternArea="16"
+                          sectorWidth="160"
+                          sectorHeight="120">
+        <patternSize width="4" height="4" />
+      </runCompacterMapper>
     </sequential>
   </macrodef>
 

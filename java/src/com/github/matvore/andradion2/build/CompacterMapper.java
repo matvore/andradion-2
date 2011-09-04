@@ -313,7 +313,7 @@ public class CompacterMapper {
     int coorX = startX, coorY = startY;
     boolean xor = target == ColorThat.IS_NOT;
 
-    while (true) {
+    while (dataIndex < data.bytes.length) {
       if ((data.bytes[dataIndex] == color) ^ xor) {
         return new Point(coorX, coorY);
       }
@@ -321,13 +321,13 @@ public class CompacterMapper {
       // Increment current position.
       if (++coorX >= data.width) {
         coorX = 0;
-        if (++coorY >= data.height) {
-          return null;
-        }
+        ++coorY;
       }
 
       dataIndex++;
     }
+
+    return null;
   }
 
   public void compact(BufferedImage source, List<Color> palette,
@@ -372,7 +372,7 @@ public class CompacterMapper {
           }
           i++;
         }
-        eightBitImage.bytes[pixelIndex++] = (byte)bestMatch;
+        eightBitImage.bytes[pixelIndex] = (byte)bestMatch;
       }
     }
     compact(eightBitImage, output);
@@ -554,7 +554,8 @@ public class CompacterMapper {
 
     // shrink down the leftOvers vector if
     //  some of the last elements are not needed
-    while (leftOvers.get(leftOvers.size() - 1).isEmpty()) {
+    while (!leftOvers.isEmpty() &&
+        leftOvers.get(leftOvers.size() - 1).isEmpty()) {
       leftOvers.remove(leftOvers.size() - 1);
     }
 
