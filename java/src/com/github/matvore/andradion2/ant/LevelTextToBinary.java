@@ -16,6 +16,7 @@ limitations under the License.
 
 package com.github.matvore.andradion2.ant;
 
+import com.github.matvore.andradion2.data.Closeables;
 import com.github.matvore.andradion2.data.Level;
 import com.github.matvore.andradion2.data.LevelFormats;
 
@@ -40,6 +41,7 @@ public class LevelTextToBinary extends Task {
     this.output = output;
   }
 
+  @Override
   public void execute() throws BuildException {
     InputStream inputStream = null;
     OutputStream outputStream = null;
@@ -53,20 +55,8 @@ public class LevelTextToBinary extends Task {
     } catch (IOException e) {
       throw new BuildException(e);
     } finally {
-      if (inputStream != null) {
-        try {
-          inputStream.close();
-        } catch (IOException e) {
-          // Ignore.
-        }
-      }
-      if (outputStream != null) {
-        try {
-          outputStream.close();
-        } catch (IOException e) {
-          // Ignore.
-        }
-      }
+      Closeables.closeQuietly(inputStream);
+      Closeables.closeQuietly(outputStream);
     }
   }
 }

@@ -42,14 +42,16 @@ public class ProcessResult {
 
   public static ProcessResult of(Process process)
       throws IOException, InterruptedException {
-    InputStream processOutput = process.getInputStream();
     StringBuilder stdoutBuilder = new StringBuilder();
-
-    int outputChar;
-    while ((outputChar = processOutput.read()) != -1) {
-      stdoutBuilder.append((char)outputChar);
+    InputStream processOutput = process.getInputStream();
+    try {
+      int outputChar;
+      while ((outputChar = processOutput.read()) != -1) {
+        stdoutBuilder.append((char)outputChar);
+      }
+    } finally {
+      processOutput.close();
     }
-    processOutput.close();
 
     int exitCode = process.waitFor();
     String fullOutput = stdoutBuilder.toString();

@@ -17,6 +17,7 @@ limitations under the License.
 package com.github.matvore.andradion2.ant;
 
 import com.github.matvore.andradion2.build.CompacterMapper;
+import com.github.matvore.andradion2.data.Closeables;
 import com.github.matvore.andradion2.data.Level;
 import com.github.matvore.andradion2.data.LevelFormats;
 import com.github.matvore.andradion2.data.Lists;
@@ -107,6 +108,7 @@ public class RunCompacterMapper extends Task {
     this.sectorHeight = sectorHeight;
   }
 
+  @Override
   public void execute() throws BuildException {
     System.out.println("Compacting image at: " + input);
 
@@ -118,27 +120,20 @@ public class RunCompacterMapper extends Task {
         minimumColorBlockArea, patternDimensions, minimumPatternArea);
     BufferedImage masterImage = null;
     Level level;
+    InputStream levelStream = null;
     try {
-      InputStream levelStream = new FileInputStream(levelFile);
+      levelStream = new FileInputStream(levelFile);
       level = LevelFormats.fromText(levelStream);
-      levelStream.close();
     } catch (IOException e) {
       throw new BuildException("Could not read level file: " + levelFile, e);
+    } finally {
+      Closeables.closeQuietly(levelStream);
     }
-    OutputStream cmpsetStream;
+    OutputStream cmpsetStream = null;
 
     try {
       cmpsetStream = new FileOutputStream(output);
-    } catch (IOException e) {
-      throw new BuildException("Could not write to cmpset file: " + output, e);
-    }
-
-    try {
       masterImage = ImageIO.read(input);
-    } catch (IOException e) {
-      throw new BuildException("Could not read image file: " + input, e);
-    }
-    try {
       for (int y = 0; y < masterImage.getHeight(); y += sectorHeight) {
         for (int x = 0; x < masterImage.getWidth(); x += sectorWidth) {
           int width = Math.min(sectorWidth, masterImage.getWidth() - x);
@@ -148,10 +143,11 @@ public class RunCompacterMapper extends Task {
           cmp.compact(imageSector, level.getPalette(), cmpsetStream);
         }
       }
-
-      cmpsetStream.close();
     } catch (IOException e) {
-      throw new BuildException("Could not write cmp data to file.", e);
+      throw new BuildException(
+          "IOException during conversion to cmp format", e);
+    } finally {
+      Closeables.closeQuietly(cmpsetStream);
     }
   }
 }
