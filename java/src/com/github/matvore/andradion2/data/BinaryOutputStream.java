@@ -39,9 +39,18 @@ public class BinaryOutputStream implements Closeable {
     output.write(x);
   }
 
+  public void putBytes(byte[] x, int offset, int length) throws IOException {
+    output.write(x, offset, length);
+  }
+
   public void putWord(int x) throws IOException {
-    putByte(x & 0xff);
+    putByte(x);
     putByte(x >> 8);
+  }
+
+  public void putDword(int x) throws IOException {
+    putWord(x);
+    putWord(x >> 16);
   }
 
   public void putWordThatIsUsuallyByte(int word) throws IOException {
