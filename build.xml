@@ -18,7 +18,9 @@ limitations under the License.
 <project name="Andradion 2" default="linkExe" basedir=".">
   <target name="buildJavaSource">
     <mkdir dir="out/java/src" />
-    <javac debug="true" srcdir="java/src" destdir="out/java/src" />
+    <javac debug="true" srcdir="java/src" destdir="out/java/src">
+      <compilerarg value="-Xlint" />
+    </javac>
   </target>
 
   <target name="declareCustomTasks" depends="buildJavaSource">
