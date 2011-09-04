@@ -108,6 +108,8 @@ public class RunCompacterMapper extends Task {
   }
 
   public void execute() throws BuildException {
+    System.out.println("Compacting image at: " + input);
+
     List<Dimension> patternDimensions = Lists.newArrayList();
     for (Size patternSize : patternSizes) {
       patternDimensions.add(patternSize.asDimension());

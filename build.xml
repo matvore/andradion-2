@@ -40,6 +40,15 @@ limitations under the License.
     <mkdir dir="out/levels" />
     <compacterMapperForLevel levelId="1_" />
     <compacterMapperForLevel levelId="2a" />
+    <compacterMapperForLevel levelId="2b" />
+    <compacterMapperForLevel levelId="3a" />
+    <compacterMapperForLevel levelId="3b" />
+    <compacterMapperForLevel levelId="4_" />
+    <compacterMapperForLevel levelId="5_" />
+    <compacterMapperForLevel levelId="6a" />
+    <compacterMapperForLevel levelId="6b" />
+    <compacterMapperForLevel levelId="7a" />
+    <compacterMapperForLevel levelId="7b" />
   </target>
 
   <target name="levelBinaries" depends="declareCustomTasks">

@@ -9,10 +9,6 @@ gamebmps = "C:\Andradion 2\Resource\1charminn.bmp" "C:\Andradion 2\Resource\1cha
 
 all: $(out) $(debugout)
 
-compressionutils:
-	$(cc) utility/CompacterMapper.cpp -lstdc++ -lgdi32 -o utility/CompacterMapper.exe
-	$(cc) utility/Sectorize.cpp -lstdc++ -lgdi32 -o utility/Sectorize.exe
-
 levelmaker:
 	rc /r utility\LevelMaker.rc
 	$(cc) -c utility/LevelMaker.cpp

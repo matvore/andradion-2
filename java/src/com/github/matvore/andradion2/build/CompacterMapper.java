@@ -612,7 +612,7 @@ public class CompacterMapper {
     // of transparent pixels, then a number which specifies the
     // number of opaque pixels - 1, then the opaque pixel data.
 
-   out.putWordThatIsUsuallyByte(leftOvers.size());
+    out.putWordThatIsUsuallyByte(leftOvers.size());
 
     for (List<TransparentOpaquePair> leftOverRow : leftOvers) {
       out.putByte(leftOverRow.size());
