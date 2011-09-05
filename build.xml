@@ -16,6 +16,13 @@ limitations under the License.
 -->
 
 <project name="Andradion 2" default="linkExe" basedir=".">
+  <condition property="build.flavor" value="_DEBUG" else="_RELEASE">
+    <istrue value="${debug}" />
+  </condition>
+  <condition property="obj.dir" value="out/debug" else="out/release">
+    <istrue value="${debug}" />
+  </condition>
+
   <target name="clean">
     <delete dir="out" />
     <delete file="StdAfx.obj" />
@@ -151,7 +158,8 @@ limitations under the License.
         <arg flag="/EHsc" />
         <arg flag="/I" path="./dxinclude" />
         <arg flag="/YuStdAfx.h" />
-        <arg flag="/Fo" path="out/@{name}.obj" />
+        <arg flag="/Fo" path="${obj.dir}/@{name}.obj" />
+        <arg flag="/D${build.flavor}" />
 
         <arg path="@{name}.cpp" />
       </msvcCompile>
@@ -195,6 +203,7 @@ limitations under the License.
 
       <arg path="StdAfx.cpp" />
     </msvcCompile>
+    <mkdir dir="${obj.dir}" />
     <compileOneCpp name="BitMatrix" />
     <compileOneCpp name="Character" />
     <compileOneCpp name="CompactMap" />
@@ -220,28 +229,28 @@ limitations under the License.
   <target name="linkExe" depends="buildCpp">
     <msvcLink>
       <arg flag="/MACHINE:X86" />
-      <arg flag="/OUT:" path="out/andradion2.exe" />
-      <arg path="out/Andradion 2.res" />
-      <arg path="out/BitMatrix.obj" />
-      <arg path="out/Character.obj" />
-      <arg path="out/CompactMap.obj" />
-      <arg path="out/Deeds.obj" />
-      <arg path="out/Fire.obj" />
-      <arg path="out/Fixed.obj" />
-      <arg path="out/GammaEffects.obj" />
-      <arg path="out/Glue.obj" />
-      <arg path="out/Graphics.obj" />
-      <arg path="out/LevelEnd.obj" />
-      <arg path="out/Menu.obj" />
-      <arg path="out/MusicLib.obj" />
-      <arg path="out/Net.obj" />
-      <arg path="out/Palette.obj" />
-      <arg path="out/PowerUp.obj" />
-      <arg path="out/Profiler.obj" />
-      <arg path="out/RawLoad.obj" />
-      <arg path="out/Timer.obj" />
-      <arg path="out/Weather.obj" />
-      <arg path="out/WinMain.obj" />
+      <arg flag="/OUT:" path="${obj.dir}/andradion2.exe" />
+      <arg path="${obj.dir}/Andradion 2.res" />
+      <arg path="${obj.dir}/BitMatrix.obj" />
+      <arg path="${obj.dir}/Character.obj" />
+      <arg path="${obj.dir}/CompactMap.obj" />
+      <arg path="${obj.dir}/Deeds.obj" />
+      <arg path="${obj.dir}/Fire.obj" />
+      <arg path="${obj.dir}/Fixed.obj" />
+      <arg path="${obj.dir}/GammaEffects.obj" />
+      <arg path="${obj.dir}/Glue.obj" />
+      <arg path="${obj.dir}/Graphics.obj" />
+      <arg path="${obj.dir}/LevelEnd.obj" />
+      <arg path="${obj.dir}/Menu.obj" />
+      <arg path="${obj.dir}/MusicLib.obj" />
+      <arg path="${obj.dir}/Net.obj" />
+      <arg path="${obj.dir}/Palette.obj" />
+      <arg path="${obj.dir}/PowerUp.obj" />
+      <arg path="${obj.dir}/Profiler.obj" />
+      <arg path="${obj.dir}/RawLoad.obj" />
+      <arg path="${obj.dir}/Timer.obj" />
+      <arg path="${obj.dir}/Weather.obj" />
+      <arg path="${obj.dir}/WinMain.obj" />
       <standardLib name="gdi32.lib" />
       <standardLib name="ole32.lib" />
       <standardLib name="user32.lib" />
