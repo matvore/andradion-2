@@ -17,6 +17,8 @@ limitations under the License.
 #include "StdAfx.h"
 #include "Logger.h"
 
+using std::endl;
+
 // module that loads raw sound data into sound buffers
 
 static IDirectSoundBuffer *FillSoundBuffer(IDirectSoundBuffer *target,
@@ -36,7 +38,7 @@ static IDirectSoundBuffer *FillSoundBuffer(IDirectSoundBuffer *target,
                            &audio_length_2,
                            DSBLOCK_FROMWRITECURSOR))) {
     (*target).Release();
-    WriteLog("Could not lock sound buffer\n");
+    logger << "Could not lock sound buffer" << endl;
     return 0;
   }
 
@@ -62,8 +64,8 @@ static IDirectSoundBuffer *CreateSB(IDirectSound *ds,
   WAVEFORMATEX wfm;
   
   if(!ds) {
-    WriteLog("Direct sound is not available; could not create "
-             "sound buffer\n");
+    logger << "Direct sound is not available; could not create sound buffer" <<
+        endl;
     return 0;
   }
 
@@ -85,7 +87,7 @@ static IDirectSoundBuffer *CreateSB(IDirectSound *ds,
   dsbd.lpwfxFormat = &wfm;
 		
   if (FAILED(TryAndReport(ds->CreateSoundBuffer(&dsbd, &new_buff, 0)))) {
-    WriteLog("Could not create sound buffer\n");
+    logger << "Could not create sound buffer" << endl;
     return 0;
   } else {
     return new_buff;

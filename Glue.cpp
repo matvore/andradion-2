@@ -47,6 +47,7 @@ using std::queue;
 using std::multiset;
 using std::set;
 using std::auto_ptr;
+using std::endl;
 
 const DWORD SOUNDRESOURCEFREQ = 11025;
 const DWORD SOUNDRESOURCEBPS = 8; // bits per sample of sounds
@@ -584,7 +585,7 @@ public:
   }
 
   virtual void ClearEnemyArray() throw() {
-    WriteLog("Call to clear enemy array\n");
+    logger << "Call to clear enemy array" << endl;
     enemies.clear();
   }
 
@@ -650,7 +651,7 @@ public:
       
       sprintf((char *)buf.Get(), format.c_str(), name);
 				
-      WriteLog("Posting message of player leaving to screen\n");
+      logger << "Posting message of player leaving to screen" << endl;
       GluPostMessage((const char *)buf.Get());
     } catch (std::bad_alloc& ba) { }
   }
@@ -665,14 +666,14 @@ public:
       
       sprintf((char *)buf.Get(), format.c_str(), name);
 				
-      WriteLog("Posting player join message to screen\n");
+      logger << "Posting player join message to screen" << endl;
       GluPostMessage((const char *)buf.Get());
     } catch (std::bad_alloc& ba) { }
   }
 };
 
 static void ClearSectors() {
-  WriteLog("Clearing sector data grid\n");
+  logger << "Clearing sector data grid" << endl;
   
   for (vector<TSector>::iterator itr = sectors.begin();
        itr != sectors.end(); itr++) {
@@ -681,7 +682,7 @@ static void ClearSectors() {
 
   sectors.clear();
 
-  WriteLog("Finished clearing\n");
+  logger << "Finished clearing" << endl;
 }
 
 // dialog proc.  This is a callback function that
@@ -787,7 +788,7 @@ static FIXEDNUM sfxfreq;
 static int GetSpeed() {return fps / 25;}
 
 static void SetSpeed(int index) {
-  WriteLog("SetSpeed(%d) called" LogArg(index));
+  logger << "SetSpeed(" << index << ") called" << endl;
 
   switch(NetInGame() ? 1 : index) {
   case 0:
@@ -920,21 +921,19 @@ bool GluInitialize(HINSTANCE hInstance_, HWND hWnd_) {
 }
 
 void GluRelease() {
-  WriteLog("GluReleease() called");
-
   if(GLUESTATE_UNINITIALIZED == state) {
-      WriteLog("Glue is already released");
-      return;
-    }
+    logger << "Glue is already released" << endl;
+    return;
+  }
 
-  WriteLog("calling NetRelease()");
+  logger << "calling NetRelease()" << endl;
   NetRelease();
-  WriteLog("deleting menu");
+  logger << "deleting menu" << endl;
   delete m;
   m = 0;
-  WriteLog("calling MusicUninit()");
+  logger << "calling MusicUninit()" << endl;
   MusicUninit();
-  WriteLog("calling LoadSounds()");
+  logger << "calling LoadSounds()" << endl;
   LoadSounds(RESOURCELOAD_NONE);
 
 #ifdef _DEBUG
@@ -945,23 +944,23 @@ void GluRelease() {
   TryAndReport(did->Release());
   TryAndReport(di->Release());
 
-  WriteLog("Unload all bitmaps\n");
+  logger << "Unload all bitmaps" << endl;
   LoadBitmaps(RESOURCELOAD_NONE);
   
   ClearSectors();
   
   WtrRelease();
-  WriteLog("Releasing cached map surfaces\n");
+  logger << "Releasing cached map surfaces" << endl;
   int i;
   for(i = 0; i < CACHED_SECTORS; i++) {
     GfxDestroySurface(cached[i].first);
     GfxDestroySurface(cached[i].second);
   }
 
-  WriteLog("Uncertifying CGraphics\n");
+  logger << "Uncertifying CGraphics" << endl;
   GfxUninit();
 	
-  WriteLog("About to release all sounds");
+  logger << "About to release all sounds" << endl;
   for(i = 0; i < MAX_SOUNDS; i++) {
     if(playing[i]) {
       TryAndReport(playing[i]->Release());
@@ -969,31 +968,31 @@ void GluRelease() {
     }
   }
 
-  WriteLog("About to close DirectSound interface");
+  logger << "About to close DirectSound interface" << endl;
   if(NULL != ds) {
     TryAndReport(ds->Release());
     ds = NULL;
   }
 	
-  WriteLog("Saving level completion data\n");
+  logger << "Saving level completion data" << endl;
   HANDLE lc;
   string ini_file;
   GluStrLoad(IDS_INIFILE,ini_file);
-  WriteLog("About to write to %s\n" LogArg(ini_file.c_str()));
+  logger << "About to write to " << ini_file << endl;
   lc = TryAndReport(CreateFile(ini_file.c_str(),GENERIC_WRITE,0,NULL,CREATE_ALWAYS,FILE_ATTRIBUTE_NORMAL,NULL));
   DWORD written;
   TryAndReport(WriteFile(lc,(const void *)&sync_rate,sizeof(sync_rate),&written,NULL));
-  WriteLog("%d bytes written\n" LogArg((int)written));
+  logger << written << " bytes written" << endl;
   DeeRelease(lc);
   TryAndReport(CloseHandle(lc));
-  WriteLog("Closing COM\n");
+  logger << "Closing COM" << endl;
   CoUninitialize();
-  WriteLog("Calling ShowMouseCursor to show the mouse\n");
+  logger << "Calling ShowMouseCursor to show the mouse" << endl;
   ShowMouseCursor();
 
   state = GLUESTATE_UNINITIALIZED;
 
-  WriteLog("GluRelease returning\n");
+  logger << "GluRelease returning" << endl;
 }
 
 class StarFiller : public SurfaceFiller {
@@ -1093,7 +1092,7 @@ static void Introduction() {
     TryAndReport(FreeResource(data_handle));
   }
 
-  WriteLog("Play Intro Music");
+  logger << "Play Intro Music" << endl;
   GluSetMusic(false, IDR_INTROMUSIC);
 
   // load polygon data for splash screen
@@ -1135,9 +1134,9 @@ static void Introduction() {
   }
 
   if (warpout) {
-    WriteLog("Starting to play warpout sound\n");
+    logger << "Starting to play warpout sound" << endl;
     warpout->Play(0,0,0);
-    WriteLog("Done with playing call.\n");
+    logger << "Done with playing call." << endl;
   }
 
   CTimer total_flash;
@@ -1262,7 +1261,7 @@ static void Introduction() {
     while(!key_pressed && !key_presses.empty()) {
       switch(key_presses.front()) {
       case VK_NEXT:
-        WriteLog("PGDN\n");
+        logger << "PGDN" << endl;
         timer += inc_or_dec;
         key_presses.pop();
         if(timer.SecondsPassed32() >= TIMETOSCROLL) {
@@ -1270,7 +1269,7 @@ static void Introduction() {
         }
         break;
       case VK_PRIOR:
-        WriteLog("PGUP\n");
+        logger << "PGUP" << endl;
         timer -= inc_or_dec;
         key_presses.pop();
         if(0 > timer.SecondsPassedInt()) {
@@ -1278,7 +1277,7 @@ static void Introduction() {
         }
         break;
       case VK_SPACE:
-        WriteLog("SPACE\n");
+        logger << "SPACE" << endl;
         if(timer.Paused()) {
           timer.Resume();
         } else {
@@ -1294,13 +1293,13 @@ static void Introduction() {
     Flip();
   } while(!key_pressed);
 
-  WriteLog("Introduction finished");
+  logger << "Introduction finished" << endl;
 
-  WriteLog("Deleting stars and story");
+  logger << "Deleting stars and story" << endl;
   GfxDestroySurface(stars);
   GfxDestroySurface(story);
 
-  WriteLog("Doing gray block screen transition");
+  logger << "Doing gray block screen transition" << endl;
     
   for(int c = 255; c >= 0; c--) {
     int x = rand()%(MODEWIDTH-TRANSITIONSQUARESIZE);
@@ -1320,7 +1319,7 @@ static void Introduction() {
     timer.Restart();
   }
 
-  WriteLog("Going into Mode 13h...");
+  logger << "Going into Mode 13h..." << endl;
 
   HANDLE reconfig_file = CreateFile("43.hz", FILE_SHARE_READ, 0, NULL,
 				    OPEN_EXISTING, 0, NULL);
@@ -1330,27 +1329,27 @@ static void Introduction() {
 
   CloseHandle(reconfig_file);
 
-  WriteLog("Now in 13h");
+  logger << "Now in 13h" << endl;
 
-  WriteLog("Creating surfaces for cached maps");
+  logger << "Creating surfaces for cached maps" << endl;
   for(int i = 0; i < CACHED_SECTORS; i++) {
     cached[i].first = GfxCreateSurface(SECTOR_WIDTH, SECTOR_HEIGHT);
     cached[i].second = GfxCreateSurface(SECTOR_WIDTH, SECTOR_HEIGHT);
   }
   upper_left_sector = 0;
 
-  WriteLog("Initializing Pal with menu palette");
+  logger << "Initializing Pal with menu palette" << endl;
   GamInitializeWithMenuPalette();
   GfxRefillSurfaces();
 	
-  WriteLog("Loading single player and multiplayer bitmaps");
+  logger << "Loading single player and multiplayer bitmaps" << endl;
   LoadBitmaps(RESOURCELOAD_MP);
-  WriteLog("Loading single player and multiplayer sounds");
+  logger << "Loading single player and multiplayer sounds" << endl;
   LoadSounds(RESOURCELOAD_MP);
 
   WtrInitialize(sounds);
 
-  WriteLog("Loading important strings from string table");
+  logger << "Loading important strings from string table" << endl;
   GluStrLoad(IDS_KILLED,KILLED);
   GluStrLoad(IDS_KILLEDYOURSELF,KILLEDYOURSELF);
   GluStrLoad(IDS_KILLEDTHEMSELVES,KILLEDTHEMSELVES);
@@ -1358,24 +1357,24 @@ static void Introduction() {
   GluStrLoad(IDS_YOUKILLED,YOUKILLED);
   GluStrLoad(IDS_SPKILLED,SPKILLED);
 
-  WriteLog("Calling SetupMenu()");
+  logger << "Calling SetupMenu()" << endl;
   SetupMenu();
 
-  WriteLog("Flushing key presses and setting glue state");
+  logger << "Flushing key presses and setting glue state" << endl;
   FlushKeyPresses();
   state = GLUESTATE_MAINMENU;
 
-  WriteLog("Calling PrepareMenu() to prepare for main menu");
+  logger << "Calling PrepareMenu() to prepare for main menu" << endl;
   PrepareMenu();
 
-  WriteLog("Loading Chattahoochee main menu music");
+  logger << "Loading Chattahoochee main menu music" << endl;
   GluSetMusic(true, IDR_MENUMUSIC);
 
-  WriteLog("Now leaving Introduction() function");
+  logger << "Now leaving Introduction() function" << endl;
 }
 
 static void LoadBitmaps(int type) {
-  WriteLog("LoadBitmaps called with load type %d" LogArg(type));
+  logger << "LoadBitmaps called with load type " << type << endl;
   
   // first take care of the special case
   //  of reloading bitmaps in case of surface loss
@@ -1383,30 +1382,30 @@ static void LoadBitmaps(int type) {
   int prev_bmp_count = bitmaps_loaded;
   bitmaps_loaded = BITMAP_COUNT[type];
 
-  WriteLog("prev_bmp_count: %d, bitmaps_loaded: %d\n"
-           LogArg(prev_bmp_count) LogArg(bitmaps_loaded));
+  logger << "prev_bmp_count: " << prev_bmp_count <<
+      ", bitmaps_loaded: " << bitmaps_loaded << endl;
 
   if(bitmaps_loaded > prev_bmp_count) {
-    WriteLog("we have to load more bitmaps\n");
+    logger << "we have to load more bitmaps" << endl;
 
     for(int i = prev_bmp_count; i < bitmaps_loaded; i++) {
       if(!bitmaps[i]) {
-        WriteLog("Bitmap %d not already loaded\n" LogArg(i));
+        logger << "Bitmap " << i << " not already loaded" << endl;
         bitmaps[i] = BitmapLoadingSurfaceFiller::CreateSurfaceFromBitmap
           (hInstance, MAKEINTRESOURCE(IDB_BITMAP2 + i));
       }
     }
   } else if(bitmaps_loaded < prev_bmp_count) {
-    WriteLog("we have to release bitmaps");
+    logger << "we have to release bitmaps" << endl;
 
     for(int i = bitmaps_loaded; i < prev_bmp_count; i++) {
-      WriteLog("Releasing bitmap %d" LogArg(i));
+      logger << "Releasing bitmap " << i << endl;
       GfxDestroySurface(bitmaps[i]);
       bitmaps[i] = 0;
     }
   }
 
-  WriteLog("LoadBitmaps() finished");
+  logger << "LoadBitmaps() finished" << endl;
 }
 
 static void LoadSounds(int type)
@@ -1414,11 +1413,10 @@ static void LoadSounds(int type)
   const int SOUND_COUNT[] = {0,NUM_SPSOUNDS,NUM_SOUNDS};
   int next_num_sounds = SOUND_COUNT[type];
   int prev_num_sounds = SOUND_COUNT[sounds_loaded];
-  WriteLog("LoadSounds called w/%d sounds loaded, "
-           "caller wants %d loaded" LogArg(prev_num_sounds)
-           LogArg(next_num_sounds));
+  logger << "LoadSounds called w/" << prev_num_sounds << " sounds loaded, "
+      "caller wants " << next_num_sounds << " loaded" << endl;
   if(next_num_sounds > prev_num_sounds) {
-      WriteLog("We have to load more sounds");
+      logger << "We have to load more sounds" << endl;
       HRSRC res_handle;
       HGLOBAL data_handle;
       DWORD *sound_data
@@ -1439,7 +1437,7 @@ static void LoadSounds(int type)
 	}
       for(int i = prev_num_sounds; i < next_num_sounds; i++)
 	{
-	  WriteLog("Loading sound %d" LogArg(i));
+	  logger << "Loading sound " << i << endl;
           sounds[i]
             = CreateSBFromRawData(ds, (void *)(sound_data + 1),
                                   *sound_data,
@@ -1448,7 +1446,7 @@ static void LoadSounds(int type)
                                   | DSBCAPS_CTRLFREQUENCY,
                                   SOUNDRESOURCEFREQ,
                                   SOUNDRESOURCEBPS, 1);
-	  WriteLog("Clearing reversed bit for sound %d" LogArg(i));
+	  logger << "Clearing reversed bit for sound " << i << endl;
 	  reversed.reset(i);
 	  // skip the first seven sounds; they aren't ours
 	  sound_data = (DWORD *)((BYTE *)sound_data+*sound_data)+1;
@@ -1457,10 +1455,10 @@ static void LoadSounds(int type)
     }
   else if(prev_num_sounds > next_num_sounds)
     {
-      WriteLog("We have to release some sounds");
+      logger << "We have to release some sounds" << endl;
       for(int i = next_num_sounds; i < prev_num_sounds; i++)
 	{
-	  WriteLog("Releasing sound %d" LogArg(i));
+	  logger << "Releasing sound " << i << endl;
 	  if(NULL != sounds[i])
 	    {
 	      TryAndReport(sounds[i]->Release());
@@ -1471,7 +1469,7 @@ static void LoadSounds(int type)
 
   sounds_loaded = type;
 
-  WriteLog("LoadSounds exitting");
+  logger << "LoadSounds exitting" << endl;
 }
 
 void GluPlaySound(int i,FIXEDNUM x_dist,FIXEDNUM y_dist) {
@@ -1768,14 +1766,14 @@ static pair<const BYTE *, HGLOBAL> LoadLevelPaletteOnly() {
 static void LoadLevel() {
   int i, j, k, l, m, n, o, p;
 
-  WriteLog("LoadLevel has been called");
+  logger << "LoadLevel has been called" << endl;
   RECT target;
   target.left= 0;
   target.top = 0;
   target.bottom = GAME_MODEHEIGHT;
   target.right = GAME_MODEWIDTH;
 
-  WriteLog("Making a blank screen");
+  logger << "Making a blank screen" << endl;
   GfxRectangle(0, &target);
 
   assert(level >= 0);
@@ -1788,7 +1786,7 @@ static void LoadLevel() {
     FillAccomplishmentLines();
   }
 
-  WriteLog("User is loading level with string id: %s" LogArg(path.c_str()));
+  logger << "User is loading level with string id: " << path << endl;
 
   // load the file by getting a pointer to the resource
 
@@ -2329,8 +2327,8 @@ static void LoadCmps(int level_width, int level_height,
     sector_height++;
   }
 
-  WriteLog("Loading level cmps -- size is %dx%d"
-           LogArg(level_width) LogArg(level_height));
+  logger << "Loading level cmps -- size is " << level_width << "x" <<
+      level_height << endl;
 
   string path;
 
@@ -2538,8 +2536,8 @@ void GluSetMusic(bool loop, const char *music_resource) {
   // only play music if it was not disabled by
   //  the intro/welcome dialog, and make sure we
   //  don't play music that's already going
-  WriteLog("SetMusic type A called to use music resource %s\n"
-           LogArg(music_resource));
+  logger << "SetMusic type A called to use music resource " << music_resource <<
+      endl;
   
   if(!disable_music && last_music != music_resource) {
     TryAndReport(MusicPlay(loop,music_resource, MIDI_RESOURCE_TYPE));
@@ -2552,11 +2550,12 @@ void GluSetMusic(bool loop, const char *music_resource) {
     SetSpeed(1);
   }
   
-  WriteLog("SetMusic finished\n");
+  logger << "SetMusic finished" << endl;
 }
 
 void GluSetMusic(bool loop, WORD music_resource) {
-  WriteLog("SetMusic type B called to use music resource %x" LogArg((DWORD)music_resource));
+  logger << "SetMusic type B called to use music resource " <<
+      (int)music_resource << endl;
 
   if(!disable_music) {
     TryAndReport(MusicPlay(loop, MAKEINTRESOURCE(music_resource),
@@ -2566,7 +2565,7 @@ void GluSetMusic(bool loop, WORD music_resource) {
 
   SetSpeed(1);
 
-  WriteLog("SetMusic finished.");
+  logger << "SetMusic finished." << endl;
 }
 
 static int NextSoundSlot() {
@@ -2743,19 +2742,19 @@ void GluPostForcePickupMessage() {
 }
 
 HWND GluMain() {
-  WriteLog("Calling Introduction() to display intro screen\n");
+  logger << "Calling Introduction() to display intro screen" << endl;
 
   Introduction();
 
-  WriteLog("Starting Menu()\n");
+  logger << "Starting Menu()" << endl;
   
   while(Menu()) {
-    WriteLog("Menu() terminated\n");
+    logger << "Menu() terminated" << endl;
     Game();
-    WriteLog("Game() terminated; Starting Menu()\n");
+    logger << "Game() terminated; Starting Menu()" << endl;
   }
 
-  WriteLog("Menu() returned false\n");
+  logger << "Menu() returned false" << endl;
 
   return hWnd;
 }
@@ -2776,22 +2775,22 @@ void GluPlayLevelMusic() {
 
 // returns true if the game should be started, false to quit
 static bool Menu() {
-  WriteLog("Now running Menu() function\n");
+  logger << "Now running Menu() function" << endl;
   while(true) {
-      WriteLog("Right now we are at the main menu, where you can't press Escape\n");
-      WriteLog("Calling MenuLoop until the user presses Enter and not Escape...\n");
+      logger << "Right now we are at the main menu, where you can't press Escape" << endl;
+      logger << "Calling MenuLoop until the user presses Enter and not Escape..." << endl;
       while(MENUACTION_ESCAPE == MenuLoop());
-      WriteLog("The user pressed Enter, analyzing selection\n");
+      logger << "The user pressed Enter, analyzing selection" << endl;
 
       switch(m->GetSelectionIndex()) {
       case MAINMENU_SP: {
         // do single-player game
       level_select:
-        WriteLog("The user picked Single player\n");
+        logger << "The user picked Single player" << endl;
         state = GLUESTATE_LEVELSELECT;
-        WriteLog("PrepareMenu()'ing for level select\n");
+        logger << "PrepareMenu()'ing for level select" << endl;
         PrepareMenu();
-        WriteLog("Done preparing menu, now waiting for user to press Enter or Escape\n");
+        logger << "Done preparing menu, now waiting for user to press Enter or Escape" << endl;
         int menu_action;
 			
         do {
@@ -2800,21 +2799,22 @@ static bool Menu() {
         } while(MENUACTION_RETURN == menu_action && LEVELAVAIL_NONE == DeeLevelAvailability(level));
 
         if (MENUACTION_ESCAPE == menu_action) {
-          WriteLog("User pressed Escape at level select, anyway.  PrepareMenu()'ing for main menu");
+          logger << "User pressed Escape at level select, anyway.  PrepareMenu()'ing for main menu" << endl;
           state = GLUESTATE_MAINMENU;
           PrepareMenu();
-          WriteLog("Done preparing.  About to enter main menu again");
+          logger << "Done preparing.  About to enter main menu again" << endl;
           continue;
         }
 
-        WriteLog("User selected level %d, with availability of %d" LogArg(level) LogArg(DeeLevelAvailability(level)));
+        logger << "User selected level " << level <<
+            ", with availability of " << DeeLevelAvailability(level) << endl;
 
         state = GLUESTATE_DIFFICULTYSELECT;
-        WriteLog("PrepareMenu()'ing for difficulty select\n");
+        logger << "PrepareMenu()'ing for difficulty select" << endl;
         PrepareMenu();
 
         if(MENUACTION_ESCAPE == MenuLoop()) {
-          WriteLog("User pressed Escape at difficulty select\n");
+          logger << "User pressed Escape at difficulty select" << endl;
           goto level_select;
         }
 
@@ -2822,8 +2822,8 @@ static bool Menu() {
         level_loaded = LL_ALL;
         GLUdifficulty = m->GetSelectionIndex();
 
-        WriteLog("User picked difficulty %d\n" LogArg(GLUdifficulty));
-        WriteLog("Menu() returning 'true'\n");
+        logger << "User picked difficulty " << GLUdifficulty << endl;
+        logger << "Menu() returning 'true'" << endl;
         return true;
       } case MAINMENU_MP:
 	  // multiplayer game
@@ -2888,7 +2888,7 @@ static bool Menu() {
 
             if((GLUkeyb[DIK_LSHIFT] & EIGHTHBIT) ||
                (GLUkeyb[DIK_RSHIFT] & EIGHTHBIT)) {
-              WriteLog("try to host\n");
+              logger << "try to host" << endl;
               try {
                 NetCreateGame(m->GetSelectionIndex(), sync_rate,
                               WtrCurrentState(),
@@ -2900,7 +2900,7 @@ static bool Menu() {
                 break;
               } catch (NetCreateFailure& ncf) { }
             } else {
-              WriteLog("try to join\n");
+              logger << "try to join" << endl;
               try {
                 level = NetJoinGame(m->GetSelectionIndex(),
                                     model, player_name.c_str(),
@@ -2953,7 +2953,7 @@ static bool Menu() {
 } // end of Menu()
 
 static void Game() {
-  WriteLog("Entering Game() loop\n");
+  logger << "Entering Game() loop" << endl;
   InitializeProfiler(NUM_PROFILES);
   while(true) {
     StartProfileFrame();
@@ -2963,35 +2963,35 @@ static void Game() {
     // check for new input
     did->Acquire();
     if (FAILED(did->GetDeviceState(KBBUFFERSIZE, (void *)GLUkeyb))) {
-      WriteLog("Can't get keyb data\n");
+      logger << "Can't get keyb data" << endl;
       memset(GLUkeyb, 0, KBBUFFERSIZE);
     }
 	
     // STEP 0: RELOAD LEVEL IF APPROPRIATE or RUN THE END GAME
     if(GLUkeyb[DIK_RETURN] & EIGHTHBIT && !NetProtocolInitialized()) {
-      WriteLog("User pressed Return, reloading level");
+      logger << "User pressed Return, reloading level" << endl;
       level_loaded |= LL_FLESH;
     }
 	
     if(LL_OKAY != level_loaded) {
       LoadLevel();
-      WriteLog("LoadLevel finished");
+      logger << "LoadLevel finished" << endl;
     } else if(NUM_LEVELS <= level) {
-      WriteLog("NUM_LEVELS <= level, the ending sequence will be shown");
+      logger << "NUM_LEVELS <= level, the ending sequence will be shown" << endl;
       EndGame();
       break;
     }
 	
     // STEP 2: CHECK FOR QUITTER
     if(GLUkeyb[DIK_ESCAPE] & EIGHTHBIT) {
-      WriteLog("User pressed escape, quitting game");
+      logger << "User pressed escape, quitting game" << endl;
       break;
     }
 
     // check for pauser
     if(!key_presses.empty() && PAUSE_KEY == key_presses.front()) {
       if(!NetInGame()) {
-        WriteLog("User pressed pause\n");
+        logger << "User pressed pause" << endl;
 	
         // play the sound for pausing the game, using the original
         // sound buffer 
@@ -3045,7 +3045,7 @@ static void Game() {
             }
           }
           FlushKeyPresses();
-          WriteLog("User has resumed game");
+          logger << "User has resumed game" << endl;
         }
       }             
     }
@@ -3343,7 +3343,7 @@ static void Game() {
     Flip();
   }
 
-  WriteLog("Main game loop has terminated");
+  logger << "Main game loop has terminated" << endl;
 
   // cleanup after the game
   if(NetProtocolInitialized()) {
@@ -3504,11 +3504,11 @@ static void Recache(int flags) {
 	// we have to recache the map at x,y
 	int sector_x = ul_cached_sector_x + x;
 
-	WriteLog("Reload sector %dx%d\n" LogArg(sector_x) LogArg(sector_y));
+	logger << "Reload sector " << sector_x << "x" << sector_y << endl;
 
 	// now make sure this fits into the sector grid of the whole level
 	if(sector_x < sector_width) {
-	  WriteLog("Sector coor is in range, loading\n");
+	  logger << "Sector coor is in range, loading" << endl;
 	  
 	  cached_sector %= CACHED_SECTORS;
 	  surf_t targetA = cached[cached_sector].first;
@@ -3523,11 +3523,11 @@ static void Recache(int flags) {
 	}
 
 	// all done rendering to surface
-	WriteLog("Reloaded sector %dx%d\n" LogArg(sector_x) LogArg(sector_y));
+	logger << "Reloaded sector " << sector_x << "x" << sector_y << endl;
 				
 	flags &= ~bit; // turn off the bit, like on a checklist
 	if(0 == flags) {
-	  WriteLog("Recache finished\n");
+	  logger << "Recache finished" << endl;
 	  return;
 	}
       }
@@ -3535,7 +3535,7 @@ static void Recache(int flags) {
     }
   }
 
-  WriteLog("Recache finished\n");
+  logger << "Recache finished" << endl;
 }
 
 int GluScoreDiffPickup(int x) {return (2 == x) ? 2 : 1;}

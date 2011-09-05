@@ -1,7 +1,7 @@
 /*
 Copyright 2011 Matt DeVore
 
-Licensed under the Apache License, Version 2.0 (the "License");
+Licensed under the Apache License, Version 2.0 (the "License" << endl;
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
@@ -17,6 +17,8 @@ limitations under the License.
 #include "StdAfx.h"
 #include "MusicLib.h"
 #include "Logger.h"
+
+using std::endl;
 
 // here are the interfaces and objects:
 static IDirectMusicPerformance *performance = 0;
@@ -36,7 +38,7 @@ int MusicInit(HWND w, IDirectSound *ds) throw(std::bad_alloc) {
   assert(!segment);
   assert(!loader);
 
-  WriteLog("MusicInit called");
+  logger << "MusicInit called" << endl;
   
   CoInitialize(0);
 
@@ -81,24 +83,24 @@ int MusicInit(HWND w, IDirectSound *ds) throw(std::bad_alloc) {
 void MusicUninit(void) {
   assert ((NULL == performance) == (NULL == loader));
 
-  WriteLog("MusicUninit called");
+  logger << "MusicUninit called" << endl;
   
   MusicStop();
 
   if(NULL != performance) {
-    WriteLog("DMusic int not released");
+    logger << "DMusic int not released" << endl;
     TryAndReport(performance->CloseDown());
     TryAndReport(performance->Release());
     performance = NULL;
   }
 
   if(NULL != loader) {
-    WriteLog("DMusic loader not released");
+    logger << "DMusic loader not released" << endl;
     TryAndReport(loader->Release());
     loader = NULL;
   }
 
-  WriteLog("MusicUninit closing COM");
+  logger << "MusicUninit closing COM" << endl;
   CoUninitialize(); 
 }
 
@@ -110,17 +112,17 @@ int MusicPlay(bool loop,
 	      WORD res_lang) {
   DMUS_OBJECTDESC ObjDesc;
   
-  WriteLog("MusicPlay called");
+  logger << "MusicPlay called" << endl;
 
   if(NULL == performance) {
     assert (NULL == loader);
-    WriteLog("MusicPlay returning; DirectMusic not initiated");
+    logger << "MusicPlay returning; DirectMusic not initiated" << endl;
     return 0; // return success, because their was no interface anyway
   }
 
   assert (NULL != loader);
 
-  WriteLog("Calling MusicStop");
+  logger << "Calling MusicStop" << endl;
   MusicStop();
 
   memset((void *)&ObjDesc,0,sizeof(ObjDesc));
@@ -132,7 +134,7 @@ int MusicPlay(bool loop,
 						 (LPCTSTR)res_name,res_lang));
 
   if(NULL == res_handle) {
-    WriteLog("MusicPlay returning; could not find resource");
+    logger << "MusicPlay returning; could not find resource" << endl;
     return 7;
   }
 
@@ -140,7 +142,7 @@ int MusicPlay(bool loop,
 
   if(NULL == res_data)
     {
-      WriteLog("MusicPlay returning; could not load resource");
+      logger << "MusicPlay returning; could not load resource" << endl;
       return 6;
     }
 
@@ -148,7 +150,7 @@ int MusicPlay(bool loop,
   ObjDesc.pbMemData = (PBYTE)TryAndReport(LockResource(res_data));
 
   if(NULL == ObjDesc.pbMemData) {
-    WriteLog("MusicPlay returning; could not lock resource");
+    logger << "MusicPlay returning; could not lock resource" << endl;
     return 5;
   }
 
@@ -184,7 +186,7 @@ int MusicPlay(bool loop,
 
   if(loop) {TryAndReport(segment->SetRepeats(0-1));}
 
-  WriteLog("Done taking care of looping");
+  logger << "Done taking care of looping" << endl;
 
   // playing the new music
   if(FAILED(TryAndReport(performance->PlaySegment(segment,
@@ -203,7 +205,7 @@ int MusicPlay(bool loop,
     original_tempo = 0.0f;
   }
   
-  WriteLog("MusicPlay succeeded");
+  logger << "MusicPlay succeeded" << endl;
 
   return 0; 
 }
@@ -215,7 +217,7 @@ void MusicStop(void) { // stops music if it is playing
   // we stop the music here; if there is an error, then it doesn't matter,
   //  because we will release it right afterwards
   if(NULL == segment) {
-    WriteLog("MusicStop called without music being played");
+    logger << "MusicStop called without music being played" << endl;
     return;
   }
 
@@ -232,15 +234,15 @@ void MusicStop(void) { // stops music if it is playing
 }
 
 void SetTempo(double tempo) {
-  WriteLog("Call to set tempo to %g" LogArg(tempo));
+  logger << "Call to set tempo to " << tempo << endl;
   if(NULL != segment) {
-    WriteLog("About to Disable tempo track in segment so that it does not reset the tempo");
+    logger << "About to Disable tempo track in segment so that it does not reset the tempo" << endl;
     TryAndReport(segment->SetParam( GUID_DisableTempo, 0xFFFF,0,0, NULL ));
  
     DMUS_TEMPO_PMSG* pTempo;
  
     if( SUCCEEDED(TryAndReport(performance->AllocPMsg(sizeof(DMUS_TEMPO_PMSG), (DMUS_PMSG**)&pTempo)))) {
-      WriteLog("About to queue the tempo event.");
+      logger << "About to queue the tempo event." << endl;
       ZeroMemory(pTempo, sizeof(DMUS_TEMPO_PMSG));
       pTempo->dwSize = sizeof(DMUS_TEMPO_PMSG);
       pTempo->dblTempo = tempo;
@@ -249,5 +251,5 @@ void SetTempo(double tempo) {
       TryAndReport(performance->SendPMsg((DMUS_PMSG*)pTempo));
     }
   }
-  WriteLog("SetTempo returning");
+  logger << "SetTempo returning" << endl;
 }

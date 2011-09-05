@@ -214,6 +214,7 @@ limitations under the License.
     <compileOneCpp name="Glue" />
     <compileOneCpp name="Graphics" />
     <compileOneCpp name="LevelEnd" />
+    <compileOneCpp name="logger" />
     <compileOneCpp name="Menu" />
     <compileOneCpp name="MusicLib" />
     <compileOneCpp name="Net" />
@@ -241,6 +242,7 @@ limitations under the License.
       <arg path="${obj.dir}/Glue.obj" />
       <arg path="${obj.dir}/Graphics.obj" />
       <arg path="${obj.dir}/LevelEnd.obj" />
+      <arg path="${obj.dir}/logger.obj" />
       <arg path="${obj.dir}/Menu.obj" />
       <arg path="${obj.dir}/MusicLib.obj" />
       <arg path="${obj.dir}/Net.obj" />

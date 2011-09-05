@@ -19,6 +19,7 @@ limitations under the License.
 #include "Logger.h"
 #include "Glue.h"
 
+using std::endl;
 using std::string;
 
 LRESULT WINAPI WindowProc(HWND hWnd, UINT Msg, WPARAM wParam,
@@ -58,16 +59,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     GluStrLoad(IDS_OLDDX, failure);
     GluStrLoad(IDS_WINDOWCAPTION, title);
     MessageBox(0, failure.c_str(), title.c_str(), MB_ICONSTOP);
-    WriteLog("Terminate\n");
+    logger << "Terminate" << endl;
     return 0;
   }
 
   // Close open library
-  WriteLog("Unloading experimental DirectInput DLL\n");
+  logger << "Unloading experimental DirectInput DLL" << endl;
   FreeLibrary(DIHinst);
 
 
-  WriteLog("Filling out WNDCLASSEX structure\n");
+  logger << "Filling out WNDCLASSEX structure" << endl;
   memset(&winclass, 0, sizeof(winclass));
   winclass.cbSize = sizeof(WNDCLASSEX);
   winclass.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
@@ -79,17 +80,17 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
   GluStrLoad(IDS_WINDOWCLASS,wnd_class);
   winclass.lpszClassName = wnd_class.c_str();
 
-  WriteLog("Registering window class\n");
+  logger << "Registering window class" << endl;
 	
   if(!RegisterClassEx(&winclass)) {
-    WriteLog("Failed to register window class\n");
+    logger << "Failed to register window class" << endl;
     return 0; 
   }
 
   GluStrLoad(IDS_WINDOWCAPTION,wnd_cap);
 
   // precalc window coordinates
-  WriteLog("Calling CreateWindow\n");
+  logger << "Calling CreateWindow" << endl;
   wx = GetSystemMetrics(SM_CXSCREEN)/2-GAME_MODEWIDTH/2;
   wy = GetSystemMetrics(SM_CYSCREEN)/2-GAME_MODEHEIGHT/2;
   hWnd =
@@ -99,23 +100,23 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
 		 0, 0, hInstance, 0);	
 
   if(!hWnd) {
-    WriteLog("Failed to CreateWindow\n");
+    logger << "Failed to CreateWindow" << endl;
     return 0;
   }
 
-  WriteLog("Calling GluInitialize\n");
+  logger << "Calling GluInitialize" << endl;
   if(GluInitialize(hInstance, hWnd)) {
-    WriteLog("GluInitialize Failed.  About to DestroyWindow.\n");
+    logger << "GluInitialize Failed.  About to DestroyWindow." << endl;
     DestroyWindow(hWnd);
-    WriteLog("Terminate\n");
+    logger << "Terminate" << endl;
     return 0;
   }
 
   srand(TryAndReport((unsigned int)GetTickCount()));
 
-  WriteLog("About to enter GluMain\n");
+  logger << "About to enter GluMain" << endl;
   GluMain();
-  WriteLog("Forcing window closed\n");
+  logger << "Forcing window closed" << endl;
   TryAndReport(PostMessage(hWnd, WM_CLOSE, 0, 0));
 
   while(!TryAndReport(GetMessage(&msg, 0, 0, 0))) {

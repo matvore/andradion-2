@@ -162,6 +162,7 @@ limitations under the License.
 using std::pair;
 using std::string;
 using std::bad_alloc;
+using std::endl;
 using std::queue;
 using std::auto_ptr;
 using std::vector;
@@ -238,8 +239,8 @@ static inline void SendSimpleMsg(BYTE data,
   
   dp->SendEx(us, DPID_ALLPLAYERS, flags, &data, 1, 0, 0, 0, 0);
 
-  WriteLog("Sent a simple message (1-byte of data to all players), "
-	   "containing number: %x\n" LogArg((int)data));
+  logger << "Sent a simple message (1-byte of data to all players), "
+      "containing number: " << data << endl;
 }
 
 static inline bool ValidCoordinate(const unsigned short c) {
@@ -304,11 +305,11 @@ static void CreatePlayer(unsigned int model, const char *name)
 	
   if(FAILED(TryAndReport(dp->CreatePlayer(&us, &our_name, 0,
                                           &player_data, 1, 0)))) {
-    WriteLog("Call to DirectPlay.CreatePlayer failed\n");
+    logger << "Call to DirectPlay.CreatePlayer failed" << endl;
     throw CreatePlayerFailure();
   }
 
-  WriteLog("Successfully created our player\n");
+  logger << "Successfully created our player" << endl;
 }
 
 static BOOL FAR PASCAL
@@ -317,7 +318,7 @@ FoundProtocol(LPCGUID, LPVOID lpConnection,
               DWORD, LPVOID context) {
   BOOL *mem_error = (BOOL *)context;
   
-//   WriteLog("Enumeration of protocols callback called for %s "
+//   logger << "Enumeration of protocols callback called for %s "
 //            "with connection size of %d\n"
 // 	   LogArg(lpName->lpszShortNameA)
 //            LogArg(dwConnectionSize));
@@ -329,15 +330,15 @@ FoundProtocol(LPCGUID, LPVOID lpConnection,
 //     return FALSE; // stop enumeration
 //   }
 
-//   WriteLog("Try to initiate it for ourselves...\n");
+//   logger << "Try to initiate it for ourselves..." << endl;
 //   if(FAILED(dp->InitializeConnection(lpConnection, 0))) {
-//     WriteLog("Didn't work, returning to get on with the enumeration\n");
+//     logger << "Didn't work, returning to get on with the enumeration" << endl;
 //     TryAndReport(dp->Release());
 //     return TRUE;
 //   }
 
-//   WriteLog("It worked, recording connection data and protocol "
-//            "name, etc...\n");
+//   logger << "It worked, recording connection data and protocol "
+//            "name, etc..." << endl;
 
 //   TryAndReport(dp->Release());
 
@@ -350,7 +351,7 @@ FoundProtocol(LPCGUID, LPVOID lpConnection,
     return FALSE;
   }
   
-  WriteLog("Successfully enum'd %s\n" LogArg(lpName->lpszShortNameA));
+  logger << "Successfully enum'd " << lpName->lpszShortNameA << endl;
 
   return TRUE;
 }
@@ -361,7 +362,7 @@ FoundSession(LPCDPSESSIONDESC2 lpThisSD,
   int *const communicated = (int *)context;
 
   if(DPESC_TIMEDOUT == dwFlags) {
-    WriteLog("Session enumeration timed out\n");
+    logger << "Session enumeration timed out" << endl;
     return FALSE; 
   }
 
@@ -369,9 +370,8 @@ FoundSession(LPCDPSESSIONDESC2 lpThisSD,
 
   // make sure we have right session name
   if('a' + char(*communicated) != lpThisSD->lpszSessionNameA[0]) {
-    WriteLog("Enumerated session of name %s; were looking for %c\n"
-	     LogArg(lpThisSD->lpszSessionNameA)
-	     LogArg('a' + char(*communicated)));
+    logger << "Enumerated session of name " << lpThisSD->lpszSessionNameA <<
+        "; were looking for " << char('a' + *communicated) << endl;
     return TRUE;
   }
 
@@ -404,7 +404,7 @@ FoundSession(LPCDPSESSIONDESC2 lpThisSD,
   sync = 0;
   state = JOINING;
 
-  WriteLog("Successfully enumerated the game we wanted to join\n");
+  logger << "Successfully enumerated the game we wanted to join" << endl;
 
   return FALSE;
 }
@@ -414,21 +414,20 @@ FoundPlayer(DPID dpId, DWORD, LPCDPNAME lpName, DWORD, LPVOID) {
   BYTE m;
   DWORD size = 1;
   
-  WriteLog("Enumeration of players callback called for player %s\n"
-           LogArg(lpName));
+  logger << "Enumeration of players callback called for player " << lpName <<
+      endl;
 	
   if(FAILED(dp->GetPlayerData(dpId, &m, &size, DPGET_REMOTE))) {
-    WriteLog("Failed to get player data, skipping enumeration of this "
-             "participant\n");
+    logger << "Failed to get player data, skipping enumeration of this "
+             "participant" << endl;
     return TRUE;
   }
-  WriteLog("Player uses model %d\n" LogArg((int)m));
+  logger << "Player uses model " << (int)m << endl;
   
   feedback->CreateEnemy(m);
   remotes.push_back(REMOTEPLAYER(dpId, lpName->lpszShortNameA));
   
-  WriteLog("Finished enumerating %s, callback is returning\n"
-           LogArg(lpName->lpszShortName));
+  logger << "Finished enumerating " << lpName->lpszShortName << endl;
 
   return TRUE;
 }
@@ -439,8 +438,8 @@ static void RecountPlayers() throw(NetSessionLost, bad_alloc) {
   remotes.clear();
   feedback->ClearEnemyArray();
 
-  WriteLog("Calling EnumPlayers to enumerate all "
-           "players and get their models\n");
+  logger << "Calling EnumPlayers to enumerate all "
+           "players and get their models" << endl;
   if (FAILED(TryAndReport(dp->EnumPlayers(0, FoundPlayer,
                                           0, DPENUMPLAYERS_REMOTE)))) {
     NetLeaveGame();
@@ -452,12 +451,12 @@ static void ProcessSystemMessage(DPMSG_GENERIC *msg)
   throw(NetSessionLost, bad_alloc) {
   switch(msg->dwType) {
   case DPSYS_HOST: {
-    WriteLog("System mesage: we are new host\n");
+    logger << "System mesage: we are new host" << endl;
     state = HOSTING;
     break;
   }
   case DPSYS_DESTROYPLAYERORGROUP: {
-    WriteLog("System message: player has left\n");
+    logger << "System message: player has left" << endl;
     DPMSG_DESTROYPLAYERORGROUP *p_msg = (DPMSG_DESTROYPLAYERORGROUP *)msg;
 	
     feedback->PlayerLeaving(p_msg->dpnName.lpszShortNameA);
@@ -466,27 +465,27 @@ static void ProcessSystemMessage(DPMSG_GENERIC *msg)
     break;
   }
   case DPSYS_SESSIONLOST: {
-    WriteLog("System message: session lost\n");
+    logger << "System message: session lost" << endl;
     throw NetSessionLost();
   }
   case DPSYS_SETPLAYERORGROUPDATA: {
-    WriteLog("System message: set player data\n");
+    logger << "System message: set player data" << endl;
 
     DPMSG_SETPLAYERORGROUPDATA *p_msg = (DPMSG_SETPLAYERORGROUPDATA *)msg;
     
     if(us != p_msg->dpId) {
-      WriteLog("Telling the new player what the weather is like\n");
+      logger << "Telling the new player what the weather is like" << endl;
       NetChangeWeather(weather);
       RecountPlayers();
     }
     break;
   }
   case DPSYS_CREATEPLAYERORGROUP: {
-    WriteLog("System message: player has joined\n");
+    logger << "System message: player has joined" << endl;
 
     DPMSG_CREATEPLAYERORGROUP *p_msg = (DPMSG_CREATEPLAYERORGROUP *)msg;
 
-    WriteLog("Posting player join message to screen\n");
+    logger << "Posting player join message to screen" << endl;
     feedback->PlayerJoining(p_msg->dpnName.lpszShortNameA);
   }
     // there are other system messages; we don't care about them
@@ -502,39 +501,39 @@ static unsigned int FindPlayerIndex(DPID id)
       ;
 
     if (remotes.size() == i) {
-      WriteLog("Didn't find a matching player, so "
-               "enuming the players again\n");
+      logger << "Didn't find a matching player, so "
+               "enuming the players again" << endl;
       RecountPlayers();
     } else {
       return i;
     }
   }
 
-  WriteLog("The player with the given ID has left\n");
+  logger << "The player with the given ID has left" << endl;
   throw PlayerNotFoundException();
 }
 
 void NetInitialize() throw(std::bad_alloc) {
   IDirectPlay4A *dp;
   
-  WriteLog("NetInitialize() called\n");
+  logger << "NetInitialize() called" << endl;
 
   if (NOTINIT != state) {
     return;
   }
 
   if(FAILED(CoInitialize(NULL))) {
-    WriteLog("CoInitialize() Failed, no protos will be init'd\n");
+    logger << "CoInitialize() Failed, no protos will be init'd" << endl;
     throw bad_alloc();
   }
 
   // get a list of all the protocols
-  WriteLog("Creating temporary DirectPlay interface "
-           "to enum protos\n");
+  logger << "Creating temporary DirectPlay interface "
+           "to enum protos" << endl;
   if(SUCCEEDED(CoCreateInstance(CLSID_DirectPlay, NULL, CLSCTX_ALL,
                                 IID_IDirectPlay4A, (VOID**)&dp))) {
     BOOL mem_error = FALSE;
-    WriteLog("DirectPlay created!  Now calling enum method\n");
+    logger << "DirectPlay created!  Now calling enum method" << endl;
     TryAndReport(dp->EnumConnections(&ANDRADION2GUID, FoundProtocol,
                                      &mem_error, DPCONNECTION_DIRECTPLAY));
     TryAndReport(dp->Release());
@@ -546,12 +545,12 @@ void NetInitialize() throw(std::bad_alloc) {
 	
   state = NOGAME;
   
-  WriteLog("Now leaving NetInitialize()\n");
+  logger << "Now leaving NetInitialize()" << endl;
 }
 
 void NetRelease() throw() {
   if (NOTINIT != state) {
-    WriteLog("Releasing...\n");
+    logger << "Releasing..." << endl;
     NetReleaseProtocol();
 
     CoUninitialize();
@@ -560,7 +559,7 @@ void NetRelease() throw() {
     state = NOTINIT;
   }
 
-  WriteLog("Now leaving NetRelease()\n");
+  logger << "Now leaving NetRelease()" << endl;
 }
 
 const char *NetProtocolName(unsigned int protocol_index) throw() {
@@ -579,20 +578,20 @@ void NetInitializeProtocol(unsigned int index) throw() {
 
   NetReleaseProtocol();
   
-  WriteLog("NetInitializeProtocol() called to start protocol "
-           "#%d\n" LogArg(index));
+  logger << "NetInitializeProtocol() called to start protocol #" << index <<
+      endl;
 
   TryAndReport(CoCreateInstance(CLSID_DirectPlay, 0, CLSCTX_ALL,
                                 IID_IDirectPlay4A, (void **)&dp));
   TryAndReport(dp->InitializeConnection(protocols[index].second.Get(), 0));
 	
-  WriteLog("NetInitializeProtocol() finished\n");
+  logger << "NetInitializeProtocol() finished" << endl;
 
   assert(NetProtocolInitialized());
 }
 
 void NetReleaseProtocol() throw() {
-  WriteLog("NetReleaseProtocol() was called, releasing protocol\n");
+  logger << "NetReleaseProtocol() was called, releasing protocol" << endl;
   
   if (NetProtocolInitialized()) {
     NetLeaveGame();
@@ -603,7 +602,7 @@ void NetReleaseProtocol() throw() {
     state = NOGAME;
   }
   
-  WriteLog("NetReleaseProtocol() finished, now leaving\n");
+  logger << "NetReleaseProtocol() finished, now leaving" << endl;
 
   assert(!NetInGame() && !NetProtocolInitialized());
 }
@@ -619,7 +618,7 @@ void NetCreateGame(unsigned int index, unsigned int sr,
     assert(NetProtocolInitialized());
     NetLeaveGame();
 
-    WriteLog("NetCreateGame called to join room %d\n" LogArg(index));
+    logger << "NetCreateGame called to join room " << index << endl;
 
     DPSESSIONDESC2 sd;
     memset((void *)&sd, 0, sizeof(sd));
@@ -638,22 +637,22 @@ void NetCreateGame(unsigned int index, unsigned int sr,
     sd.dwUser2 = sync_rate = sr;
     sync = 0;
 
-    WriteLog("Calling DirectPlay::Open\n");
+    logger << "Calling DirectPlay::Open" << endl;
     if(FAILED(TryAndReport(dp->Open(&sd, DPOPEN_CREATE)))) {
-      WriteLog("Failed to create game session; leaving NetCreateGame\n");
+      logger << "Failed to create game session; leaving NetCreateGame" << endl;
       throw NetCreateFailure();
     }
 
-    WriteLog("Calling Net module's CreatePlayer\n");
+    logger << "Calling Net module's CreatePlayer" << endl;
     CreatePlayer(player_model, player_name);
-    WriteLog("Finished creating session and player\n");
+    logger << "Finished creating session and player" << endl;
     state = HOSTING;
     feedback = fb.release();
     feedback->ClearEnemyArray();
 
     assert(NetInGame() && NetIsHost());
   } catch (CreatePlayerFailure& cpf) {
-    WriteLog("Failed to create player; leaving NetCreateGame\n");
+    logger << "Failed to create player; leaving NetCreateGame" << endl;
     dp->Close();
     throw NetCreateFailure();
   }
@@ -706,18 +705,18 @@ unsigned int NetJoinGame(unsigned int index, unsigned int player_model,
                                   DPENUMSESSIONS_AVAILABLE));
 
     if(JOINING != state) {
-      WriteLog("Enumeration did not change state\n");
+      logger << "Enumeration did not change state" << endl;
       throw NetJoinFailure();
     }
 
-    WriteLog("Trying to create our player\n");
+    logger << "Trying to create our player" << endl;
     CreatePlayer(player_model, player_name);
 
-    WriteLog("Clearing enemy data on local machine\n");
+    logger << "Clearing enemy data on local machine" << endl;
     feedback = fb.release();
     feedback->ClearEnemyArray();
 
-    WriteLog("Successfully Joined game\n");
+    logger << "Successfully Joined game" << endl;
     assert(NetInGame() && !NetIsHost());
     
     return index;
@@ -750,24 +749,24 @@ void NetLogic() throw(NetSessionLost, std::bad_alloc) {
     DWORD data_size = msg_buffer.Size();
     bool has_message;
 
-    WriteLog("Checking for Net message\n");
+    logger << "Checking for Net message" << endl;
       
     switch(dp->Receive(&from, &to, DPRECEIVE_ALL,
                        msg_buffer.Get(), &data_size)) {
     case DPERR_BUFFERTOOSMALL:
-      WriteLog("Reallocating %d bytes\n" LogArg(data_size));
+      logger << "Reallocating " << data_size << " bytes" << endl;
       msg_buffer.Reallocate(data_size);
       continue;
     case DP_OK:
-      WriteLog("Message found\n");
+      logger << "Message found" << endl;
       has_message = true;
       break;
     case DPERR_NOMESSAGES:
-      WriteLog("No more messages\n");
+      logger << "No more messages" << endl;
       has_message = false;
       break;
     default:
-      WriteLog("Severe error\n");
+      logger << "Severe error" << endl;
       NetLeaveGame();
       throw NetSessionLost();
     }
@@ -784,7 +783,7 @@ void NetLogic() throw(NetSessionLost, std::bad_alloc) {
     try {
       switch (data_size) {
       case MSGSIZE_PICKUPPOWERUP:
-        WriteLog("Power up was picked up...\n");
+        logger << "Power up was picked up..." << endl;
         feedback->PickUpPowerUp(*(WORD *)msg_buffer.Get());
         break;
       case MSGSIZE_SYNC: {
@@ -795,7 +794,7 @@ void NetLogic() throw(NetSessionLost, std::bad_alloc) {
         unsigned int weapon = (d >> 27) & 3;
         unsigned int direction = (d >> 24) & 7;
 
-        WriteLog("Got a sync message; processing...\n");
+        logger << "Got a sync message; processing..." << endl;
 
         feedback->SetEnemyPosition(player, x, y);
         feedback->SetEnemyWeapon(player, weapon);
@@ -804,23 +803,23 @@ void NetLogic() throw(NetSessionLost, std::bad_alloc) {
         remotes[player].firing = bool(d & 0x40000000);
         remotes[player].walking = bool(d & 0x20000000);
 
-        WriteLog("Finished processing message: sync message\n");
+        logger << "Finished processing message: sync message" << endl;
         break;
       }
       case MSGSIZE_DIED: {
         unsigned int player = FindPlayerIndex(from);
-        WriteLog("We got a death msg, someone died, processing...\n");
+        logger << "We got a death msg, someone died, processing..." << endl;
         feedback->KillEnemy(player, (WORD *)msg_buffer.Get());
         break;
       }
       case MSGSIZE_FIREBAZOOKA: {
         unsigned int player = FindPlayerIndex(from);
         BYTE *as_bytes = (BYTE *)msg_buffer.Get();
-        WriteLog("Got a bazooka fired message; processing\n");
+        logger << "Got a bazooka fired message; processing" << endl;
         DWORD x = ((as_bytes[1] >> 4) & 0x0f) | ((DWORD)as_bytes[2] << 4);
         DWORD y = (DWORD)as_bytes[0] | ((DWORD)(as_bytes[1] & 0x0f) << 8);
         feedback->EnemyFiresBazooka(player, x, y);
-        WriteLog("Finished processing message: bazooka fire message\n");
+        logger << "Finished processing message: bazooka fire message" << endl;
         break;
       }
       case 1: {
@@ -831,33 +830,33 @@ void NetLogic() throw(NetSessionLost, std::bad_alloc) {
       
         switch (type) {
         case MSGTYPE_CHANGEWEATHER:
-          WriteLog("Weather state was changed...\n");
+          logger << "Weather state was changed..." << endl;
           feedback->SetWeatherState(data);
           break;
         case MSGTYPE_CHANGEWEAPON: 
-          WriteLog("Weapon change message; processing\n");
+          logger << "Weapon change message; processing" << endl;
           feedback->SetEnemyWeapon(player, data);
           break;
         case MSGTYPE_FIREPISTOL: 
-          WriteLog("Pistol fire message\n");
+          logger << "Pistol fire message" << endl;
           feedback->SetEnemyDirection(player, data);
           feedback->EnemyFiresPistol(player);
           break;
         case MSGTYPE_ADMITHIT: 
-          WriteLog("Admit hit message\n");
+          logger << "Admit hit message" << endl;
           feedback->HurtEnemy(player);
           break;
         case MSGTYPE_STARTFIRINGMACHINEGUN: 
-          WriteLog("Start firing machine gun message\n");
+          logger << "Start firing machine gun message" << endl;
           remotes[player].firing = true;
           feedback->SetEnemyDirection(player, data);
           break;
         case MSGTYPE_STOPFIRINGMACHINEGUN:
-          WriteLog("Stop firing machine gun message\n");
+          logger << "Stop firing machine gun message" << endl;
           remotes[player].firing = false;
           break;
         case MSGTYPE_HIT:
-          WriteLog("[I] Hit [you] message\n");
+          logger << "[I] Hit [you] message" << endl;
           feedback->HurtHero(data);
           break;
         case MSGTYPE_STARTMOVING:
@@ -868,16 +867,16 @@ void NetLogic() throw(NetSessionLost, std::bad_alloc) {
           remotes[player].walking = false;
           break;
         default:
-          WriteLog("UNKNOWN 1-BYTE MESSAGE OF TYPE %d\n" LogArg(type));
+          logger << "UNKNOWN 1-BYTE MESSAGE OF TYPE " << type << endl;
         }
       
         break;
       }
       default:
-        WriteLog("UNKNOWN MESSAGE OF SIZE %d\n" LogArg(data_size));
+        logger << "UNKNOWN MESSAGE OF SIZE " << data_size << endl;
       }
     } catch (PlayerNotFoundException& pnfe) {
-      WriteLog("A message was sent by an absent player\n");
+      logger << "A message was sent by an absent player" << endl;
       // ignoring this message
     }
   }

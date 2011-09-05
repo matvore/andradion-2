@@ -22,6 +22,7 @@ limitations under the License.
 using std::vector;
 using std::min;
 using std::max;
+using std::endl;
 using std::exit;
 using std::auto_ptr;
 using std::set;
@@ -363,7 +364,7 @@ void GfxUninit() {
   DestroySurfaces();
 
   if (dd) {
-    WriteLog("Closing gfx\n");
+    logger << "Closing gfx" << endl;
 
     dd->RestoreDisplayMode();
     dd->Release(), dd = 0;
@@ -376,7 +377,7 @@ void GfxUninit() {
     gdi_palette = 0;
   }
 
-  WriteLog("Gfx closed\n");
+  logger << "Gfx closed" << endl;
 }
 
 HRESULT GfxFlip() {return front_buffer->Flip(0, DDFLIP_WAIT);}
@@ -692,7 +693,7 @@ void SurfaceFiller::FillSurface(IDirectDrawSurface *surf) throw() {
 
 void SurfaceFiller::FillSurface(BYTE *desc, int pitch,
                                 int width, int height) throw() {
-  WriteLog("Call to unimplemented FillSurface()\n");
+  logger << "Call to unimplemented FillSurface()" << endl;
   exit(1);
 }
 
@@ -732,26 +733,26 @@ void BitmapLoadingSurfaceFiller::FillSurface(IDirectDrawSurface *surf)
 
 surf_t GfxCreateSurface(int width, int height,
                         std::auto_ptr<SurfaceFiller> filler) {
-  WriteLog("GfxCreateSurface of size %dx%d\n" LogArg(width) LogArg(height));
+  logger << "GfxCreateSurface of size " << width << "x" << height << endl;
 
   for (surface_db::iterator sitr = refs.begin();
        sitr != refs.end(); sitr++) {
     if (!sitr->InUse()) {
       sitr->Use(width, height, filler);
-      WriteLog("Reusing old handle for surface\n");
+      logger << "Reusing old handle for surface" << endl;
       return sitr - refs.begin();
     }
   }
 
   refs.push_back(surface_info(width, height, filler));
 
-  WriteLog("New handle for surface\n");
+  logger << "New handle for surface" << endl;
 
   return refs.size() - 1;
 }
 
 auto_ptr<SurfaceFiller> GfxDestroySurface(surf_t surf) {
-  WriteLog("Dest surf %d\n" LogArg(surf));
+  logger << "Destroy surf " << surf << endl;
 
   assert(refs[surf].InUse());
 

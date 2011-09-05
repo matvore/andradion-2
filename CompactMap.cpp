@@ -20,6 +20,8 @@ limitations under the License.
 #include "Graphics.h"
 #include "Logger.h"
 
+#include <iostream>
+
 using std::pair;
 using std::min;
 using std::max;
@@ -27,6 +29,7 @@ using std::string;
 using std::bad_alloc;
 using std::vector;
 using std::auto_ptr;
+using std::endl;
 
 class CmpFiller : public SurfaceFiller {
   CCompactMap *parent;
@@ -202,11 +205,11 @@ CCompactMap::LoadMapSet(const char *res_name, const char *type,
 }
 
 CCompactMap::CCompactMap(BYTE **source) {
-  WriteLog("Cons cmp\n"); 
+  logger << "Cons cmp" << endl;
 
   datafile f(*source);
 
-  WriteLog("get number of block colors\n");
+  logger << "get number of block colors" << endl;
   blocks.resize(f.getByte());
   block_areas.resize(blocks.size());
 
@@ -261,7 +264,7 @@ CCompactMap::CCompactMap(BYTE **source) {
     }
   }
 
-  WriteLog("get number of left over rows\n");
+  logger << "get number of left over rows" << endl;
   left_over.resize(f.getUsuallyByte());
 
   VCTR_ROW::iterator ritr;
@@ -294,7 +297,7 @@ CCompactMap::CCompactMap(BYTE **source) {
     }
   }
 
-  WriteLog("Loaded cmp\n");
+  logger << "Loaded cmp" << endl;
 
   *source = f.res_ptr;
 }
