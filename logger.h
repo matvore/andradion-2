@@ -33,8 +33,14 @@ template <class T> inline T TryAndReportB(T hr, const char *op) {
 #else
 
 class IgnoredLog {
+public:
   template <class T>
-  inline IgnoredLog& operator <<(T value) {
+  inline IgnoredLog& operator <<(const T& value) {
+    // Do nothing
+    return *this;
+  }
+
+  inline IgnoredLog& operator <<(std::ostream& (*func)(std::ostream&)) {
     // Do nothing
     return *this;
   }

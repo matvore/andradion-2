@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 #include "StdAfx.h"
+#include "logger.h"
 
 #if defined(_DEBUG)
 std::ofstream logger("andradion2log.txt");
