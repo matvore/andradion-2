@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "StdAfx.h"
 #include "Buffer.h"
+#include "GfxLock.h"
 #include "Graphics.h"
 #include "logger.h"
 
@@ -149,61 +150,6 @@ public:
 
 typedef vector<surface_info> surface_db;
 static surface_db refs;
-
-GfxLock GfxLock::NewLock(IDirectDrawSurface *surf, int *count,
-                         GfxLock **shared) {
-  assert(surf);
-
-  if (!*count) {
-    DDSURFACEDESC desc;
-    memset(&desc, 0, sizeof(desc));
-    desc.dwSize = sizeof(desc);
-    if (SUCCEEDED(surf->Lock(0, &desc, DDLOCK_WAIT, 0))) {
-      *shared = new GfxLock((BYTE *)desc.lpSurface, desc.lPitch,
-                            surf == front_buffer);
-    } else {
-      *shared = new GfxLock(new BYTE[mode_width], 0, surf == front_buffer);
-    }
-    (*count)++;
-  }
-
-  return **shared;
-}
-
-void GfxLock::Unlock(IDirectDrawSurface *surf, int *count,
-                     GfxLock **shared) {
-  if (1 == --(*count)) {
-    if (pitch) {
-      surf->Unlock(surf);
-    } else {
-      delete surf;
-    }
-
-    delete *shared;
-    *shared = 0;
-  }
-}
-
-int GfxLock::front_locks = 0;
-int GfxLock::back_locks = 0;
-GfxLock *GfxLock::front = 0;
-GfxLock *GfxLock::back = 0;
-
-GfxLock GfxLock::Front() {
-  return NewLock(front_buffer, &front_locks, &front);
-}
-
-GfxLock GfxLock::Back() {
-  return NewLock(back_buffer, &back_locks, &back);
-}
-
-GfxLock::~GfxLock() {
-  if (is_front) {
-    Unlock(front_buffer, &front_locks, &front);
-  } else {
-    Unlock(back_buffer, &back_locks, &back);
-  }
-}
 
 static HRESULT WINAPI EnumSurfacesCallback(IDirectDrawSurface *lpDDSurface,
                                            DDSURFACEDESC *, void *bb) {
@@ -853,4 +799,52 @@ void GfxDetachScalingClipper() {
   assert(back_buffer);
 
   back_buffer->SetClipper(0);
+}
+
+class GfxLockImpl : public GfxLock {
+  IDirectDrawSurface *surface;
+
+public:
+  GfxLockImpl(BYTE *surf, int pitch, IDirectDrawSurface *surface)
+      : GfxLock(surf, pitch), surface(surface) {
+    // Do nothing.
+  }
+
+  virtual ~GfxLockImpl() {
+    surface->Unlock(surf);
+  }
+};
+
+class DummyGfxLock : public GfxLock {
+public:
+  DummyGfxLock(BYTE *surf, int pitch) : GfxLock(surf, pitch) {
+    // Do nothing.
+  }
+
+  virtual ~DummyGfxLock() {
+    delete [] surf;
+  }
+};
+
+static auto_ptr<GfxLock> NewLock(IDirectDrawSurface *surface) {
+  DDSURFACEDESC desc;
+  memset(&desc, 0, sizeof(desc));
+  desc.dwSize = sizeof(desc);
+  if (SUCCEEDED(surface->Lock(0, &desc, DDLOCK_WAIT, 0))) {
+    return auto_ptr<GfxLock>(new GfxLockImpl(
+        (BYTE *)desc.lpSurface, desc.lPitch, surface));
+  } else {
+    logger << "failed to lock surface" << endl;
+    return auto_ptr<GfxLock>(new DummyGfxLock(new BYTE[mode_width], 0));
+  }
+}
+
+auto_ptr<GfxLock> GfxFrontBufferLock() {
+  assert(front_buffer);
+  return NewLock(front_buffer);
+}
+
+auto_ptr<GfxLock> GfxBackBufferLock() {
+  assert(back_buffer);
+  return NewLock(back_buffer);
 }

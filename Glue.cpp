@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "StdAfx.h"
 #include "Buffer.h"
+#include "GfxLock.h"
 #include "Graphics.h"
 #include "CompactMap.h"
 #include "Fixed.h"
@@ -340,7 +341,7 @@ static void ResetSinglePlayerScore(int possible_score);
 static void CalculateScorePrintX();
 
 // draws text that shows score and timer and message to screen
-static void WriteInfo();
+static void WriteInfo(GfxLock& lock);
 
 static void WriteChar(BYTE *surface, int pitch,
                       int c, int color, int back_color);
@@ -614,7 +615,8 @@ public:
 
   virtual void WalkEnemy(unsigned int index) throw() {
     enemies[index].Walk(false);
-    enemies[index].TryToMove();
+    assert(!"Not implemented.");
+    //enemies[index].TryToMove();
   }
 
   virtual void KillEnemy(unsigned int index, WORD *ammo) throw() {
@@ -1305,14 +1307,14 @@ static void Introduction() {
     int x = rand()%(MODEWIDTH-TRANSITIONSQUARESIZE);
     int y0 = rand()%(MODEHEIGHT-TRANSITIONSQUARESIZE);
     int y1 = y0 + TRANSITIONSQUARESIZE;
-    GfxLock lock(GfxLock::Front());
+    auto_ptr<GfxLock> lock = GfxFrontBufferLock();
 
-    BYTE *write_to = lock(x, y0);
+    BYTE *write_to = (*lock)(x, y0);
 
     for (int yn = y0; yn < y1; yn++) {
       memset(write_to, GfxGetPaletteEntry(RGB(c, c, c)),
              TRANSITIONSQUARESIZE);
-      write_to += lock.Pitch();
+      write_to += lock->Pitch();
     }
 
     while(timer.SecondsPassed32() < TRANSITIONSECSPERSQUARE);
@@ -2379,11 +2381,11 @@ static void LoadCmps(int level_width, int level_height,
 
 
 
-void GluFilterMovement(const POINT *start, POINT *end) {
-  // this method is public because the CFire class needs to use it
-  //  the plans parameter is passed as a non-const reference because
-  //  we will change the second part of the pair to tell the mover where
-  //  they can go which is closest to where they wanted to go
+void GluFilterMovement(const POINT *start, POINT *end, GfxLock& lock) {
+  // this method is public because the CFire and CCharacter classes need to use
+  // it. The 'end' parameter is passed as a non-const reference because
+  // we will change it to tell the mover where they can go which is closest to
+  // where they wanted to go
 
   // first check to make sure they are on the screen, and that we have 
   //  the back buffer successfully locked
@@ -2413,8 +2415,6 @@ void GluFilterMovement(const POINT *start, POINT *end) {
 
   int gen_change, inc;
   LONG *axis, axis_inc;
-	
-  GfxLock lock(GfxLock::Back());
 
   if(x_change) {
     if(y_change) {
@@ -3022,11 +3022,11 @@ static void Game() {
 
         // put the text down
         {
-          GfxLock lock(GfxLock::Back());
+          auto_ptr<GfxLock> lock = GfxBackBufferLock();
           WriteString
-            (lock((GAME_MODEWIDTH-(FONTWIDTH+1)*paused.length())/2,
-                  (GAME_MODEHEIGHT-FONTHEIGHT)/2),
-             lock.Pitch(), paused.c_str(),
+            ((*lock)((GAME_MODEWIDTH-(FONTWIDTH+1)*paused.length())/2,
+                     (GAME_MODEHEIGHT-FONTHEIGHT)/2),
+             lock->Pitch(), paused.c_str(),
              msg_and_score_color, msg_and_score_color);
         }
 
@@ -3179,13 +3179,13 @@ static void Game() {
     // create a drawing order for this frame
     multiset<TCharacterPointer> drawing_order;
 
-    auto_ptr<GfxLock> lock(new GfxLock(GfxLock::Back()));
+    auto_ptr<GfxLock> lock(GfxBackBufferLock());
 
     // allow the hero to try moving
     //  with respect to black lines
     // allow hero to do logic
     BeginProfile(Hero_Logic);
-    hero.Logic();
+    hero.Logic(*lock);
     drawing_order.insert(TCharacterPointer(&hero));
     EndProfile();
 
@@ -3206,7 +3206,7 @@ static void Game() {
           set<int> *const vctr = &sectors[r * sector_width + c].enemies;
 	    
           for(iterate = vctr->begin(); iterate != vctr->end(); iterate++) {
-            if (enemies[*iterate].Logic(hero)) {
+            if (enemies[*iterate].Logic(*lock, hero)) {
               drawing_order.insert(TCharacterPointer(&enemies[*iterate]));
             }
           }
@@ -3218,9 +3218,9 @@ static void Game() {
 
     // now we can logic with the projectiles
     for(i = 0; i < MAX_FIRES; i++) {
-      fires[i].Logic();
+      fires[i].Logic(*lock);
     }
-	
+
     lock.reset();
 	
     // note that we picked a definite coordinate for the center of the
@@ -3309,19 +3309,21 @@ static void Game() {
         }
 
         // keep back buffer locked for WriteInfo and WtrOneFrame
-        GfxLock weatherAndMsgLock(GfxLock::Back());
+        auto_ptr<GfxLock> weatherAndMsgLock(GfxBackBufferLock());
 
         BeginProfile(Weather_One_Frame);
-        PlayMusicAccordingly(WtrOneFrame(GLUcenter_screen_x,
-                                         GLUcenter_screen_y));
-        WriteInfo();
+        PlayMusicAccordingly(
+            WtrOneFrame(
+                GLUcenter_screen_x, GLUcenter_screen_y, *weatherAndMsgLock));
+        WriteInfo(*weatherAndMsgLock);
         EndProfile();
       } else {
         BeginProfile(Weather_One_Frame);
         PlayMusicAccordingly(WtrOneFrame());
         EndProfile();
 
-        WriteInfo();
+        auto_ptr<GfxLock> msgLock(GfxBackBufferLock());
+        WriteInfo(*msgLock);
       }
 
     if ((!NetInGame() || NetIsHost())
@@ -3415,10 +3417,8 @@ void GluFindTextColors() {
   score_flash_color_2 = GfxGetPaletteEntry(RGB(0xff, 0xff, 0));
 }
 
-static void WriteInfo() {
+static void WriteInfo(GfxLock& lock) {
   BeginProfile(Draw_Extra_Stats_N_Msgs);
-
-  GfxLock lock(GfxLock::Back());
 
   if(score_print_x > 0) {
     // write score's shadow

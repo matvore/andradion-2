@@ -23,6 +23,7 @@ limitations under the License.
 #include "Fixed.h"
 #include "Logger.h"
 #include "Weather.h"
+#include "GfxLock.h"
 #include "Graphics.h"
 
 using std::endl;
@@ -145,7 +146,7 @@ const int   LT_CHANCETOSTRIKE = 3;
 static bool MusicAudible();
 
 static void OneRainFrame(bool heavy_rain,
-                         FIXEDNUM screen_x, FIXEDNUM screen_y);
+                         FIXEDNUM screen_x, FIXEDNUM screen_y, GfxLock& lock);
 
 static void OneThunderFrame(bool lightning);
 
@@ -251,7 +252,7 @@ int WtrOneFrame() {
   }
 }
 
-int WtrOneFrame(FIXEDNUM screen_x, FIXEDNUM screen_y) {
+int WtrOneFrame(FIXEDNUM screen_x, FIXEDNUM screen_y, GfxLock& lock) {
   int music_op = WTROF_NOCHANGE;
 
   assert(current_state < NUM_WEATHERSTATES);
@@ -276,9 +277,9 @@ int WtrOneFrame(FIXEDNUM screen_x, FIXEDNUM screen_y) {
   }
   
   if(WSF_LIGHTRAIN & f) {	
-    OneRainFrame(false, screen_x, screen_y);
+    OneRainFrame(false, screen_x, screen_y, lock);
   } else if(WSF_HEAVYRAIN & f) {
-    OneRainFrame(true, screen_x, screen_y);
+    OneRainFrame(true, screen_x, screen_y, lock);
   }
 
   assert(current_state < NUM_WEATHERSTATES);
@@ -345,11 +346,10 @@ static bool MusicAudible() {
     || HEROROOMSTATE_INSIDE == hero_room_state;
 }
 
-static void OneRainFrame(bool heavy_rain,
-                         FIXEDNUM screen_x, FIXEDNUM screen_y) {
+static void OneRainFrame(
+    bool heavy_rain, FIXEDNUM screen_x, FIXEDNUM screen_y, GfxLock& lock) {
   static DWORD frame_count = 0;
   int frame_index = ++frame_count / RAIN_FRAMELENGTH;
-  GfxLock lock(GfxLock::Back());
   
   assert(current_state < NUM_WEATHERSTATES);
 

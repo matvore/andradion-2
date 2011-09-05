@@ -248,6 +248,7 @@ limitations under the License.
 
 class CPowerUp;
 class IDirectDrawClipper;
+class GfxLock;
 
 /**
  * This function returns true if CGlue has been
@@ -323,7 +324,7 @@ void GluGetRandomStartingSpot(POINT&);
 // plans unaltered otherwise, the function will make it so the
 // character stops walking right before the wall by "filtering"
 // plans.second to a valid destination 
-void GluFilterMovement(const POINT *start, POINT *end);
+void GluFilterMovement(const POINT *start, POINT *end, GfxLock& lock);
 
 void GluRestoreSurfaces();
 void GluCharPress(char c);

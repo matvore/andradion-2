@@ -109,40 +109,9 @@ void GfxSetPalette(PALETTEENTRY *pal, int entry_count,
 HPALETTE GfxGDIPalette();
 void GfxFlipToGDISurface();
 
-class GfxLock {
-  int pitch;
-  BYTE *surf;
-  bool is_front;
-
-  GfxLock(BYTE *surf, int pitch, bool is_front)
-    : surf(surf), pitch(pitch), is_front(is_front) {}
-
-  static int front_locks, back_locks;
-  static GfxLock *front, *back;
-  static GfxLock NewLock(IDirectDrawSurface *surf, int *count,
-                         GfxLock **shared);
-  void Unlock(IDirectDrawSurface *surf, int *count,
-              GfxLock **shared);
-  
-public:
-  GfxLock(const GfxLock& x)
-    : surf(x.surf), pitch(x.pitch), is_front(x.is_front) {
-    if (is_front) {
-      front_locks++;
-    } else {
-      back_locks++;
-    }
-  }
-
-  static GfxLock Front();
-  static GfxLock Back();
-
-  ~GfxLock();
-
-  int Pitch() {return pitch;}
-  BYTE *operator()() {return surf;}
-  BYTE *operator()(int x, int y) {return surf + y * pitch + x;}
-};
+class GfxLock;
+std::auto_ptr<GfxLock> GfxFrontBufferLock();
+std::auto_ptr<GfxLock> GfxBackBufferLock();
 
 template<class PI, class COLOR, class PATTERN>
 void GfxLine(BYTE *surf, int pitch, int dx, int dy, 

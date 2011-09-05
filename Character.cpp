@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "StdAfx.h"
 #include "Fixed.h"
+#include "GfxLock.h"
 #include "Logger.h"
 #include "GammaEffects.h"
 #include "Net.h"
@@ -168,7 +169,7 @@ void CCharacter::PlaySound()
   GluPlaySound(wav,x_dist,y_dist);
 }
 
-bool CCharacter::Logic(const CCharacter& target)
+bool CCharacter::Logic(GfxLock& lock, const CCharacter& target)
 {
   // xd and yd are the distance in each dimension from the target
   FIXEDNUM xd = abs(GLUcenter_screen_x - (coor.first.x));
@@ -241,7 +242,7 @@ bool CCharacter::Logic(const CCharacter& target)
       pair<POINT,POINT> hypothetical = coor;
       coor.second.y += yd;
 
-      TryToMove();
+      TryToMove(lock);
 
       // get closer to the target
       if(abs(xd) > abs(yd) && abs(coor.first.y + yd - coor.second.y) <= MIN_ALIGNMENT) {
@@ -279,7 +280,7 @@ bool CCharacter::Logic(const CCharacter& target)
       }
     }
 
-    TryToMove();
+    TryToMove(lock);
   } else if(CHARSTATE_FIRING == state) {
     if(++frames_in_this_state > FRAMESTOFIRE) {
       state = CHARSTATE_WALKING;
@@ -295,7 +296,7 @@ bool CCharacter::Logic(const CCharacter& target)
   return true;
 }
 
-void CCharacter::Logic() {
+void CCharacter::Logic(GfxLock& lock) {
   static bool firing_last_frame = false;
   
   frames_since_last_fire++;
@@ -411,7 +412,7 @@ void CCharacter::Logic() {
           direction = old_direction;
       }
       
-      TryToMove();
+      TryToMove(lock);
     }
   } else {
     walked = false;
@@ -765,7 +766,7 @@ bool CCharacter::IsOffScreen() const {
     > Fixed((GAME_PORTHEIGHT + TILE_HEIGHT)/2);
 }
 
-void CCharacter::TryToMove() {
+void CCharacter::TryToMove(GfxLock& lock) {
   pair<POINT, POINT> l = coor; 
 
   if(l.first.x != l.second.x) {
@@ -775,13 +776,13 @@ void CCharacter::TryToMove() {
       // first move horizontally, and then move vertically
       coor.second.y = coor.first.y;
 
-      TryToMove();
+      TryToMove(lock);
 
       coor.first = coor.second;
 
       coor.second.y = l.second.y;
 
-      TryToMove();
+      TryToMove(lock);
 
       coor.first = l.first;
     } else {
@@ -799,8 +800,8 @@ void CCharacter::TryToMove() {
         b.first.x = a.first.x;
         b.second.x = a.second.x;
 				
-        GluFilterMovement(&a.first, &a.second);
-        GluFilterMovement(&b.first, &b.second);
+        GluFilterMovement(&a.first, &a.second, lock);
+        GluFilterMovement(&b.first, &b.second, lock);
 
         coor.second.x = min(a.second.x, b.second.x)
           - Fixed(TILE_WIDTH/4);
@@ -820,8 +821,8 @@ void CCharacter::TryToMove() {
         b.first.x = a.first.x;
         b.second.x = a.second.x;
 				
-        GluFilterMovement(&a.first, &a.second);
-        GluFilterMovement(&b.first, &b.second);
+        GluFilterMovement(&a.first, &a.second, lock);
+        GluFilterMovement(&b.first, &b.second, lock);
 
         coor.second.x = max(a.second.x, b.second.x)
           + Fixed(TILE_WIDTH/4);
@@ -836,8 +837,8 @@ void CCharacter::TryToMove() {
       b.first.x = b.second.x = l.first.x - Fixed(TILE_WIDTH/4);
       a.first.y = b.first.y = l.first.y;
       a.second.y = b.second.y = l.second.y ;
-      GluFilterMovement(&a.first, &a.second);
-      GluFilterMovement(&b.first, &b.second);
+      GluFilterMovement(&a.first, &a.second, lock);
+      GluFilterMovement(&b.first, &b.second, lock);
       coor.second.y = min(a.second.y, b.second.y);
     } else {
       // moving up
@@ -846,8 +847,8 @@ void CCharacter::TryToMove() {
       b.first.x = b.second.x = l.first.x - Fixed(TILE_WIDTH/4);
       a.first.y = b.first.y = l.first.y - Fixed(TILE_HEIGHT/2);
       a.second.y = b.second.y = l.second.y - Fixed(TILE_HEIGHT/2);
-      GluFilterMovement(&a.first, &a.second);
-      GluFilterMovement(&b.first, &b.second);
+      GluFilterMovement(&a.first, &a.second, lock);
+      GluFilterMovement(&b.first, &b.second, lock);
       coor.second.y = max(a.second.y, b.second.y)
         + Fixed(TILE_HEIGHT/2);
     }

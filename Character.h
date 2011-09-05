@@ -15,6 +15,7 @@ limitations under the License.
 */
 
 class CCharacter;
+class GfxLock;
 
 struct TCharacterPointer {
   TCharacterPointer(CCharacter *p) : ch(p) {}
@@ -41,9 +42,9 @@ class CCharacter {
    *  wants to kill.
    * @return true iff the enemy is not off the side of the screen.
    */
-  bool Logic(const CCharacter& target);
+  bool Logic(GfxLock& lock, const CCharacter& target);
 	
-  void Logic();
+  void Logic(GfxLock& lock);
   
   // used for locals (enemies or hero):
   void Setup(FIXEDNUM x, FIXEDNUM y, int model_, bool doing_mp);
@@ -99,7 +100,7 @@ class CCharacter {
     frames_in_this_state = 0;
   }
   
-  void TryToMove();
+  void TryToMove(GfxLock& lock);
   
  private:
   /** Resets ammo to original count (some pistol ammo, no

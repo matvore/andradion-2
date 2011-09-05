@@ -32,7 +32,7 @@ class CFire {
   void Setup(FIXEDNUM sx_, FIXEDNUM sy_,
              FIXEDNUM tx_, FIXEDNUM ty_);
   
-  void Logic();
+  void Logic(GfxLock& lock);
   void Draw();
   static void PickBestBulletTrailColor();
 

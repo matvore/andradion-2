@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "StdAfx.h"
 #include "Fixed.h"
+#include "GfxLock.h"
 #include "Glue.h"
 #include "Net.h"
 #include "Character.h"
@@ -27,6 +28,7 @@ using std::max;
 using std::min;
 using std::vector;
 using std::abs;
+using std::auto_ptr;
 
 // constants used in this module
 const BYTE BULLETTRAIL_R = 255;
@@ -94,7 +96,7 @@ void CFire::Setup(FIXEDNUM sx_, FIXEDNUM sy_, int direction_,
   frames_since_explosion_started = 0;
 }
 
-void CFire::Logic() {
+void CFire::Logic(GfxLock& lock) {
   if(FIRESTATE_INACTIVE == state) {
     return;
   }
@@ -175,7 +177,7 @@ void CFire::Logic() {
       x = hypothetical.second.x;
       y = hypothetical.second.y;
 
-      GluFilterMovement(&hypothetical.first, &hypothetical.second);
+      GluFilterMovement(&hypothetical.first, &hypothetical.second, lock);
 
       if(y != hypothetical.second.y) {
 
@@ -203,7 +205,7 @@ void CFire::Logic() {
             hypothetical.second.x = x;
             hypothetical.first.y = hypothetical.second.y;
 	
-            GluFilterMovement(&hypothetical.first, &hypothetical.second);
+            GluFilterMovement(&hypothetical.first, &hypothetical.second, lock);
             if(x != hypothetical.second.x) {
                 horizontal_collision_flags |= HORIZONTALCOLLISION_LOWER;
                 if(HORIZONTALCOLLISION_UPPER
@@ -344,10 +346,10 @@ void CFire::Draw() {
     + swayy;
 
   if(GfxClipLine(x0, y0, x1, y1)) {
-    GfxLock lock(GfxLock::Back());
+    auto_ptr<GfxLock> lock = GfxBackBufferLock();
 
     GfxLine<bullet_trail_line_pattern, bullet_trail_line_color>
-      (lock(x0, y0), lock.Pitch(), x1 - x0, y1 - y0,
+      ((*lock)(x0, y0), lock->Pitch(), x1 - x0, y1 - y0,
        bullet_trail_line_color(),
        bullet_trail_line_pattern(max(abs(x1 - x0), abs(y1 - y0))));
   }
