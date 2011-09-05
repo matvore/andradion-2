@@ -29,6 +29,7 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -562,12 +563,18 @@ public class CompacterMapper {
     // Write to file
     BinaryOutputStream out = BinaryOutputStream.of(output);
 
+    // Calculate number of block colors with at least one block,
+    // then write that count to the stream.
+    for (Iterator<List<Rectangle>> blockColors =
+         colorBlocks.values().iterator(); blockColors.hasNext(); ) {
+      if (blockColors.next().isEmpty()) {
+        blockColors.remove();
+      }
+    }
+    out.putByte(colorBlocks.size());
+
     for (Map.Entry<Byte, List<Rectangle>> blockColors :
         colorBlocks.entrySet()) {
-      if (blockColors.getValue().isEmpty()) {
-        continue;
-      }
-
       // print the color
       out.putByte(blockColors.getKey().intValue());
 

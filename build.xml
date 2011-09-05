@@ -175,7 +175,7 @@ limitations under the License.
                           minimumColorBlockArea="16"
                           minimumPatternArea="16"
                           sectorWidth="160"
-                          sectorHeight="120">
+                          sectorHeight="100">
         <patternSize width="4" height="4" />
       </runCompacterMapper>
       <runCompacterMapper input="levels/@{levelId}u.png"
@@ -184,7 +184,7 @@ limitations under the License.
                           minimumColorBlockArea="16"
                           minimumPatternArea="16"
                           sectorWidth="160"
-                          sectorHeight="120">
+                          sectorHeight="100">
         <patternSize width="4" height="4" />
       </runCompacterMapper>
     </sequential>
