@@ -26,6 +26,5 @@ template<class c> inline c FixedCnvFrom(const FIXEDNUM& x) {
   return c(x) / c(65536);
 }
 
-FIXEDNUM FixedDiv(FIXEDNUM x, FIXEDNUM y);
 FIXEDNUM FixedMul(FIXEDNUM x, FIXEDNUM y);
 

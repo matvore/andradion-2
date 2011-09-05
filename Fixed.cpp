@@ -17,22 +17,9 @@ limitations under the License.
 #include "StdAfx.h"
 #include "Fixed.h"
 
-FIXEDNUM FixedDiv(FIXEDNUM x,FIXEDNUM y) {
-  long long lowerPart, higherPart, full;
-
-  lowerPart = (long long)(x << 16) & (long long)0xffff0000;
-  higherPart = ((long long)(x) << 32) & (long long)0xffff000000000000;
-  full = lowerPart | higherPart;
-
-  full /= y;
-
-  return (FIXEDNUM)(full >> 16);
-}
-
 FIXEDNUM FixedMul(FIXEDNUM x,FIXEDNUM y) {
-  FIXEDNUM r;
   long long longLong = x;
-  x *= y;
-  x >>= 16;
-  return (FIXEDNUM)x;
+  longLong *= y;
+  longLong >>= 16;
+  return (FIXEDNUM)longLong;
 }

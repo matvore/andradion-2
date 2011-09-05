@@ -39,7 +39,7 @@ using std::swap;
 //  will run in the direction opposite of the unpressed button
 
 const FIXEDNUM HEALTHBONUSPERPACK[] = {Fixed(0.4),Fixed(0.25),Fixed(0.20)};
-const FIXEDNUM AMMOCAPACITY[] = {Fixed(130),Fixed(500),Fixed(6)};
+const int AMMOCAPACITY[] = {130, 500, 6};
 const FIXEDNUM AMMOSTARTING[] = {Fixed(25 ),Fixed( 0 ),Fixed(0)};
 const FIXEDNUM MIN_SAFEDISTANCESQUARED = Fixed(150*150);
 const FIXEDNUM MIN_ALIGNMENT = Fixed(3); // how close an alien should be before it starts firing
@@ -689,8 +689,8 @@ void CCharacter::TryToFire()
     return;
   }
 
-  FIXEDNUM bullets = FixedMul(ammo[current_weapon],
-                              AMMOCAPACITY[current_weapon]);
+  FIXEDNUM bullets = ammo[current_weapon] * AMMOCAPACITY[current_weapon];
+
   if(we_are_hero && bullets < Fixed(0.5)) {
     // oh, out of ammo, nevermind
     return;
@@ -699,7 +699,7 @@ void CCharacter::TryToFire()
   bullets -= Fixed(1);
 
   // convert bullets back into percentage
-  bullets = FixedDiv(bullets,AMMOCAPACITY[current_weapon]);
+  bullets /= AMMOCAPACITY[current_weapon];
 
   if (bullets < 0) {
     bullets = 0;
@@ -748,9 +748,9 @@ void CCharacter::PowerUpCollisions() {
         health = min(Fixed(1),
                      health + HEALTHBONUSPERPACK[GLUdifficulty]);
       } else {
-        ammo[type] = min(Fixed(1), ammo[type]
-                         + FixedDiv(AMMOPERPACK[GLUdifficulty][type],
-                                    AMMOCAPACITY[type]));
+        ammo[type] = min(
+            Fixed(1), ammo[type] +
+            AMMOPERPACK[GLUdifficulty][type] / AMMOCAPACITY[type]);
         GamDoEffect(GETYPE_AMMO, health);
       }
       
@@ -857,7 +857,7 @@ void CCharacter::TryToMove(GfxLock& lock) {
 
 void CCharacter::ResetAmmo() {
   for(int i = 0; i < NUM_WEAPONS; i++) {
-    ammo[i] = FixedDiv(AMMOSTARTING[i], AMMOCAPACITY[i]);
+    ammo[i] = AMMOSTARTING[i] / AMMOCAPACITY[i];
   }
 }
 
