@@ -24,7 +24,9 @@ extern std::ofstream logger;
 #define TryAndReport(op) TryAndReportB(op, #op)
 
 template <class T> inline T TryAndReportB(T hr, const char *op) {
+  std::ofstream::fmtflags flags = logger.flags();
   logger << "Result of " << op << ": " << std::hex << (DWORD)hr << std::endl;
+  logger.flags(flags);
   return hr;
 }
 

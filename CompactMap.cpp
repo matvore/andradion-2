@@ -209,8 +209,8 @@ CCompactMap::CCompactMap(BYTE **source) {
 
   datafile f(*source);
 
-  logger << "get number of block colors" << endl;
-  blocks.resize(f.getByte());
+  logger << "(# of block colors) ";
+  blocks.resize(TryAndReport(f.getByte()));
   block_areas.resize(blocks.size());
 
   vector<BYTE>::iterator block_i;
@@ -232,7 +232,8 @@ CCompactMap::CCompactMap(BYTE **source) {
     }
   }
 
-  patterns.resize(f.getUsuallyByte());
+  logger << "(# of patterns) ";
+  patterns.resize(TryAndReport(f.getUsuallyByte()));
 		
   vector<PATTERN>::iterator pitr;
 
