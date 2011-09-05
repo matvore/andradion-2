@@ -37,6 +37,7 @@ public:
 auto_ptr<CBitMatrix> CBitMatrix::forDimensions(int width, int height) {
   int bytes_required = (width * height + 7) / 8;
   char *data = new char[bytes_required];
+  memset(data, 0, bytes_required);
   return auto_ptr<CBitMatrix>(new CBitMatrix(width, data));
 }
 
