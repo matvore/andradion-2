@@ -1819,7 +1819,7 @@ static void LoadLevel() {
     return;
   }
 
-  // load weather script index
+  logger << "loading weather script index" << endl;
   int script_index;
   data_ptr = ExtractByte(data_ptr,script_index);
   if(!NetInGame()) {
@@ -1830,7 +1830,7 @@ static void LoadLevel() {
 
   // get hero data
 
-  // get turner's coordinates
+  logger << "get hero's coordinates" << endl;
   data_ptr = ExtractWord(data_ptr,i);
   data_ptr = ExtractWord(data_ptr,j);
   i = FixedCnvTo<long>(i);
@@ -1855,6 +1855,7 @@ static void LoadLevel() {
   // loop through each rectangle which defines indoor regions
 
   data_ptr = ExtractByte(data_ptr,j);
+  logger << "# of indoor regions: " << j << endl;
 
   for(i = 0; i < j; i++) {
     data_ptr = ExtractWord(data_ptr, m);
@@ -2307,25 +2308,15 @@ static void LoadCmps(int level_width, int level_height,
   max_center_screen_x = FixedCnvTo<long>(level_width  - GAME_MODEWIDTH/2);
   max_center_screen_y = FixedCnvTo<long>(level_height - GAME_PORTHEIGHT/2);
 
-  int tw, th; // tile width and height
+  int tile_width = (level_width + TILE_WIDTH - 1) / TILE_WIDTH;
+  int tile_height = (level_height + TILE_HEIGHT - 1) / TILE_HEIGHT;
+  TryAndReport(tile_width);
+  TryAndReport(tile_height);
 
-  tw = level_width / TILE_WIDTH;
-  if(0 != level_width % TILE_WIDTH || level_width < TILE_WIDTH) {
-    tw++;
-  }
-  th = level_height / TILE_HEIGHT;
-  if(0 != level_height % TILE_HEIGHT || level_height < TILE_HEIGHT) {
-    th++;
-  }
-
-  sector_width = level_width / SECTOR_WIDTH;
-  if(0 != level_width % SECTOR_WIDTH || level_width < SECTOR_WIDTH) {
-    sector_width++;
-  }
-  sector_height = level_height / SECTOR_HEIGHT;
-  if(0 != level_height % SECTOR_HEIGHT || level_height < SECTOR_HEIGHT) {
-    sector_height++;
-  }
+  sector_width = (level_width + SECTOR_WIDTH - 1) / SECTOR_WIDTH;
+  sector_height = (level_height + SECTOR_HEIGHT - 1) / SECTOR_HEIGHT;
+  TryAndReport(sector_width);
+  TryAndReport(sector_height);
 
   logger << "Loading level cmps -- size is " << level_width << "x" <<
       level_height << endl;
@@ -2336,9 +2327,9 @@ static void LoadCmps(int level_width, int level_height,
     total_sectors = sector_width * sector_height;
     ClearSectors();
     sectors.resize(total_sectors);
-    width_in_tiles = tw;
-    height_in_tiles = th;
-    walking_data = CBitMatrix::forDimensions(tw, th);
+    width_in_tiles = tile_width;
+    height_in_tiles = tile_height;
+    walking_data = CBitMatrix::forDimensions(tile_width, tile_height);
   }
 				
   GluStrLoad(IDS_LEVELPATH, path);
@@ -2350,29 +2341,37 @@ static void LoadCmps(int level_width, int level_height,
   // name of the level is loaded here
   GluStrLoad(IDS_LEVELFILE1 + level * 2, level_name);
 
+  logger << "Loading lower cmpset for level " << level_name << endl;
   auto_ptr<vector<CCompactMap *> > cmp_set = CCompactMap::LoadMapSet
     ((level_name + "_").c_str(), CMP_RESOURCE_TYPE, 0,
      MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL));
+  logger << "(# of cmps returned) ";
+  TryAndReport(cmp_set->size());
+  assert(sector_width * sector_height == cmp_set->size());
 
   vector<TSector>::iterator current_sector = sectors.begin();
   vector<CCompactMap *>::iterator citr = cmp_set->begin();
 
   for(r = 0; r < sector_height; r++) {
     for(int c = 0; c < sector_width; c++, current_sector++) {
-      delete current_sector->lowerCell;
+      delete TryAndReport(current_sector->lowerCell);
       current_sector->lowerCell = *citr++;
     }
   }
 
   current_sector = sectors.begin();
+  logger << "Loading upper cmpset for level " << level_name << endl;
   cmp_set = CCompactMap::LoadMapSet
     ((level_name + "u").c_str(), CMP_RESOURCE_TYPE, 0,
      MAKELANGID(LANG_NEUTRAL, SUBLANG_NEUTRAL));
+  logger << "(# of cmps returned) ";
+  TryAndReport(cmp_set->size());
+  assert(sector_width * sector_height == cmp_set->size());
   citr = cmp_set->begin();
 
   for(r = 0; r < sector_height; r++) {
     for(int c = 0; c < sector_width; c++, current_sector++) {
-      delete current_sector->upperCell;
+      delete TryAndReport(current_sector->upperCell);
       current_sector->upperCell = *citr++;
     }
   }

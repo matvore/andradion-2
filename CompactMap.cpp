@@ -20,8 +20,6 @@ limitations under the License.
 #include "Graphics.h"
 #include "Logger.h"
 
-#include <iostream>
-
 using std::pair;
 using std::min;
 using std::max;
@@ -199,7 +197,7 @@ CCompactMap::LoadMapSet(const char *res_name, const char *type,
     res->push_back(new CCompactMap(&res_ptr));
   }
 
-  FreeResource(res_data);
+  TryAndReport(FreeResource(res_data));
 
   return res;
 }
