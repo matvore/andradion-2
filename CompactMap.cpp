@@ -292,7 +292,7 @@ CCompactMap::CCompactMap(BYTE **source) {
         *data++ = f.getByte();
       }
 
-      current_offset += opaque + 1;
+      current_offset += opaque;
     }
   }
 
