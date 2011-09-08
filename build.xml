@@ -43,6 +43,9 @@ limitations under the License.
     <taskdef name="msvcLink"
              classname="com.github.matvore.andradion2.ant.MsvcLink"
              classpath="out/java/src" />
+    <taskdef name="windowsResourceCompile"
+             classname="com.github.matvore.andradion2.ant.WindowsResourceCompile"
+             classpath="out/java/src" />
     <taskdef name="levelTextToBinary"
              className="com.github.matvore.andradion2.ant.LevelTextToBinary"
              classpath="out/java/src" />
@@ -190,7 +193,13 @@ limitations under the License.
     </sequential>
   </macrodef>
 
-  <target name="buildCpp" depends="declareCustomTasks">
+  <target name="compileResource" depends="declareCustomTasks">
+    <windowsResourceCompile rcFile="Andradion 2.rc">
+      <arg flag="/Fo" path="${obj.dir}/Andradion 2.res" />
+    </windowsResourceCompile>
+  </target>
+
+  <target name="buildCpp" depends="declareCustomTasks,compileResource">
     <!-- Create the precompiled header. -->
     <msvcCompile>
       <!-- Compile and don't link. -->

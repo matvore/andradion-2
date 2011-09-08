@@ -24,21 +24,32 @@ import org.apache.tools.ant.Task;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 /**
- * A task to execute the MSVC++ Compiler. This compiler is included in
- * the Windows Platform SDK, which can be downloaded for free.
+ * A task to execute the Windows resource compiler of the Windows Platform SDK.
  */
-public class MsvcCompile extends Task {
+public class WindowsResourceCompile extends Task {
   private List<Arg> args = Lists.newArrayList();
   private boolean detectWindowsSdkHeaderDir = true;
   private boolean detectMsvcHeaderDir = true;
+  private File rcFile;
 
-  private final EnvironmentPaths environmentPaths =
-      EnvironmentPaths.getInstance();
   private final PathConfiguration pathConfiguration =
       PathConfiguration.getInstance();
+
+  /**
+   * Adds an additional argument that will be passed to {@code RC.exe}.
+   */
+  public void addArg(Arg arg) {
+    this.args.add(arg);
+  }
+
+  /**
+   * Sets the RC file to compile.
+   */
+  public void setRcFile(File rcFile) {
+    this.rcFile = rcFile;
+  }
 
   /**
    * Set to {@code true} to automatically detect and use the Windows SDK
@@ -61,20 +72,13 @@ public class MsvcCompile extends Task {
     this.detectMsvcHeaderDir = detectMsvcHeaderDir;
   }
 
-  /**
-   * Adds an additional argument that will be passed to {@code CL.exe}.
-   */
-  public void addArg(Arg arg) {
-    this.args.add(arg);
-  }
-
   @Override
   public void execute() throws BuildException {
-    File msvcPath = pathConfiguration.getMsvcVcDirectory();
-    msvcPath = new File(msvcPath, "bin" + File.separator + "CL.EXE");
+    File rcPath = pathConfiguration.getWindowsSdkDirectory();
+    rcPath = new File(rcPath, "Bin" + File.separator + "RC.exe");
     ProcessBuilder processBuilder = new ProcessBuilder();
     List<String> command = Lists.newArrayList();
-    command.add(msvcPath.toString());
+    command.add(rcPath.toString());
     for (Arg arg : args) {
       command.add(arg.toString());
     }
@@ -82,19 +86,16 @@ public class MsvcCompile extends Task {
     if (detectWindowsSdkHeaderDir) {
       File windowsHeadersDir = new File(
          pathConfiguration.getWindowsSdkDirectory(), "include");
-      command.add("/I" + windowsHeadersDir);
+      command.add("/i" + windowsHeadersDir.toString());
     }
 
     if (detectMsvcHeaderDir) {
       File msvcHeadersDir = new File(
           pathConfiguration.getMsvcVcDirectory(), "include");
-      command.add("/I" + msvcHeadersDir);
+      command.add("/i" + msvcHeadersDir);
     }
 
-    // Add MSVC\Common7\IDE to PATH variable
-    File common7ide = pathConfiguration.getInstance().getMsvcCommonDirectory();
-    common7ide = new File(common7ide, "IDE");
-    environmentPaths.add("PATH", processBuilder.environment(), common7ide);
+    command.add(rcFile.toString());
 
     System.out.println("command line:");
     for (String argument : command) {
@@ -108,16 +109,16 @@ public class MsvcCompile extends Task {
       result = ProcessResult.of(msvc);
     } catch (InterruptedException e) {
       throw new BuildException(
-          "Thread interrupted when waiting for CL.exe.", e);
+          "Thread interrupted when waiting for RC.exe.", e);
     } catch (IOException e) {
       throw new BuildException(
-          "IOException when running CL.exe", e);
+          "IOException when running RC.exe", e);
     }
 
     System.out.println(result.getStdout());
     if (result.getExitCode() != 0) {
       throw new BuildException(
-          "CL.exe did not finish normally. Exit code: " + result.getExitCode());
+          "RC.exe did not finish normally. Exit code: " + result.getExitCode());
     }
   }
 }
