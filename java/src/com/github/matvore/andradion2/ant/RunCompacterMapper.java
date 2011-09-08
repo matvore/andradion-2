@@ -33,6 +33,7 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.List;
 import javax.imageio.ImageIO;
 
@@ -111,6 +112,21 @@ public class RunCompacterMapper extends Task {
   @Override
   public void execute() throws BuildException {
     System.out.println("Compacting image at: " + input);
+    System.out.println("Level file: " + levelFile);
+    System.out.println("Output file: " + output);
+
+    long inputFilesLastModifiedDate;
+    try {
+      inputFilesLastModifiedDate =
+          TimeStamps.latestModified(Arrays.asList(input, levelFile));
+    } catch (IOException e) {
+      throw new BuildException(e);
+    }
+
+    if (inputFilesLastModifiedDate < output.lastModified()) {
+      System.out.println("Output file is up-to-date. Skipping.");
+      return;
+    }
 
     List<Dimension> patternDimensions = Lists.newArrayList();
     for (Size patternSize : patternSizes) {
