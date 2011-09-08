@@ -29,8 +29,15 @@ limitations under the License.
     <delete file="StdAfx.pch" />
   </target>
 
-  <target name="buildJavaSource">
+  <target name="makeOutputDirs">
     <mkdir dir="out/java/src" />
+    <mkdir dir="out/levels" />
+    <mkdir dir="out/resource/wav" />
+    <mkdir dir="out/levels" />
+    <mkdir dir="${obj.dir}" />
+  </target>
+
+  <target name="buildJavaSource" depends="makeOutputDirs">
     <javac debug="true" srcdir="java/src" destdir="out/java/src">
       <compilerarg value="-Xlint" />
     </javac>
@@ -57,8 +64,7 @@ limitations under the License.
              classPath="out/java/src" />
   </target>
 
-  <target name="compacterMapper" depends="declareCustomTasks">
-    <mkdir dir="out/levels" />
+  <target name="compacterMapper" depends="declareCustomTasks,makeOutputDirs">
     <compacterMapperForLevel levelId="1_" />
     <compacterMapperForLevel levelId="2a" />
     <compacterMapperForLevel levelId="2b" />
@@ -72,8 +78,7 @@ limitations under the License.
     <compacterMapperForLevel levelId="7b" />
   </target>
 
-  <target name="sfx" depends="declareCustomTasks">
-    <mkdir dir="out/resource/wav" />
+  <target name="sfx" depends="declareCustomTasks,makeOutputDirs">
     <wav2raw output="out/resource/wav/sfx.dat">
       <input path="resource/wav/Warpout.wav" />
       <input path="resource/wav/lightrain.wav" />
@@ -125,8 +130,7 @@ limitations under the License.
     </wav2raw>
   </target>
 
-  <target name="levelBinaries" depends="declareCustomTasks">
-    <mkdir dir="out/levels" />
+  <target name="levelBinaries" depends="declareCustomTasks,makeOutputDirs">
     <levelTextToBinary input="levels/1_.dat"
                        output="out/levels/1_.lvl" />
     <levelTextToBinary input="levels/2a.dat"
@@ -193,13 +197,15 @@ limitations under the License.
     </sequential>
   </macrodef>
 
-  <target name="compileResource" depends="declareCustomTasks">
+  <target name="compileResource"
+          depends="declareCustomTasks,compacterMapper,sfx,levelBinaries,makeOutputDirs">
     <windowsResourceCompile rcFile="Andradion 2.rc">
       <arg flag="/Fo" path="${obj.dir}/Andradion 2.res" />
     </windowsResourceCompile>
   </target>
 
-  <target name="buildCpp" depends="declareCustomTasks,compileResource">
+  <target name="buildCpp"
+          depends="declareCustomTasks,compileResource,makeOutputDirs">
     <!-- Create the precompiled header. -->
     <msvcCompile>
       <!-- Compile and don't link. -->
@@ -212,7 +218,6 @@ limitations under the License.
 
       <arg path="StdAfx.cpp" />
     </msvcCompile>
-    <mkdir dir="${obj.dir}" />
     <compileOneCpp name="BitMatrix" />
     <compileOneCpp name="Character" />
     <compileOneCpp name="CompactMap" />
