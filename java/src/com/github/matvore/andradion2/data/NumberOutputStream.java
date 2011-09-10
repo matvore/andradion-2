@@ -20,6 +20,8 @@ import java.io.Closeable;
 import java.io.IOException;
 
 public interface NumberOutputStream extends Closeable {
+  void flush() throws IOException;
+
   void putByte(int x) throws IOException;
 
   void putBytes(byte[] x) throws IOException;

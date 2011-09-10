@@ -58,4 +58,9 @@ public class TextNumberOutputStream implements NumberOutputStream {
   public void putWordThatIsUsuallyByte(int word) throws IOException {
     putWord(word);
   }
+
+  @Override
+  public void flush() throws IOException {
+    writer.flush();
+  }
 }

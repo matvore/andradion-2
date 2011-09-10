@@ -16,6 +16,8 @@ limitations under the License.
 
 package com.github.matvore.andradion2.design;
 
+import com.github.matvore.andradion2.data.Closeables;
+import com.github.matvore.andradion2.data.Entity;
 import com.github.matvore.andradion2.data.Level;
 import com.github.matvore.andradion2.data.LevelFormats;
 import com.github.matvore.andradion2.data.LevelIndex;
@@ -23,8 +25,10 @@ import com.github.matvore.andradion2.data.LevelIndex;
 import java.awt.Point;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
@@ -32,6 +36,10 @@ import java.util.Map;
 
 public class Levels {
   private final File levelDirectory;
+
+  private static final Point getDefaultStartPlayerLocation() {
+    return new Point(50, 50);
+  }
 
   public Levels(File levelDirectory) {
     this.levelDirectory = levelDirectory;
@@ -41,11 +49,19 @@ public class Levels {
     return new Levels(levelDirectory);
   }
 
+  private File levelFile(LevelIndex levelIndex) {
+    return new File(levelDirectory, levelIndex.getId() + ".dat");
+  }
+
+  private Level getRawLevelData(LevelIndex levelIndex) throws IOException {
+    InputStream levelStream = new FileInputStream(levelFile(levelIndex));
+
+    return LevelFormats.fromText(levelStream);
+  }
+
   public Map<PlaceableItem, List<Point>> loadLevelItems(LevelIndex levelIndex)
       throws IOException {
-    InputStream levelStream = new FileInputStream(
-        new File(levelDirectory, levelIndex.getId() + ".dat"));
-    Level rawLevelData = LevelFormats.fromText(levelStream);
+    Level rawLevelData = getRawLevelData(levelIndex);
     Map<PlaceableItem, List<Point>> result =
         new EnumMap<PlaceableItem, List<Point>>(PlaceableItem.class);
     result.put(PlaceableItem.HERO,
@@ -64,6 +80,41 @@ public class Levels {
   public void saveLevelItems(
       LevelIndex levelIndex, Map<PlaceableItem, List<Point>> items)
       throws IOException {
-    throw new UnsupportedOperationException("TODO");
+    Level rawLevelData = getRawLevelData(levelIndex);
+    Level.Builder levelBuilder = Level.newBuilder();
+    levelBuilder
+        .withIndoorRectangles(rawLevelData.getIndoorRectangles())
+        .withLevelEnds(rawLevelData.getLevelEnds())
+        .withLevelSize(rawLevelData.getLevelSize())
+        .withPalette(rawLevelData.getPalette())
+        .withWeatherPattern(rawLevelData.getWeatherPattern());
+
+    List<Point> heroStartList = items.get(PlaceableItem.HERO);
+    Point heroStartLocation;
+    if (heroStartList == null || heroStartList.isEmpty()) {
+      heroStartLocation = getDefaultStartPlayerLocation();
+    } else {
+      heroStartLocation = heroStartList.get(0);
+    }
+    levelBuilder.withPlayerStartLocation(heroStartLocation);
+
+    Map<Entity, List<Point>> entities =
+        new EnumMap<Entity, List<Point>>(Entity.class);
+    for (PlaceableItem item : PlaceableItem.values()) {
+      if (item.getEntity() == null) {
+        continue;
+      }
+      entities.put(item.getEntity(), items.get(item));
+    }
+    levelBuilder.withEntities(entities);
+    rawLevelData = levelBuilder.build();
+
+    OutputStream levelStream = null;
+    try {
+      levelStream = new FileOutputStream(levelFile(levelIndex));
+      LevelFormats.toText(levelBuilder.build(), levelStream);
+    } finally {
+      Closeables.closeQuietly(levelStream);
+    }
   }
 }

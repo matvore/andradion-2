@@ -104,12 +104,16 @@ public class LevelFormats {
 
   public static void toBinary(Level level, OutputStream out)
       throws IOException {
-    to(level, BinaryNumberOutputStream.of(out));
+    NumberOutputStream dest = BinaryNumberOutputStream.of(out);
+    to(level, dest);
+    dest.flush();
   }
 
   public static void toText(Level level, OutputStream out)
       throws IOException {
-    to(level, TextNumberOutputStream.of(out));
+    NumberOutputStream dest = TextNumberOutputStream.of(out);
+    to(level, dest);
+    dest.flush();
   }
 
   private static void to(Level level, NumberOutputStream out)
