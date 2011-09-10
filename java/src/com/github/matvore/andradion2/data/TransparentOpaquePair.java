@@ -35,7 +35,7 @@ public final class TransparentOpaquePair {
     return opaquePixels.length;
   }
 
-  public void writeOpaquePixelsTo(BinaryOutputStream stream)
+  public void writeOpaquePixelsTo(NumberOutputStream stream)
       throws IOException {
     stream.putBytes(opaquePixels);
   }

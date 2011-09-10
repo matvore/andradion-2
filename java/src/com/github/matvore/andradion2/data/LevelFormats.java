@@ -102,9 +102,18 @@ public class LevelFormats {
     return builder.build();
   }
 
-  public static void toBinary(Level level, OutputStream output)
+  public static void toBinary(Level level, OutputStream out)
       throws IOException {
-    BinaryOutputStream out = BinaryOutputStream.of(output);
+    to(level, BinaryNumberOutputStream.of(out));
+  }
+
+  public static void toText(Level level, OutputStream out)
+      throws IOException {
+    to(level, TextNumberOutputStream.of(out));
+  }
+
+  private static void to(Level level, NumberOutputStream out)
+      throws IOException {
     List<Color> palette = level.getPalette();
     out.putByte(palette.size());
     for (Color color : palette) {
@@ -154,7 +163,7 @@ public class LevelFormats {
   private static int readTextInteger(InputStream input)
       throws IOException, NumberFormatException {
     int totalValue, currentChar;
-    
+
     boolean negative = false;
 
     // Skip whitespace

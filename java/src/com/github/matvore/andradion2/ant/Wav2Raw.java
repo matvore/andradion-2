@@ -16,9 +16,10 @@ limitations under the License.
 
 package com.github.matvore.andradion2.ant;
 
-import com.github.matvore.andradion2.data.BinaryOutputStream;
+import com.github.matvore.andradion2.data.BinaryNumberOutputStream;
 import com.github.matvore.andradion2.data.Closeables;
 import com.github.matvore.andradion2.data.Lists;
+import com.github.matvore.andradion2.data.NumberOutputStream;
 
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Task;
@@ -64,9 +65,9 @@ public class Wav2Raw extends Task {
 
   @Override
   public void execute() throws BuildException {
-    BinaryOutputStream destination = null;
+    NumberOutputStream destination = null;
     try {
-      destination = BinaryOutputStream.of(new FileOutputStream(output));
+      destination = BinaryNumberOutputStream.of(new FileOutputStream(output));
       byte[] buffer = new byte[1024];
 
       for (InputFile input : inputs) {

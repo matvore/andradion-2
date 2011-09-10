@@ -132,26 +132,36 @@ public class LevelEditPanel extends JPanel {
     this.addMouseListener(mouseListener);
   }
 
+  private static Map<PlaceableItem, List<Point>> copyPlaceableItems(
+      Map<PlaceableItem, List<Point>> source) {
+    Map<PlaceableItem, List<Point>> result =
+        new EnumMap<PlaceableItem, List<Point>>(PlaceableItem.class);
+    for (PlaceableItem item : PlaceableItem.values()) {
+      if (source.containsKey(item)) {
+        result.put(item,
+            Lists.deepCopyOf(source.get(item), Copier.FOR_POINT));
+      } else {
+        result.put(item, Lists.<Point>newArrayList());
+      }
+    }
+    return result;
+  }
+
   public void setLevel(BufferedImage levelImage,
       Map<PlaceableItem, List<Point>> placeableItems) {
     this.levelImage = levelImage;
     setPreferredSize(
         new java.awt.Dimension(levelImage.getWidth(), levelImage.getHeight()));
 
-    this.placeableItems =
-        new EnumMap<PlaceableItem, List<Point>>(PlaceableItem.class);
-    for (PlaceableItem item : PlaceableItem.values()) {
-      if (placeableItems.containsKey(item)) {
-        this.placeableItems.put(item,
-            Lists.deepCopyOf(placeableItems.get(item), Copier.FOR_POINT));
-      } else {
-        this.placeableItems.put(item, Lists.<Point>newArrayList());
-      }
-    }
+    this.placeableItems = copyPlaceableItems(placeableItems);
 
     guideRectangleLocation = null;
     revalidate();
     repaint();
+  }
+
+  public Map<PlaceableItem, List<Point>> getLevel() {
+    return copyPlaceableItems(placeableItems);
   }
 
   public void setPlaceableItem(PlaceableItem placeableItem) {

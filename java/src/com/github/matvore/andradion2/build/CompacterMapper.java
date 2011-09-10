@@ -16,11 +16,12 @@ limitations under the License.
 
 package com.github.matvore.andradion2.build;
 
-import com.github.matvore.andradion2.data.BinaryOutputStream;
+import com.github.matvore.andradion2.data.BinaryNumberOutputStream;
 import com.github.matvore.andradion2.data.ByteMatrix;
 import com.github.matvore.andradion2.data.Copier;
 import com.github.matvore.andradion2.data.ImmutableList;
 import com.github.matvore.andradion2.data.Lists;
+import com.github.matvore.andradion2.data.NumberOutputStream;
 import com.github.matvore.andradion2.data.Pattern;
 import com.github.matvore.andradion2.data.TransparentOpaquePair;
 
@@ -480,7 +481,7 @@ public class CompacterMapper {
     }
 
     // Write to file
-    BinaryOutputStream out = BinaryOutputStream.of(output);
+    NumberOutputStream out = BinaryNumberOutputStream.of(output);
 
     // Calculate number of block colors with at least one block,
     // then write that count to the stream.

@@ -60,4 +60,10 @@ public class Levels {
 
     return result;
   }
+
+  public void saveLevelItems(
+      LevelIndex levelIndex, Map<PlaceableItem, List<Point>> items)
+      throws IOException {
+    throw new UnsupportedOperationException("TODO");
+  }
 }

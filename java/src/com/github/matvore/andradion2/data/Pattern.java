@@ -29,7 +29,7 @@ public final class Pattern {
     this.occurrences = ImmutableList.copyOf(occurrences, Copier.FOR_POINT);
   }
 
-  public void writePixelDataTo(BinaryOutputStream output) throws IOException {
+  public void writePixelDataTo(NumberOutputStream output) throws IOException {
     output.putBytes(pixelData.bytes);
   }
 
