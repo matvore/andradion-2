@@ -26,8 +26,11 @@ public class LevelMakerFrame {
   public static JFrame create() {
     JFrame result = new JFrame();
     JList levelList = new JList(new LevelListModel());
+    JList placeableList = new JList(new PlaceableItemsListModel());
     JPanel rightHandPanel = new JPanel();
-    rightHandPanel.add(new JScrollPane(levelList));
+    rightHandPanel.setLayout(new BorderLayout());
+    rightHandPanel.add(levelList, BorderLayout.NORTH);
+    rightHandPanel.add(placeableList, BorderLayout.SOUTH);
     result.add(rightHandPanel, BorderLayout.EAST);
     return result;
   }
