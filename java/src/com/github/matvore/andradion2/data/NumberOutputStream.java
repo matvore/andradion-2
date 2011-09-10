@@ -33,4 +33,16 @@ public interface NumberOutputStream extends Closeable {
   void putDword(int x) throws IOException;
 
   void putWordThatIsUsuallyByte(int word) throws IOException;
+
+  /**
+   * Indicates that a data structure has been completed. This helps formatting
+   * in some implementations.
+   */
+  void endStructure() throws IOException;
+
+  /**
+   * Indicates that a large set of data has been completed. This helps
+   * formatting in some implementations.
+   */
+  void endSection() throws IOException;
 }

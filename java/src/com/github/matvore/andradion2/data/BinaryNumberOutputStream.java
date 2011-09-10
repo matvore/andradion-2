@@ -76,4 +76,14 @@ public class BinaryNumberOutputStream implements NumberOutputStream {
   public void flush() throws IOException {
     output.flush();
   }
+
+  @Override
+  public void endStructure() throws IOException {
+    // Do nothing.
+  }
+
+  @Override
+  public void endSection() throws IOException {
+    // Do nothing.
+  }
 }

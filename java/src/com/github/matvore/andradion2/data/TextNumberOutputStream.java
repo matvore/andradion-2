@@ -7,6 +7,10 @@ import java.io.Writer;
 
 public class TextNumberOutputStream implements NumberOutputStream {
   private final Writer writer;
+  private boolean lineIsEmpty = true;
+
+  private static final String LINE_SEPARATOR =
+      System.getProperty("line.separator");
 
   public static NumberOutputStream of(OutputStream output) {
     return new TextNumberOutputStream(new OutputStreamWriter(output));
@@ -21,9 +25,17 @@ public class TextNumberOutputStream implements NumberOutputStream {
     writer.close();
   }
 
+  private void putFormattedNumber(String number) throws IOException {
+    if (!lineIsEmpty) {
+      writer.write(' ');
+    }
+    writer.write(number);
+    lineIsEmpty = false;
+  }
+
   @Override
   public void putByte(int x) throws IOException {
-    writer.write((x & 0xff) + " ");
+    putFormattedNumber(Integer.toString(x & 0xff));
   }
 
   @Override
@@ -42,16 +54,13 @@ public class TextNumberOutputStream implements NumberOutputStream {
 
   @Override
   public void putWord(int x) throws IOException {
-    writer.write((x & 0xffff) + " ");
+    putFormattedNumber(Integer.toString(x & 0xffff));
   }
 
   @Override
   public void putDword(int x) throws IOException {
-    if (x < 0) {
-      throw new IllegalArgumentException(
-          "Unsupported value (negative or too large): " + x);
-    }
-    writer.write(x + " ");
+    long longX = (long)x & 0xffffffffL;
+    putFormattedNumber(Long.toString(longX));
   }
 
   @Override
@@ -62,5 +71,17 @@ public class TextNumberOutputStream implements NumberOutputStream {
   @Override
   public void flush() throws IOException {
     writer.flush();
+  }
+
+  @Override
+  public void endStructure() throws IOException {
+    writer.write(LINE_SEPARATOR);
+    lineIsEmpty = true;
+  }
+
+  @Override
+  public void endSection() throws IOException {
+    writer.write(LINE_SEPARATOR);
+    lineIsEmpty = true;
   }
 }

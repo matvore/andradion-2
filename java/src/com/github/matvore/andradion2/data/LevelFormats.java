@@ -120,47 +120,63 @@ public class LevelFormats {
       throws IOException {
     List<Color> palette = level.getPalette();
     out.putByte(palette.size());
+    out.endStructure();
     for (Color color : palette) {
       out.putByte(color.getRed());
       out.putByte(color.getGreen());
       out.putByte(color.getBlue());
+      out.endStructure();
     }
+    out.endSection();
 
     Dimension levelSize = level.getLevelSize();
     out.putWord(levelSize.width);
     out.putWord(levelSize.height);
+    out.endStructure();
 
     out.putByte(level.getWeatherPattern().ordinal());
+    out.endStructure();
 
     Point playerStartLocation = level.getPlayerStartLocation();
     out.putWord(playerStartLocation.x);
     out.putWord(playerStartLocation.y);
+    out.endStructure();
+    out.endSection();
 
     List<Rectangle> indoorRectangles = level.getIndoorRectangles();
     out.putByte(indoorRectangles.size());
+    out.endStructure();
     for (Rectangle indoorRectangle : indoorRectangles) {
       out.putWord(indoorRectangle.x);
       out.putWord(indoorRectangle.y);
       out.putWord(indoorRectangle.x + indoorRectangle.width);
       out.putWord(indoorRectangle.y + indoorRectangle.height);
+      out.endStructure();
     }
+    out.endSection();
 
     List<LevelEnd> levelEnds = level.getLevelEnds();
     out.putByte(levelEnds.size());
+    out.endStructure();
     for (LevelEnd levelEnd : levelEnds) {
       out.putByte(levelEnd.getToLevel().ordinal());
       out.putWord(levelEnd.getLocation().x);
       out.putWord(levelEnd.getLocation().y);
+      out.endStructure();
     }
+    out.endSection();
 
     Map<Entity, List<Point>> entities = level.getEntities();
     for (Entity entityType : Entity.values()) {
       List<Point> locations = entities.get(entityType);
       out.putByte(locations.size());
+      out.endStructure();
       for (Point location : locations) {
         out.putWord(location.x);
         out.putWord(location.y);
+        out.endStructure();
       }
+      out.endSection();
     }
   }
 
