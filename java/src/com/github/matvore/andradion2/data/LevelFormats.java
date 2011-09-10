@@ -40,6 +40,9 @@ public class LevelFormats {
     Level.Builder builder = Level.newBuilder();
 
     int paletteSize = readTextInteger(input);
+    if (paletteSize == 0) {
+      paletteSize = 256;
+    }
     List<Color> palette = Lists.newArrayList();
     for (int i = 0; i < paletteSize; i++) {
       int r = readTextInteger(input);

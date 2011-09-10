@@ -27,12 +27,14 @@ public class LevelListSelectionListener implements ListSelectionListener {
   private final Levels levels;
   private final Images images;
   private final LevelEditPanel levelEditPanel;
+  private final LevelSaver levelSaver;
 
-  public LevelListSelectionListener(
-      Levels levels, Images images, LevelEditPanel levelEditPanel) {
+  public LevelListSelectionListener(Levels levels, Images images,
+      LevelEditPanel levelEditPanel, LevelSaver levelSaver) {
     this.levels = levels;
     this.images = images;
     this.levelEditPanel = levelEditPanel;
+    this.levelSaver = levelSaver;
   }
 
   @Override
@@ -49,6 +51,11 @@ public class LevelListSelectionListener implements ListSelectionListener {
           images.levelLowerImage(newLevel), levels.loadLevelItems(newLevel));
     } catch (IOException e) {
       throw new RuntimeException("Could not load level image.", e);
+    }
+    try {
+      levelSaver.save();
+    } catch (IOException e) {
+      throw new RuntimeException("Could not save level.", e);
     }
   }
 }

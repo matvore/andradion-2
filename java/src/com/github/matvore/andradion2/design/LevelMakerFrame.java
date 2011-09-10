@@ -17,12 +17,33 @@ limitations under the License.
 package com.github.matvore.andradion2.design;
 
 import java.awt.BorderLayout;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.IOException;
+
 import javax.swing.JFrame;
 import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
 public class LevelMakerFrame {
+  private static class OnExitSaveListener extends WindowAdapter {
+    private final LevelSaver levelSaver;
+
+    public OnExitSaveListener(LevelSaver levelSaver) {
+      this.levelSaver = levelSaver;
+    }
+
+    @Override
+    public void windowClosing(WindowEvent event) {
+      try {
+        levelSaver.save();
+      } catch (IOException e) {
+        throw new RuntimeException("Could not save level changes.", e);
+      }
+    }
+  }
+
   public static JFrame create(Levels levels, Images images) {
     JFrame result = new JFrame();
     JList levelList = new JList(LevelListModel.getInstance());
@@ -32,8 +53,9 @@ public class LevelMakerFrame {
     rightHandPanel.add(levelList, BorderLayout.NORTH);
     rightHandPanel.add(placeableList, BorderLayout.SOUTH);
     LevelEditPanel levelEditPanel = new LevelEditPanel(images);
-    levelList.addListSelectionListener(
-        new LevelListSelectionListener(levels, images, levelEditPanel));
+    LevelSaver levelSaver = new LevelSaver(levels, levelList, levelEditPanel);
+    levelList.addListSelectionListener(new LevelListSelectionListener(
+        levels, images, levelEditPanel, levelSaver));
     levelList.setSelectedIndex(0);
     placeableList.addListSelectionListener(
         new PlaceableItemListSelectionListener(levelEditPanel));
@@ -41,6 +63,7 @@ public class LevelMakerFrame {
     JScrollPane levelEditScrollPane = new JScrollPane(levelEditPanel);
     result.add(rightHandPanel, BorderLayout.EAST);
     result.add(levelEditScrollPane, BorderLayout.CENTER);
+    result.addWindowListener(new OnExitSaveListener(levelSaver));
     return result;
   }
 }
