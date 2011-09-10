@@ -17,6 +17,8 @@ limitations under the License.
 package com.github.matvore.andradion2.ant;
 
 class CouldNotParseRegQueryOutputException extends RuntimeException {
+  private static final long serialVersionUID = 1L;
+
   public CouldNotParseRegQueryOutputException(String message) {
     super(message);
   }

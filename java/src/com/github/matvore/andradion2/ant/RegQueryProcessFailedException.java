@@ -17,6 +17,8 @@ limitations under the License.
 package com.github.matvore.andradion2.ant;
 
 class RegQueryProcessFailedException extends RuntimeException {
+  private static final long serialVersionUID = 1L;
+
   public RegQueryProcessFailedException(String message) {
     super(message);
   }

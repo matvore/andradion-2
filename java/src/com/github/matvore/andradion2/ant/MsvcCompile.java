@@ -24,7 +24,6 @@ import org.apache.tools.ant.Task;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 /**
  * A task to execute the MSVC++ Compiler. This compiler is included in
@@ -92,7 +91,7 @@ public class MsvcCompile extends Task {
     }
 
     // Add MSVC\Common7\IDE to PATH variable
-    File common7ide = pathConfiguration.getInstance().getMsvcCommonDirectory();
+    File common7ide = pathConfiguration.getMsvcCommonDirectory();
     common7ide = new File(common7ide, "IDE");
     environmentPaths.add("PATH", processBuilder.environment(), common7ide);
 
