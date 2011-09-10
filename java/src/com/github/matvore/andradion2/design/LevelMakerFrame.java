@@ -23,15 +23,21 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
 public class LevelMakerFrame {
-  public static JFrame create() {
+  public static JFrame create(Images images) {
     JFrame result = new JFrame();
-    JList levelList = new JList(new LevelListModel());
+    JList levelList = new JList(LevelListModel.getInstance());
     JList placeableList = new JList(new PlaceableItemsListModel());
     JPanel rightHandPanel = new JPanel();
     rightHandPanel.setLayout(new BorderLayout());
     rightHandPanel.add(levelList, BorderLayout.NORTH);
     rightHandPanel.add(placeableList, BorderLayout.SOUTH);
+    LevelEditPanel levelEditPanel = new LevelEditPanel();
+    levelList.addListSelectionListener(
+        new LevelListSelectionListener(images, levelEditPanel));
+    levelList.setSelectedIndex(0);
+    JScrollPane levelEditScrollPane = new JScrollPane(levelEditPanel);
     result.add(rightHandPanel, BorderLayout.EAST);
+    result.add(levelEditScrollPane, BorderLayout.CENTER);
     return result;
   }
 }

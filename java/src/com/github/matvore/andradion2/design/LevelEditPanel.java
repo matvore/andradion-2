@@ -16,18 +16,23 @@ limitations under the License.
 
 package com.github.matvore.andradion2.design;
 
-import java.io.File;
-import java.io.IOException;
-import javax.swing.JFrame;
+import java.awt.Graphics;
+import java.awt.image.BufferedImage;
+import javax.swing.JPanel;
 
-public class LevelMaker {
-  public static void main(String[] args) throws IOException {
-    JFrame frame = LevelMakerFrame.create(Images.withDirectories(
-        new File("resource"), new File("levels")));
-    frame.setTitle("Andradion 2 LevelMaker");
-    frame.setSize(800, 600);
-    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+public class LevelEditPanel extends JPanel {
+  private BufferedImage levelImage;
 
-    frame.setVisible(true);
+  public void setLevelImage(BufferedImage levelImage) {
+    this.levelImage = levelImage;
+    setPreferredSize(new java.awt.Dimension(levelImage.getWidth(), levelImage.getHeight()));
+    revalidate();
+    repaint();
+  }
+
+  @Override
+  protected void paintComponent(Graphics graphics) {
+    super.paintComponent(graphics);
+    graphics.drawImage(levelImage, 0, 0, null);
   }
 }

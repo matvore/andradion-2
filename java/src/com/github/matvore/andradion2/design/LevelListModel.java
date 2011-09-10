@@ -38,13 +38,18 @@ public class LevelListModel extends AbstractListModel {
           LevelIndex.UFO,
           LevelIndex.MEXICAN_BORDER,
           LevelIndex.HAWAII));
+  private static final LevelListModel INSTANCE = new LevelListModel();
 
-  public LevelListModel() {
+  private LevelListModel() {
     fireIntervalAdded(this, 0, LEVELS.size() - 1);
   }
 
+  public static LevelListModel getInstance() {
+    return INSTANCE;
+  }
+
   @Override
-  public Object getElementAt(int index) {
+  public LevelIndex getElementAt(int index) {
     return LEVELS.get(index);
   }
 

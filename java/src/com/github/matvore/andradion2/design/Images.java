@@ -18,7 +18,7 @@ package com.github.matvore.andradion2.design;
 
 import com.github.matvore.andradion2.data.LevelIndex;
 
-import java.awt.Image;
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
@@ -31,7 +31,7 @@ import javax.imageio.ImageIO;
  */
 public class Images {
   private final File levelImageDirectory;
-  private final Map<PlaceableItem, Image> itemImages;
+  private final Map<PlaceableItem, BufferedImage> itemImages;
 
   private static final Map<PlaceableItem, File> ITEM_IMAGE_FILES;
 
@@ -49,15 +49,15 @@ public class Images {
   }
 
   private Images(
-      File levelImageDirectory, Map<PlaceableItem, Image> itemImages) {
+      File levelImageDirectory, Map<PlaceableItem, BufferedImage> itemImages) {
     this.levelImageDirectory = levelImageDirectory;
     this.itemImages = itemImages;
   }
 
   public static Images withDirectories(
       File itemImageDirectory, File levelImageDirectory) throws IOException {
-    Map<PlaceableItem, Image> itemImages =
-        new EnumMap<PlaceableItem, Image>(PlaceableItem.class);
+    Map<PlaceableItem, BufferedImage> itemImages =
+        new EnumMap<PlaceableItem, BufferedImage>(PlaceableItem.class);
     for (PlaceableItem item : ITEM_IMAGE_FILES.keySet()) {
       File imagePath = new File(
           itemImageDirectory, ITEM_IMAGE_FILES.get(item).toString());
@@ -67,7 +67,7 @@ public class Images {
     return new Images(levelImageDirectory, itemImages);
   }
 
-  public Image levelLowerImage(LevelIndex level) throws IOException {
+  public BufferedImage levelLowerImage(LevelIndex level) throws IOException {
     String imageFile = level.getId() + "_.png";
     File imagePath = new File(levelImageDirectory, imageFile);
 
