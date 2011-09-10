@@ -22,7 +22,9 @@ import java.awt.Graphics;
 import java.awt.Point;
 import java.awt.Toolkit;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionAdapter;
 import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 import java.util.EnumMap;
@@ -46,15 +48,10 @@ public class LevelEditPanel extends JPanel {
   private Point guideRectangleLocation;
   private PlaceableItem placeableItem;
 
-  private final MouseMotionListener mouseMotionListener = new MouseMotionListener() {
-    @Override
-    public void mouseDragged(MouseEvent event) {
-      // Do nothing.
-    }
-
+  private final MouseMotionListener mouseMotionListener =
+      new MouseMotionAdapter() {
     @Override
     public void mouseMoved(MouseEvent event) {
-      // TODO Auto-generated method stub
       Graphics graphics = LevelEditPanel.this.getGraphics();
       graphics.setXORMode(Color.GRAY);
       if (null != guideRectangleLocation) {
@@ -66,7 +63,7 @@ public class LevelEditPanel extends JPanel {
     }
   };
 
-  private final MouseListener mouseListener = new MouseListener() {
+  private final MouseListener mouseListener = new MouseAdapter() {
     @Override
     public void mouseClicked(MouseEvent event) {
       Point whereClicked = event.getPoint();
@@ -103,26 +100,6 @@ public class LevelEditPanel extends JPanel {
       }
       guideRectangleLocation = null;
       repaint();
-    }
-
-    @Override
-    public void mouseEntered(MouseEvent event) {
-      // Do nothing.
-    }
-
-    @Override
-    public void mouseExited(MouseEvent event) {
-      // Do nothing.
-    }
-
-    @Override
-    public void mousePressed(MouseEvent event) {
-      // Do nothing.
-    }
-
-    @Override
-    public void mouseReleased(MouseEvent event) {
-      // Do nothing.
     }
   };
 
