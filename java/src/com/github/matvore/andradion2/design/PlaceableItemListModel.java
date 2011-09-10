@@ -22,18 +22,24 @@ import java.util.Arrays;
 import java.util.List;
 import javax.swing.AbstractListModel;
 
-public class PlaceableItemsListModel extends AbstractListModel {
+public class PlaceableItemListModel extends AbstractListModel {
   private static final long serialVersionUID = 1L;
 
   private static final List<PlaceableItem> ITEMS =
       ImmutableList.copyOf(Arrays.asList(PlaceableItem.values()));
+  private static final PlaceableItemListModel INSTANCE =
+      new PlaceableItemListModel();
 
-  public PlaceableItemsListModel() {
+  private PlaceableItemListModel() {
     fireIntervalAdded(this, 0, ITEMS.size() - 1);
   }
 
+  public static PlaceableItemListModel getInstance() {
+    return INSTANCE;
+  }
+
   @Override
-  public Object getElementAt(int index) {
+  public PlaceableItem getElementAt(int index) {
     return ITEMS.get(index);
   }
 
