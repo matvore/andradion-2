@@ -41,7 +41,7 @@ public class Levels {
     return new Levels(levelDirectory);
   }
 
-  public Map<PlaceableItem, List<Point>> getLevelItems(LevelIndex levelIndex)
+  public Map<PlaceableItem, List<Point>> loadLevelItems(LevelIndex levelIndex)
       throws IOException {
     InputStream levelStream = new FileInputStream(
         new File(levelDirectory, levelIndex.getId() + ".dat"));

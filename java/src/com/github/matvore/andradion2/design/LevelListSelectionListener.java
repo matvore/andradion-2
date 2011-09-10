@@ -46,7 +46,7 @@ public class LevelListSelectionListener implements ListSelectionListener {
         levelList.getSelectedIndex());
     try {
       levelEditPanel.setLevel(
-          images.levelLowerImage(newLevel), levels.getLevelItems(newLevel));
+          images.levelLowerImage(newLevel), levels.loadLevelItems(newLevel));
     } catch (IOException e) {
       throw new RuntimeException("Could not load level image.", e);
     }

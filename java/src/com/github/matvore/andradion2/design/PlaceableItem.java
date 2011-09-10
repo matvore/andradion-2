@@ -19,19 +19,23 @@ package com.github.matvore.andradion2.design;
 import com.github.matvore.andradion2.data.Entity;
 
 public enum PlaceableItem {
-  SALLY(Entity.SALLY),
-  MILTON(Entity.MILTON),
-  EVIL_TURNER(Entity.EVIL_TURNER),
-  PISTOL(Entity.PISTOL),
-  MACHINE_GUN(Entity.MACHINE_GUN),
-  BAZOOKA(Entity.BAZOOKA),
-  HEALTH(Entity.HEALTH),
-  HERO(null);
+  SALLY(Entity.SALLY, 0, Integer.MAX_VALUE),
+  MILTON(Entity.MILTON, 0, Integer.MAX_VALUE),
+  EVIL_TURNER(Entity.EVIL_TURNER, 0, Integer.MAX_VALUE),
+  PISTOL(Entity.PISTOL, 0, Integer.MAX_VALUE),
+  MACHINE_GUN(Entity.MACHINE_GUN, 0, Integer.MAX_VALUE),
+  BAZOOKA(Entity.BAZOOKA, 0, Integer.MAX_VALUE),
+  HEALTH(Entity.HEALTH, 0, Integer.MAX_VALUE),
+  HERO(null, 1, 1);
 
   private final Entity entity;
+  private final int minOccurrences, maxOccurrences;
 
-  private PlaceableItem(Entity entity) {
+  private PlaceableItem(
+      Entity entity, int minOccurrences, int maxOccurrences) {
     this.entity = entity;
+    this.minOccurrences = minOccurrences;
+    this.maxOccurrences = maxOccurrences;
   }
 
   /**
@@ -40,5 +44,13 @@ public enum PlaceableItem {
    */
   public Entity getEntity() {
     return entity;
+  }
+
+  public int getMinOccurrences() {
+    return minOccurrences;
+  }
+
+  public int getMaxOccurrences() {
+    return maxOccurrences;
   }
 }

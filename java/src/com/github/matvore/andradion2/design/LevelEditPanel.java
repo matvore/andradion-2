@@ -22,6 +22,7 @@ import java.awt.Graphics;
 import java.awt.Point;
 import java.awt.Toolkit;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.awt.image.BufferedImage;
 import java.util.EnumMap;
@@ -43,6 +44,7 @@ public class LevelEditPanel extends JPanel {
   private BufferedImage levelImage;
   private Map<PlaceableItem, List<Point>> placeableItems;
   private Point guideRectangleLocation;
+  private PlaceableItem placeableItem;
 
   private final MouseMotionListener mouseMotionListener = new MouseMotionListener() {
     @Override
@@ -64,9 +66,70 @@ public class LevelEditPanel extends JPanel {
     }
   };
 
+  private final MouseListener mouseListener = new MouseListener() {
+    @Override
+    public void mouseClicked(MouseEvent event) {
+      Point whereClicked = event.getPoint();
+      List<Point> alter = placeableItems.get(placeableItem);
+      switch (event.getButton()) {
+      case MouseEvent.BUTTON1:
+        // Add
+        alter.add((Point)whereClicked.clone());
+        while (alter.size() > placeableItem.getMaxOccurrences()) {
+          alter.remove(0);
+        }
+        break;
+      case MouseEvent.BUTTON3:
+        // Delete
+        if (alter.size() <= placeableItem.getMinOccurrences()) {
+          return;
+        }
+        long closestItemDistance = Long.MAX_VALUE;
+        int indexOfClosestItem = -1;
+        for (int index = 0; index < alter.size(); index++) {
+          Point thisItem = alter.get(index);
+          long xDiff = thisItem.x - whereClicked.x;
+          long yDiff = thisItem.y - whereClicked.y;
+          long distance = xDiff * xDiff + yDiff * yDiff;
+          if (closestItemDistance > distance) {
+            closestItemDistance = distance;
+            indexOfClosestItem = index;
+          }
+        }
+        if (closestItemDistance < 32) {
+          alter.remove(indexOfClosestItem);
+        }
+        break;
+      }
+      guideRectangleLocation = null;
+      repaint();
+    }
+
+    @Override
+    public void mouseEntered(MouseEvent event) {
+      // Do nothing.
+    }
+
+    @Override
+    public void mouseExited(MouseEvent event) {
+      // Do nothing.
+    }
+
+    @Override
+    public void mousePressed(MouseEvent event) {
+      // Do nothing.
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent event) {
+      // Do nothing.
+    }
+  };
+
   public LevelEditPanel(Images images) {
     this.images = images;
     this.addMouseMotionListener(mouseMotionListener);
+    this.addMouseListener(mouseListener);
   }
 
   public void setLevel(BufferedImage levelImage,
@@ -98,6 +161,7 @@ public class LevelEditPanel extends JPanel {
         new Point(itemImage.getWidth() / 2, itemImage.getHeight() / 2),
         placeableItem.toString());
     setCursor(cursor);
+    this.placeableItem = placeableItem;
   }
 
   @Override
