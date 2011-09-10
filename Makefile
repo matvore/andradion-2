@@ -9,17 +9,6 @@ gamebmps = "C:\Andradion 2\Resource\1charminn.bmp" "C:\Andradion 2\Resource\1cha
 
 all: $(out) $(debugout)
 
-levelmaker:
-	rc /r utility\LevelMaker.rc
-	$(cc) -c utility/LevelMaker.cpp
-	windres -iutility/LevelMaker.res -oLevelMakerRes.o
-	$(cc) -o LevelMaker.exe LevelMaker.o LevelMakerRes.o -lstdc++ -lgdi32
-	LevelMaker.exe
-	$(rm) LevelMaker.exe
-	$(rm) LevelMakerRes.o
-	$(rm) LevelMaker.o
-	$(rm) utility\LevelMaker.res
-
 quantizepalettes:
 	$(cc) utility\Quantize.cpp -lstdc++ -lgdi32
 	a.exe 256 $(gamebmps) levels\1_?.bmp > palettes\1_.pal
