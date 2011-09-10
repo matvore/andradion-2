@@ -43,6 +43,12 @@ limitations under the License.
     </javac>
   </target>
 
+  <target name="runLevelMaker" depends="buildJavaSource">
+    <java classname="com.github.matvore.andradion2.design.LevelMaker"
+          fork="true"
+          classpath="out/java/src/" />
+  </target>
+
   <target name="declareCustomTasks" depends="buildJavaSource">
     <taskdef name="msvcCompile"
              classname="com.github.matvore.andradion2.ant.MsvcCompile"
