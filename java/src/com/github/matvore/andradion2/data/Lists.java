@@ -29,6 +29,18 @@ public class Lists {
     return new ArrayList<E>();
   }
 
+  public static <E> List<E> newArrayListWithCapacity(int capacity) {
+    return new ArrayList<E>(capacity);
+  }
+
+  public static <E> List<E> deepCopyOf(List<E> source, Copier<? super E> copier) {
+    List<E> result = newArrayListWithCapacity(source.size());
+    for (E sourceItem : source) {
+      result.add(copier.copy(sourceItem));
+    }
+    return result;
+  }
+
   public static <E> List<E> listPlusOneElement(
       final List<E> original, final E add) {
     return new AbstractList<E>() {

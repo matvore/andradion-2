@@ -24,13 +24,15 @@ import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
 public class LevelListSelectionListener implements ListSelectionListener {
-  private final LevelEditPanel levelEditPanel;
+  private final Levels levels;
   private final Images images;
+  private final LevelEditPanel levelEditPanel;
 
   public LevelListSelectionListener(
-      Images images, LevelEditPanel levelEditPanel) {
-    this.levelEditPanel = levelEditPanel;
+      Levels levels, Images images, LevelEditPanel levelEditPanel) {
+    this.levels = levels;
     this.images = images;
+    this.levelEditPanel = levelEditPanel;
   }
 
   @Override
@@ -43,7 +45,8 @@ public class LevelListSelectionListener implements ListSelectionListener {
     LevelIndex newLevel = LevelListModel.getInstance().getElementAt(
         levelList.getSelectedIndex());
     try {
-      levelEditPanel.setLevelImage(images.levelLowerImage(newLevel));
+      levelEditPanel.setLevel(
+          images.levelLowerImage(newLevel), levels.getLevelItems(newLevel));
     } catch (IOException e) {
       throw new RuntimeException("Could not load level image.", e);
     }

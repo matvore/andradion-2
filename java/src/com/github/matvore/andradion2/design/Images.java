@@ -45,6 +45,7 @@ public class Images {
     itemImageFiles.put(PlaceableItem.MACHINE_GUN, new File("mge.bmp"));
     itemImageFiles.put(PlaceableItem.BAZOOKA, new File("bazookae.bmp"));
     itemImageFiles.put(PlaceableItem.HEALTH, new File("health.bmp"));
+    itemImageFiles.put(PlaceableItem.HERO, new File("1turners.bmp"));
     ITEM_IMAGE_FILES = Collections.unmodifiableMap(itemImageFiles);
   }
 
@@ -72,5 +73,9 @@ public class Images {
     File imagePath = new File(levelImageDirectory, imageFile);
 
     return ImageIO.read(imagePath);
+  }
+
+  public BufferedImage imageFor(PlaceableItem item) {
+    return itemImages.get(item);
   }
 }

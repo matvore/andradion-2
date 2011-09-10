@@ -22,8 +22,9 @@ import javax.swing.JFrame;
 
 public class LevelMaker {
   public static void main(String[] args) throws IOException {
-    JFrame frame = LevelMakerFrame.create(Images.withDirectories(
-        new File("resource"), new File("levels")));
+    JFrame frame = LevelMakerFrame.create(
+        Levels.withLevelDirectory(new File("levels")),
+        Images.withDirectories(new File("resource"), new File("levels")));
     frame.setTitle("Andradion 2 LevelMaker");
     frame.setSize(800, 600);
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);

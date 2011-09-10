@@ -23,7 +23,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 
 public class LevelMakerFrame {
-  public static JFrame create(Images images) {
+  public static JFrame create(Levels levels, Images images) {
     JFrame result = new JFrame();
     JList levelList = new JList(LevelListModel.getInstance());
     JList placeableList = new JList(new PlaceableItemsListModel());
@@ -31,9 +31,9 @@ public class LevelMakerFrame {
     rightHandPanel.setLayout(new BorderLayout());
     rightHandPanel.add(levelList, BorderLayout.NORTH);
     rightHandPanel.add(placeableList, BorderLayout.SOUTH);
-    LevelEditPanel levelEditPanel = new LevelEditPanel();
+    LevelEditPanel levelEditPanel = new LevelEditPanel(images);
     levelList.addListSelectionListener(
-        new LevelListSelectionListener(images, levelEditPanel));
+        new LevelListSelectionListener(levels, images, levelEditPanel));
     levelList.setSelectedIndex(0);
     JScrollPane levelEditScrollPane = new JScrollPane(levelEditPanel);
     result.add(rightHandPanel, BorderLayout.EAST);
