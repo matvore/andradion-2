@@ -23,6 +23,8 @@ import java.util.List;
 import javax.swing.AbstractListModel;
 
 public class PlaceableItemsListModel extends AbstractListModel {
+  private static final long serialVersionUID = 1L;
+
   private static final List<PlaceableItem> ITEMS =
       ImmutableList.copyOf(Arrays.asList(PlaceableItem.values()));
 

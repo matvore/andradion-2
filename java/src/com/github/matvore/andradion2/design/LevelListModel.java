@@ -24,6 +24,8 @@ import java.util.List;
 import javax.swing.AbstractListModel;
 
 public class LevelListModel extends AbstractListModel {
+  private static final long serialVersionUID = 1L;
+
   // A list of all the levels LevelMaker can edit.
   private static final List<LevelIndex> LEVELS
       = ImmutableList.copyOf(Arrays.asList(
