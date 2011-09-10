@@ -16,6 +16,8 @@ limitations under the License.
 
 package com.github.matvore.andradion2.data;
 
+import com.github.matvore.andradion2.data.Lists;
+
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Point;
@@ -39,7 +41,7 @@ public class LevelFormats {
     Level.Builder builder = Level.newBuilder();
 
     int paletteSize = readTextInteger(input);
-    List<Color> palette = new ArrayList<Color>();
+    List<Color> palette = Lists.newArrayList();
     for (int i = 0; i < paletteSize; i++) {
       int r = readTextInteger(input);
       int g = readTextInteger(input);
@@ -60,7 +62,7 @@ public class LevelFormats {
     builder.withPlayerStartLocation(new Point(playerStartX, playerStartY));
 
     int indoorRectangleCount = readTextInteger(input);
-    List<Rectangle> indoorRectangles = new ArrayList<Rectangle>();
+    List<Rectangle> indoorRectangles = Lists.newArrayList();
     for (int i = 0; i < indoorRectangleCount; i++) {
       int left = readTextInteger(input);
       int top = readTextInteger(input);
@@ -73,7 +75,7 @@ public class LevelFormats {
     builder.withIndoorRectangles(indoorRectangles);
 
     int levelEndCount = readTextInteger(input);
-    List<LevelEnd> levelEnds = new ArrayList<LevelEnd>();
+    List<LevelEnd> levelEnds = Lists.newArrayList();
     for (int i = 0; i < levelEndCount; i++) {
       int toLevel = readTextInteger(input);
       int levelEndX = readTextInteger(input);
@@ -88,7 +90,7 @@ public class LevelFormats {
         new EnumMap<Entity, List<Point>>(Entity.class);
     for (Entity entityType : Entity.values()) {
       int count = readTextInteger(input);
-      List<Point> locations = new ArrayList<Point>();
+      List<Point> locations = Lists.newArrayList();
       for (int i = 0; i < count; i++) {
         int x = readTextInteger(input);
         int y = readTextInteger(input);

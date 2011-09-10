@@ -16,20 +16,21 @@ limitations under the License.
 
 package com.github.matvore.andradion2.ant;
 
+import com.github.matvore.andradion2.data.Lists;
+
 import org.apache.tools.ant.BuildException;
 import org.apache.tools.ant.Task;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 public class MsvcLink extends Task {
   private boolean detectDxSdkLibDir = false;
   private boolean detectMsvcLibDir = true;
   private boolean detectWindowsSdkLibDir = true;
-  private List<Arg> args = new ArrayList<Arg>();
-  private List<StandardLib> standardLibs = new ArrayList<StandardLib>();
+  private List<Arg> args = Lists.newArrayList();
+  private List<StandardLib> standardLibs = Lists.newArrayList();
 
   private final EnvironmentPaths environmentPaths =
       EnvironmentPaths.getInstance();
@@ -91,7 +92,7 @@ public class MsvcLink extends Task {
     File linkerPath = pathConfiguration.getMsvcVcDirectory();
     linkerPath = new File(linkerPath, "bin" + File.separator + "LINK.exe");
     ProcessBuilder processBuilder = new ProcessBuilder();
-    List<String> command = new ArrayList<String>();
+    List<String> command = Lists.newArrayList();
     command.add(linkerPath.toString());
     for (Arg arg : args) {
       command.add(arg.toString());
