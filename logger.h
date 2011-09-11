@@ -12,7 +12,8 @@ inline void WriteLog(const char *fmt, ...) {
 
   va_start(v, fmt);
 
-  std::vfprintf(stderr, fmt, v);
+  std::vfprintf(stdout, fmt, v);
+  std::printf("\n");
 }
 
 #define TryAndReport(op) TryAndReportB(op, #op)

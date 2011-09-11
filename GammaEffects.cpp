@@ -1,5 +1,5 @@
 #include "StdAfx.h"
-#include "Graphics.h"
+#include "Gfx.h"
 #include "Fixed.h"
 #include "Logger.h"
 #include "GammaEffects.h"

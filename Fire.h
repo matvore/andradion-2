@@ -1,9 +1,9 @@
-using std::vector;
-
 const int MAX_FIRES = 10; // maximum number of bullets at a time
 
-class CFire {
- public:
+class Fire {
+public:
+  static Fire *UnusedSlot();
+
   bool OkayToDelete() const;
   
   // pass zero for the last parameter when the gun was fired by a
@@ -18,20 +18,14 @@ class CFire {
   
   void Logic();
   void Draw();
-  static void PickBestBulletTrailColor();
+  static void AnalyzePalette();
 
-  CFire();
+  Fire();
 
- private:
-  class bullet_trail_line_color {
-  public:
-    BYTE operator()() {return CFire::bullet_trail_color;}
-  };
-
+private:
   void PlaySound();
   static BYTE bullet_trail_color;
-  vector<int> CollidesEx();
-  int Collides();
+  void Collides(std::vector<int> *dest);
   FIXEDNUM x, y;
   FIXEDNUM sx, sy; // start location
   int direction, type, state, horizontal_collision_flags;
@@ -44,4 +38,4 @@ class CFire {
   //  coordinates have already been determined by a remote computer
 };
 
-extern CFire fires[MAX_FIRES];
+extern Fire fires[MAX_FIRES];

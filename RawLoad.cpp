@@ -13,42 +13,36 @@ static IDirectSoundBuffer *FillSoundBuffer(IDirectSoundBuffer *target,
 
   const BYTE *snd_buffer = (const BYTE *)data;
 
-  if(FAILED((*target).Lock(0, bytes,
-                           (void **)&audio_ptr_1,
-                           &audio_length_1,
-                           (void **)&audio_ptr_2,
-                           &audio_length_2,
-                           DSBLOCK_FROMWRITECURSOR))) {
-    (*target).Release();
+  if (FAILED((*target).Lock(0, bytes,
+                            (void **)&audio_ptr_1, &audio_length_1,
+                            (void **)&audio_ptr_2, &audio_length_2,
+                            DSBLOCK_FROMWRITECURSOR))) {
+    target->Release();
     WriteLog("Could not lock sound buffer\n");
     return 0;
   }
 
   memcpy(audio_ptr_1, snd_buffer, audio_length_1);
-
   memcpy(audio_ptr_2, snd_buffer + audio_length_1, audio_length_2);
 
-  (*target).Unlock(audio_ptr_1, audio_length_1,
-                   audio_ptr_2, audio_length_2);
+  target->Unlock(audio_ptr_1, audio_length_1, audio_ptr_2, audio_length_2);
 
   return target;
 }
 
 // this function returns zero on success
-static IDirectSoundBuffer *CreateSB(IDirectSound *ds,
-                                    DWORD desc_flags,
-                                    DWORD frequency,
-                                    DWORD bits_per_sample,
-                                    DWORD channels,
-                                    DWORD buffer_size) {
-  IDirectSoundBuffer *new_buff;
+static AutoComPtr<IDirectSoundBuffer> CreateSB
+(IDirectSound *ds, DWORD desc_flags, DWORD frequency,
+ DWORD bits_per_sample, DWORD channels, DWORD buffer_size) {
+  AutoComPtr<IDirectSoundBuffer> new_buff;
   DSBUFFERDESC dsbd;
   WAVEFORMATEX wfm;
   
-  if(!ds) {
+  if (!ds) {
     WriteLog("Direct sound is not available; could not create "
              "sound buffer\n");
-    return 0;
+
+    return new_buff;
   }
 
   assert(channels && bits_per_sample && frequency);
@@ -62,26 +56,27 @@ static IDirectSoundBuffer *CreateSB(IDirectSound *ds,
   wfm.wBitsPerSample = (WORD)bits_per_sample;
   wfm.wFormatTag=WAVE_FORMAT_PCM;
 
+  InitDXStruct(&dsbd);
+
   dsbd.dwBufferBytes = buffer_size;
   dsbd.dwFlags = desc_flags;
-  dsbd.dwReserved = 0;
-  dsbd.dwSize = sizeof(dsbd);
   dsbd.lpwfxFormat = &wfm;
 		
-  if (FAILED(TryAndReport(ds->CreateSoundBuffer(&dsbd, &new_buff, 0)))) {
-    WriteLog("Could not create sound buffer\n");
-    return 0;
-  } else {
-    return new_buff;
-  }
+  TryAndReport(ds->CreateSoundBuffer(&dsbd, new_buff.GetPtrToPtr(), 0));
+
+  return new_buff;
 }
 
-IDirectSoundBuffer *CreateSBFromRawData
+AutoComPtr<IDirectSoundBuffer> CreateSBFromRawData
 (IDirectSound *ds, void *data, DWORD size, DWORD desc_flags,
  DWORD frequency, DWORD bits_per_sample, DWORD channels) {
-  IDirectSoundBuffer *new_buff = CreateSB(ds, desc_flags,
-                                          frequency, bits_per_sample,
-                                          channels, size);
+  AutoComPtr<IDirectSoundBuffer> new_buff = CreateSB(ds, desc_flags,
+                                                     frequency, bits_per_sample,
+                                                     channels, size);
 
-  return new_buff ? FillSoundBuffer(new_buff, data, size) : 0;
+  if (new_buff) {
+    FillSoundBuffer(new_buff.Get(), data, size);
+  }
+
+  return new_buff;
 }

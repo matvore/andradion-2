@@ -1,16 +1,13 @@
 #include "StdAfx.h"
 #include "Fixed.h"
-#include "Glue.h"
 #include "Net.h"
 #include "Character.h"
+#include "Glue.h"
 #include "Fire.h"
-#include "Graphics.h"
+#include "Gfx.h"
+#include "Sound.h"
 
-using std::pair;
-using std::max;
-using std::min;
-using std::vector;
-using std::abs;
+using namespace std;
 
 // constants used in this module
 const BYTE BULLETTRAIL_R = 255;
@@ -21,21 +18,27 @@ const FIXEDNUM BULLETSPEED = Fixed(20);
 const int FRAMESTOEXPLOSION = 70;
 const FIXEDNUM PROJECTILE_INITIALMOVEMENT = Fixed(15);
 const FIXEDNUM PROJECTILE_SPEED = Fixed(10); 
-const int FIRECOLLIDES_NOCOLLISION = -3;
-const int FIRECOLLIDES_HERO = -2;
-const int FIRECOLLIDES_WALL = -1;
 const int MAX_EXPLOSIONBULGE = 5;
 const int HORIZONTALCOLLISION_UPPER = 1;
 const int HORIZONTALCOLLISION_LOWER = 2;
 enum {FIRESTATE_GOING, FIRESTATE_FIRSTFRAMETODRAW,
       FIRESTATE_INACTIVE = -1};
 
-CFire fires[MAX_FIRES];
+Fire fires[MAX_FIRES];
 
-bool CFire::OkayToDelete() const {return FIRESTATE_INACTIVE == state;}
+Fire *Fire::UnusedSlot() {
+  for (int i = 0; i < MAX_FIRES; i++) {
+    if (fires[i].OkayToDelete()) {
+      return fires + i;
+    }
+  }
 
-void CFire::Setup(FIXEDNUM sx_, FIXEDNUM sy_,
-                  FIXEDNUM tx_, FIXEDNUM ty_) {
+  return 0;
+}
+
+bool Fire::OkayToDelete() const {return FIRESTATE_INACTIVE == state;}
+
+void Fire::Setup(FIXEDNUM sx_, FIXEDNUM sy_, FIXEDNUM tx_, FIXEDNUM ty_) {
   direction = 0;
   remotely_generated = true;
   type = WEAPON_BAZOOKA;
@@ -51,7 +54,7 @@ void CFire::Setup(FIXEDNUM sx_, FIXEDNUM sy_,
   frames_since_explosion_started = 0;
 }
 
-void CFire::Setup(FIXEDNUM sx_, FIXEDNUM sy_, int direction_,
+void Fire::Setup(FIXEDNUM sx_, FIXEDNUM sy_, int direction_,
                   int type_, bool remotely_generated_) {
   FIXEDNUM mx, my;
 
@@ -78,13 +81,10 @@ void CFire::Setup(FIXEDNUM sx_, FIXEDNUM sy_, int direction_,
   frames_since_explosion_started = 0;
 }
 
-void CFire::Logic() {
+void Fire::Logic() {
   if(FIRESTATE_INACTIVE == state) {
     return;
   }
-
-  vector<int> collex;
-  int coll;
 
   if(FIRESTATE_GOING == state) {
     if(WEAPON_BAZOOKA == type && remotely_generated) {
@@ -107,6 +107,8 @@ void CFire::Logic() {
     dest_y = FixedMul(dest_y, BULLETSPEED) + y;
 
     do {
+      vector<int> collides;
+
       if (WEAPON_PISTOL == type) {
         if(proj_speed_x > 0) {
           hypothetical.second.x
@@ -117,7 +119,7 @@ void CFire::Logic() {
         }
 
         if(proj_speed_y > 0) {
-	  hypothetical.second.y
+          hypothetical.second.y
             = min(dest_y, (int)hypothetical.first.y + proj_speed_y);
         } else {
           hypothetical.second.y
@@ -129,30 +131,38 @@ void CFire::Logic() {
       }
 
       // check for collisions
-      coll = Collides();
-      if(WEAPON_BAZOOKA != type) {
-        if(FIRECOLLIDES_HERO == coll) {
-          if(!NetInGame()) {
-            hero.SubtractHealth(type);
-          }
+      Collides(&collides);
 
-          state = WEAPON_PISTOL != type
-            ? FIRESTATE_FIRSTFRAMETODRAW : FIRESTATE_INACTIVE;
-          break;
-        } else if(FIRECOLLIDES_NOCOLLISION != coll) {
-          if(!remotely_generated) {
-            if (NetInGame()) {
-              NetHit(coll, type);
-            } else {
-              enemies[coll].SubtractHealth(type);
+      if (!collides.empty()) {
+        Character::Ptr coll(Character::Get(collides[0]));
+        if(WEAPON_BAZOOKA != type) {
+          if(coll->ControlledByHuman()) {
+            if(!NetInGame()) {
+              coll->SubtractHealth(type);
             }
+
+            state = WEAPON_PISTOL != type
+              ? FIRESTATE_FIRSTFRAMETODRAW : FIRESTATE_INACTIVE;
+          } else {
+            if(!remotely_generated) {
+              if (NetInGame()) {
+                // in a network game, the character of the first index is the
+                //  local player, so subtract one to find the index of the
+                //  remote player; because the second index in the Character
+                //  array is the first remote player
+                NetHit(collides[0] - 1, type);
+              } else {
+                coll->SubtractHealth(type);
+              }
+            }
+
+            state = WEAPON_PISTOL != type
+              ? FIRESTATE_FIRSTFRAMETODRAW : FIRESTATE_INACTIVE;
           }
-          state = WEAPON_PISTOL != type
-            ? FIRESTATE_FIRSTFRAMETODRAW : FIRESTATE_INACTIVE;
-          break;
+        } else {
+          state = FIRESTATE_FIRSTFRAMETODRAW;
         }
-      } else if(FIRECOLLIDES_NOCOLLISION != coll) {
-        state = FIRESTATE_FIRSTFRAMETODRAW;
+
         break;
       }
 
@@ -216,45 +226,61 @@ void CFire::Logic() {
     }
 
   } else if(WEAPON_BAZOOKA == type) {
+    vector<int> collides;
+
     // exploding bazooka		
     if(++frames_since_explosion_started > FRAMESTOEXPLOSION) {
       state = FIRESTATE_INACTIVE;
       return;
     }
-				
-    state++;
-    collex = CollidesEx();
 
-    for(vector<int>::const_iterator iterate = collex.begin();
-        iterate != collex.end(); iterate++) {
-      if(FIRECOLLIDES_HERO == *iterate) {
-        hero.SubtractHealth(type);
-      } else if(enemies.size() > *iterate) {
-        if(!NetInGame()) {
-          enemies[*iterate].SubtractHealth(type);
-        }
+    state++;
+    Collides(&collides);
+
+    for (vector<int>::iterator itr = collides.begin();
+        itr != collides.end(); itr++) {
+      Character::Ptr ch = Character::Get(*itr);
+
+      if (ch->ControlledByHuman() || !NetInGame()) {
+        ch->SubtractHealth(type);
       }
     }
   }
 }
 
-class bullet_trail_line_pattern {
+class BulletTrailDrawer : public Gfx::LineDrawer {
+protected:
+  int length;
+
+  int rand0, rand1;
+  
   int visible_points_left;
   int points_to_start;
 
+  BYTE color;
+
 public:
-  bullet_trail_line_pattern(int length) {
-    visible_points_left = (rand() % 16) + 16;
+  BulletTrailDrawer(BYTE color, int length)
+    : length(length), color(color), rand0(rand()), rand1(rand()) {}
+
+  virtual void BeginLine() {
+    visible_points_left = (rand0 % 16) + 16;
     points_to_start = length <= visible_points_left
-      ? 0 : (rand() % (length - visible_points_left));
+      ? 0 : (rand1 % (length - visible_points_left));
   }
 
-  bool operator()() {
-    return points_to_start-- <= 0 && visible_points_left-- > 0;
+  virtual int GetNextPixel() {
+    if (points_to_start-- <= 0 && visible_points_left-- > 0) {
+      return color;
+    } else {
+      return -1;
+    }
   }
 };
 
-void CFire::Draw() {
+void Fire::Draw() {
+  Context *cxt = GluContext();
+
   if(FIRESTATE_INACTIVE == state) {
     return; // no business drawing an inactive projectile
   }
@@ -264,13 +290,12 @@ void CFire::Draw() {
   }
 
   if(WEAPON_PISTOL == type) {
-
-    int target_x = FixedCnvFrom<long>(x - GLUcenter_screen_x)
+    int target_x = FixedCnvFrom<long>(x - cxt->center_screen_x)
       -TILE_WIDTH/2+GAME_MODEWIDTH/2;
-    int target_y = FixedCnvFrom<long>(y - GLUcenter_screen_y)
-      -TILE_HEIGHT/2+GAME_PORTHEIGHT/2;
+    int target_y = FixedCnvFrom<long>(y - cxt->center_screen_y)
+      -TILE_HEIGHT/2+GAME_MODEHEIGHT/2;
 		
-    GluDraw(BMP_BULLET, target_x, target_y);
+    cxt->Draw(BMP_BULLET, target_x, target_y);
     return; 
   }
 
@@ -282,14 +307,14 @@ void CFire::Draw() {
     bulge = rand()%MAX_EXPLOSIONBULGE;
 		
     RECT target;
-    target.left = FixedCnvFrom<long>(x - GLUcenter_screen_x)
+    target.left = FixedCnvFrom<long>(x - cxt->center_screen_x)
       + GAME_MODEWIDTH/2 - bulge - TILE_WIDTH/2;
-    target.top = FixedCnvFrom<long>(y - GLUcenter_screen_y)
-      + GAME_PORTHEIGHT/2 - bulge - TILE_HEIGHT/2;
+    target.top = FixedCnvFrom<long>(y - cxt->center_screen_y)
+      + GAME_MODEHEIGHT/2 - bulge - TILE_HEIGHT/2;
     target.right = target.left + TILE_WIDTH + bulge*2;
     target.bottom = target.top + TILE_HEIGHT + bulge*2;
 
-    GluDrawScale(BMP_EXPLOSION, &target);
+    cxt->DrawScale(BMP_EXPLOSION, &target);
 
     if(FIRESTATE_FIRSTFRAMETODRAW == state && !remotely_generated) {
       NetFireBazooka(FixedCnvFrom<long>(x), FixedCnvFrom<long>(y));
@@ -320,97 +345,52 @@ void CFire::Draw() {
 
   // draw our line
 
-  int x0 = FixedCnvFrom<long>(sx-GLUcenter_screen_x) + GAME_MODEWIDTH/2;
-  int y0 = FixedCnvFrom<long>(sy-GLUcenter_screen_y) + GAME_PORTHEIGHT/2;
-  int x1 = FixedCnvFrom<long>(x-GLUcenter_screen_x) + GAME_MODEWIDTH/2
+  int x0 = FixedCnvFrom<long>(sx-cxt->center_screen_x) + GAME_MODEWIDTH/2;
+  int y0 = FixedCnvFrom<long>(sy-cxt->center_screen_y) + GAME_MODEHEIGHT/2;
+  int x1 = FixedCnvFrom<long>(x-cxt->center_screen_x) + GAME_MODEWIDTH/2
     + swayx;
-  int y1 = FixedCnvFrom<long>(y-GLUcenter_screen_y) + GAME_PORTHEIGHT/2
+  int y1 = FixedCnvFrom<long>(y-cxt->center_screen_y) + GAME_MODEHEIGHT/2
     + swayy;
 
-  if(GfxClipLine(x0, y0, x1, y1)) {
-    GfxLock lock(GfxLock::Back());
+  if(Gfx::Get()->ClipLine(&x0, &y0, &x1, &y1)) {
+    Gfx::Get()->Lock();
 
-    GfxLine<bullet_trail_line_pattern, bullet_trail_line_color>
-      (lock(x0, y0), lock.Pitch(), x1 - x0, y1 - y0,
-       bullet_trail_line_color(),
-       bullet_trail_line_pattern(max(abs(x1 - x0), abs(y1 - y0))));
+    Gfx::Get()->DrawLine
+      (x0, y0, x1, y1, auto_ptr< ::BulletTrailDrawer>
+       (new ::BulletTrailDrawer(bullet_trail_color,
+                                max(abs(x1 - x0), abs(y1 - y0)))).get());
+
+    Gfx::Get()->Unlock();
   }
 }
 
-vector<int> CFire::CollidesEx() {
-  FIXEDNUM tx, ty, fatness;
-  vector<int> ret;
-  ret.resize(0);
-	
-  fatness = FATNESS;
+void Fire::Collides(std::vector<int> *dest) {
+  FIXEDNUM fatness = FATNESS;
 
   if(WEAPON_BAZOOKA == type && FIRESTATE_GOING != state) {
     fatness *= 3;
   }
-	
-  // check for collision with enemy
-  for(vector<CCharacter>::iterator iterate = enemies.begin();
-      iterate != enemies.end(); iterate++) {
-    iterate->GetLocation(tx,ty);
 
-    if(abs(tx - x) < fatness && abs(ty - y) < fatness
-       && !iterate->Dead()) {
-      ret.resize(ret.size()+1,iterate - enemies.begin());
+  for (int ch_index = 0; ch_index < Character::Count(); ch_index++) {
+    Character::Ptr ch = Character::Get(ch_index);
+    FIXEDNUM tx, ty;
+
+    ch->GetLocation(tx, ty);
+
+    if(abs(tx - x) < fatness && abs(ty - y) < fatness && !ch->Dead()) {
+      dest->push_back(ch_index);
     }
   }
-
-  // check for collision with hero
-  hero.GetLocation(tx,ty);
-  if(abs(tx - x) < fatness && abs(ty - y) < fatness
-     && !hero.Dead()) {
-    ret.resize(ret.size()+1,FIRECOLLIDES_HERO); // we found a winner
-  }
-
-  // return with our results
-  return ret;
 }
 
-int CFire::Collides() {
-  FIXEDNUM tx, ty;
-
-  assert(WEAPON_BAZOOKA != type || FIRESTATE_GOING == state);
-	
-  // check for collision with hero
-  hero.GetLocation(tx,ty);
-  if(abs(tx - x) < FATNESS && abs(ty - y) < FATNESS && !hero.Dead()) {
-    return FIRECOLLIDES_HERO; 
-  }
-
-  // check for collision with enemy
-  for(vector<CCharacter>::iterator iterate = enemies.begin();
-      iterate != enemies.end(); iterate++) {
-    iterate->GetLocation(tx,ty);
-
-    if(abs(tx - x) < FATNESS && abs(ty - y) < FATNESS
-       && !iterate->Dead()) {
-      return iterate - enemies.begin();
-    }
-  }
-
-  return FIRECOLLIDES_NOCOLLISION;
-}
-
-CFire::CFire() : state(FIRESTATE_INACTIVE) {}
+Fire::Fire() : state(FIRESTATE_INACTIVE) {}
 
 // picks the best color for bullet trails out of the palette
-void CFire::PickBestBulletTrailColor() {
-  bullet_trail_color = GfxGetPaletteEntry(RGB(BULLETTRAIL_R,
-                                              BULLETTRAIL_G,
-                                              BULLETTRAIL_B));
+void Fire::AnalyzePalette() {
+  bullet_trail_color = Gfx::Get()->MatchingColor
+    (RGB(BULLETTRAIL_R, BULLETTRAIL_G, BULLETTRAIL_B));
 }
 
-BYTE CFire::bullet_trail_color;
+BYTE Fire::bullet_trail_color;
 
-void CFire::PlaySound() {
-  // play the sound of the weapon firing
-  FIXEDNUM hx, hy;
-
-  hero.GetLocation(hx, hy);
-
-  GluPlaySound(WAVSET_WEAPONS + type, x - hx, y - hy);
-}
+void Fire::PlaySound() {GluPlaySound(WAVSET_WEAPONS + type, x, y);}

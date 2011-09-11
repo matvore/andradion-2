@@ -1,139 +1,92 @@
 #include "StdAfx.h"
 #include "Buffer.h"
+#include "Gfx.h"
 #include "CompactMap.h"
-#include "Graphics.h"
 #include "Logger.h"
+#include "Resource.h"
 
-using std::pair;
-using std::min;
-using std::max;
-using std::string;
-using std::bad_alloc;
-using std::vector;
-using std::auto_ptr;
+using namespace std;
 
-class CmpFiller : public SurfaceFiller {
-  CCompactMap *parent;
+class CmpFiller : public Gfx::SurfaceFiller {
+  CompactMap *parent;
 
 public:
-  CmpFiller(CCompactMap *parent) : parent(parent) {}
+  CmpFiller(CompactMap *parent) : parent(parent) {}
 
-  virtual void FillSurface(IDirectDrawSurface *surf) throw() {
-    DDSURFACEDESC desc;
+  virtual void Fill(BYTE *surf_ptr, int pitch,
+                    Gfx::Surface *surface) throw() {
+    Gfx::Rectangle(surf_ptr, pitch, 0, 0, surface->GetWidth(),
+                        surface->GetHeight(), 0);
 
-    SurfaceFiller::FillSurface(surf);
-
-    memset(&desc, 0, sizeof(desc));
-    desc.dwSize = sizeof(desc);
-
-    surf->GetSurfaceDesc(&desc);
-    RECT clipper;
-    clipper.left = 0;
-    clipper.top = 0;
-    clipper.right = desc.dwWidth;
-    clipper.bottom = desc.dwHeight;
-
-    parent->RenderStep1(surf, 0, 0, clipper);
-  }
-
-  virtual void FillSurface(BYTE *dest, int pitch,
-                           int width, int height) throw() {
-    BYTE *clear_point = dest;
-
-    for (int y = 0; y < height; y++) {
-      memset(clear_point, 0, width);
-      clear_point += pitch;
-    }
-    
-    parent->RenderStep2(dest, pitch);
+    parent->Render(surf_ptr, pitch);
   }
 };
 
-void CCompactMap::RenderStep1(IDirectDrawSurface *target_buffer,
-                              int current_area_left,
-                              int current_area_top,
-                              const RECT& simple_clipper_rect) {
-  DDBLTFX fx;
-  fx.dwSize = sizeof(fx);
-		
-  // abbreviated variables
-  const long& cl = simple_clipper_rect.left;
-  const long& cr = simple_clipper_rect.right;
-  const long& ct = simple_clipper_rect.top;
-  const long& cb = simple_clipper_rect.bottom;
+void CompactMap::RenderStep1(Gfx *gfx, int x, int y, bool clip) {
+  Array<BYTE>::Iterator block_i;
+  Array<Array<RCT> >::Iterator area_i;
 
-  // blit blocks
-  vector<BYTE>::iterator block_i;
-  vector<vector<RCT> >::iterator area_i;
-  for(block_i = blocks.begin(), area_i = block_areas.begin();
-      block_i != blocks.end(); block_i++, area_i++) {
-    fx.dwFillColor = *block_i;
+  gfx->Lock();
 
-    vector<RCT>::iterator rect_i;
-    for(rect_i = area_i->begin(); rect_i != area_i->end(); rect_i++) {
-      RECT t;
-      t.left = (int)rect_i->x + current_area_left;
-      t.top = (int)rect_i->y + current_area_top;
-      t.right = t.left + (int)rect_i->w + 1;
-      t.bottom = t.top + (int)rect_i->h + 1;
+  for (block_i = blocks.Begin(), area_i = block_areas.Begin();
+       block_i != blocks.End(); block_i++, area_i++) {
+    RECT dest;
 
-      if(t.left < cl) {
-        t.left = cl;
-      }
+    for (Array<RCT>::Iterator rct_i = area_i->Begin();
+         rct_i != area_i->End(); rct_i++) {
+      dest.left = rct_i->x + x;
+      dest.top = rct_i->y + y;
+      dest.right = dest.left + rct_i->w + 1;
+      dest.bottom = dest.top + rct_i->h + 1;
 
-      if(t.right > cr) {
-        t.right = cr;
-      }
-
-      if(t.top < ct) {
-        t.top = ct;
-      }
-
-      if(t.bottom > cb) {
-        t.bottom = cb;
-      }
-
-      if(t.bottom > t.top && t.right > t.left 
-         && FAILED(target_buffer->Blt(&t, 0, 0, DDBLT_COLORFILL
-                                      | DDBLT_ASYNC, &fx))) {
-        while(DDERR_WASSTILLDRAWING ==
-              target_buffer->Blt(&t, 0, 0, DDBLT_COLORFILL, &fx))
-          ;
-      }
+      gfx->Rectangle(&dest, *block_i, clip);
     }
   }
+
+  gfx->Unlock();
 }
 
-void CCompactMap::RenderStep2(void *surface, int pitch) {
+void CompactMap::Render(BYTE *surface, int pitch) {
+  Array<BYTE>::Iterator block_i;
+  Array<Array<RCT> >::Iterator area_i;
+
+  for (block_i = blocks.Begin(), area_i = block_areas.Begin();
+       block_i != blocks.End(); block_i++, area_i++) {
+    for (Array<RCT>::Iterator rct_i = area_i->Begin();
+         rct_i != area_i->End(); rct_i++) {
+      Gfx::Rectangle(surface, pitch, rct_i->x, rct_i->y,
+                          rct_i->w + 1, rct_i->h + 1, *block_i);
+    }
+  }
+
   // figure first and last row to blit in leftover
   // get a pointer into the surface, too
-  BYTE *surf_8bit = (BYTE *)surface;
   BYTE *source = (BYTE *)left_over_pixels.Get();
+  BYTE *surf = surface;
   
-  for(VCTR_ROW::iterator row = left_over.begin();
-      row != left_over.end(); row++) {
-    for(ROW::iterator run_i = row->begin(); run_i != row->end(); run_i++) {
+  for(VCTR_ROW::Iterator row = left_over.Begin();
+      row != left_over.End(); row++) {
+    for(ROW::Iterator run_i = row->Begin(); run_i != row->End(); run_i++) {
       const int amount = run_i->opaque_count + 1;
       
-      memcpy(surf_8bit + run_i->x, source, amount);
+      memcpy(surf + run_i->x, source, amount);
       source += amount;
     }
 
-    surf_8bit += pitch;
+    surf += pitch;
   }
 
   source = (BYTE *)pattern_pixels.Get();
-  surf_8bit = (BYTE *)surface;
 
-  for(vector<PATTERN>::iterator pitr = patterns.begin();
-      pitr != patterns.end(); pitr++) {
+  for(Array<PATTERN>::Iterator pitr = patterns.Begin();
+      pitr != patterns.End(); pitr++) {
     int area = ((int)pitr->width + 1) * ((int)pitr->height + 1);
     int actual_width = (int)pitr->width + 1;
 
-    for (vector<PNT>::iterator point = pitr->spots.begin();
-         point != pitr->spots.end(); point++) {
+    for (Array<PNT>::Iterator point = pitr->spots.Begin();
+         point != pitr->spots.End(); point++) {
       BYTE *pattern_source = source;
-      BYTE *pattern_dest = surf_8bit
+      BYTE *pattern_dest = surface
         + (int)point->x + (int)point->y * pitch;
 
       for (int y = 0; y <= pitr->height; y++) {
@@ -167,45 +120,42 @@ public:
   BYTE *res_ptr;
 };
 
-auto_ptr<vector<CCompactMap *> >
-CCompactMap::LoadMapSet(const char *res_name, const char *type,
-                        HMODULE module, WORD language) {
-  auto_ptr<vector<CCompactMap *> > res(new vector<CCompactMap *>());
-  HRSRC res_handle = FindResourceEx(module, type, res_name, language);
-  HGLOBAL res_data = LoadResource(module, res_handle);
-  BYTE *res_ptr = (BYTE *)LockResource(res_data);
-  BYTE *res_end = res_ptr + SizeofResource(module, res_handle);
+auto_ptr<std::vector<CompactMap *> >
+CompactMap::LoadMapSet(const char *type, const char *res_name) {
+  auto_ptr<vector<CompactMap *> > res(new vector<CompactMap *>());
+  Resource resource(type, res_name);
+
+  BYTE *res_ptr = const_cast<BYTE *>(resource.GetPtr());
+  BYTE *res_end = res_ptr + resource.GetSize();
 
   while (res_ptr != res_end) {
-    res->push_back(new CCompactMap(&res_ptr));
+    res->push_back(new CompactMap(&res_ptr));
   }
-
-  FreeResource(res_data);
 
   return res;
 }
 
-CCompactMap::CCompactMap(BYTE **source) {
+CompactMap::CompactMap(BYTE **source) {
   WriteLog("Cons cmp\n"); 
 
   datafile f(*source);
 
   WriteLog("get number of block colors\n");
-  blocks.resize(f.getByte());
-  block_areas.resize(blocks.size());
+  blocks.Resize(f.getByte());
+  block_areas.Resize(blocks.Size());
 
-  vector<BYTE>::iterator block_i;
-  vector<vector<RCT> >::iterator area_i;
-  for(block_i = blocks.begin(), area_i = block_areas.begin();
-      block_i != blocks.end(); block_i++, area_i++) {
+  Array<BYTE>::Iterator block_i;
+  Array<Array<RCT> >::Iterator area_i;
+  for(block_i = blocks.Begin(), area_i = block_areas.Begin();
+      block_i != blocks.End(); block_i++, area_i++) {
     // get this block's color
     *block_i = f.getByte();
       
     // get how many blocks of it we have
-    area_i->resize(f.getUsuallyByte()); 
+    area_i->Resize(f.getUsuallyByte()); 
 
-    for(vector<RCT>::iterator rect_i = area_i->begin();
-        rect_i != area_i->end(); rect_i++) {
+    for(Array<RCT>::Iterator rect_i = area_i->Begin();
+        rect_i != area_i->End(); rect_i++) {
       rect_i->x = f.getByte();
       rect_i->y = f.getByte();
       rect_i->w = f.getByte();
@@ -213,11 +163,11 @@ CCompactMap::CCompactMap(BYTE **source) {
     }
   }
 
-  patterns.resize(f.getUsuallyByte());
+  patterns.Resize(f.getUsuallyByte());
 		
-  vector<PATTERN>::iterator pitr;
+  Array<PATTERN>::Iterator pitr;
 
-  for(pitr = patterns.begin(); pitr != patterns.end(); pitr++) {
+  for(pitr = patterns.Begin(); pitr != patterns.End(); pitr++) {
     const int width = f.getUsuallyByte();
     const int height = f.getUsuallyByte();
 
@@ -236,26 +186,26 @@ CCompactMap::CCompactMap(BYTE **source) {
       buffer += width;
     }
 
-    pitr->spots.resize(f.getUsuallyByte());
+    pitr->spots.Resize(f.getUsuallyByte());
 
-    for(vector<PNT>::iterator sitr = pitr->spots.begin();
-        sitr != pitr->spots.end(); sitr++) {
+    for(Array<PNT>::Iterator sitr = pitr->spots.Begin();
+        sitr != pitr->spots.End(); sitr++) {
       sitr->x = f.getByte();
       sitr->y = f.getByte();
     }
   }
 
   WriteLog("get number of left over rows\n");
-  left_over.resize(f.getUsuallyByte());
+  left_over.Resize(f.getUsuallyByte());
 
-  VCTR_ROW::iterator ritr;
-  for(ritr = left_over.begin(); ritr != left_over.end(); ritr++) {
-    ritr->resize(f.getByte());
+  VCTR_ROW::Iterator ritr;
+  for(ritr = left_over.Begin(); ritr != left_over.End(); ritr++) {
+    ritr->Resize(f.getByte());
     
     // now get each left over run in this row
     int current_offset = 0;
       
-    for(ROW::iterator run_i = ritr->begin(); run_i != ritr->end(); run_i++) {
+    for(ROW::Iterator run_i = ritr->Begin(); run_i != ritr->End(); run_i++) {
       const int trans = f.getByte(), opaque = f.getByte() + 1;
       const unsigned int old_size = left_over_pixels.Size();
       BYTE *data;
@@ -283,6 +233,6 @@ CCompactMap::CCompactMap(BYTE **source) {
   *source = f.res_ptr;
 }
 
-auto_ptr<SurfaceFiller> CCompactMap::Filler() {
-  return auto_ptr<SurfaceFiller>(new CmpFiller(this));
+auto_ptr<Gfx::SurfaceFiller> CompactMap::Filler() {
+  return auto_ptr<Gfx::SurfaceFiller>(new CmpFiller(this));
 }

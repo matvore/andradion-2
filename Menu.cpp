@@ -1,176 +1,133 @@
-#include "stdafx.h"
-#include "Graphics.h"
+#include "StdAfx.h"
+#include "Gfx.h"
 #include "Menu.h"
 #include "Logger.h"
+#include "Fixed.h"
 
 const int CMenu::SELECTION_NOSTRINGSYET = -1;
 
-using std::string;
-using std::vector;
+using namespace std;
 
-CMenu::CMenu(const LOGFONT& font_,
-	     COLORREF font_color_,COLORREF font_shadow,
-	     COLORREF selected_color_,COLORREF selected_shadow,
-	     COLORREF header_color_,COLORREF header_shadow,
-	     int shadow_offset_, surf_t backdrop)
-  : font((HFONT)CreateFontIndirect(&font_)), backdrop(backdrop),
-    font_color(font_color_, font_shadow),
-    selected_color(selected_color_, selected_shadow),
-    header_color(header_color_, header_shadow),
-    shadow_offset(shadow_offset_) {}
-
-CMenu::CMenu(const LOGFONT& font_, COLORREF font_color_,
-             COLORREF selected_color_, COLORREF header_color_,
-             surf_t backdrop)
-  : font((HFONT)CreateFontIndirect(&font_)),
-    backdrop(backdrop), font_color(font_color_, 0),
-    selected_color(selected_color_, 0),
-    header_color(header_color_, 0), shadow_offset(0) {}
-
-CMenu::~CMenu() {
-  DeleteObject(font);
+CMenu::CMenu(Gfx::Font *font,
+	     BYTE font_color, BYTE font_shadow,
+	     BYTE selected_color, BYTE selected_shadow,
+	     BYTE header_color, BYTE header_shadow,
+	     int shadow_offset, Gfx::Surface *backdrop)
+  : font(font), backdrop(backdrop),
+    font_color(font_color, font_shadow),
+    selected_color(selected_color, selected_shadow),
+    header_color(header_color, header_shadow),
+    shadow_offset(shadow_offset) {
+  assert(font);
+  assert(backdrop);
 }
 
-void CMenu::FillSurface()
-{
-  // make sure we've been passed strings
+void CMenu::FillSurface() {
   assert(SELECTION_NOSTRINGSYET != current_selection);
 
-  HDC dc;
+  backdrop->Draw(0, 0, false);
 
-  GfxPut(backdrop, 0, 0, false);
+  font->WriteString(hc.first+shadow_offset, hc.second+shadow_offset,
+                    header.c_str(), header_color.second);
+  font->WriteString(hc.first, hc.second, header.c_str(), header_color.first);
 
-  if(FAILED(GfxBackBuffer()->GetDC(&dc))) {return;}
-
-  // select the right objects into the dc
-  HFONT old_font = (HFONT)SelectObject(dc,HGDIOBJ(this->font));
-  int old_bkmode = SetBkMode(dc,TRANSPARENT);
-
-  HPALETTE old_pal = SelectPalette(dc, GfxGDIPalette(), FALSE);
-
-  COLORREF old_color;
-  if(shadow_offset) {
-    old_color = SetTextColor(dc, header_color.second);
-    TextOut(dc,hc.first + shadow_offset, hc.second + shadow_offset,
-            header.c_str(), header.length());
-    SetTextColor(dc, header_color.first);
-  } else {
-    old_color = SetTextColor(dc, header_color.first);
+  for(int i = 0; i < num_strings;i++) {
+    pair<BYTE, BYTE> color = i != current_selection
+      ? font_color : selected_color;
+    
+    font->WriteString(tc[i].first+shadow_offset, tc[i].second+shadow_offset,
+                      strings[i].c_str(), color.second);
+    font->WriteString(tc[i].first, tc[i].second,
+                      strings[i].c_str(), color.first);
   }
-		
-  TextOut(dc,hc.first,hc.second, header.c_str(), header.length());
-  SetTextColor(dc, font_color.first);
-  for(int i = 0; i < num_strings;i++)
-    {
-      if(i == current_selection) {
-        continue; // print the currently selected with a different color
-      }
-      if(shadow_offset) {
-        SetTextColor(dc,font_color.second);
-        TextOut(dc,tc[i].first+shadow_offset, tc[i].second+shadow_offset,
-                strings[i].c_str(), strings[i].length());
-        SetTextColor(dc, font_color.first);
-      }
-      TextOut(dc,tc[i].first, tc[i].second,
-              strings[i].c_str(), strings[i].length());
-    }
-
-  if(shadow_offset) {
-    SetTextColor(dc,this->selected_color.second);
-    TextOut(dc,
-            tc[current_selection].first+shadow_offset,
-            tc[current_selection].second+shadow_offset,
-            strings[current_selection].c_str(),
-            strings[current_selection].length());
-  }
-  
-  SetTextColor(dc,this->selected_color.first);
-  TextOut(dc,
-	  tc[current_selection].first,
-          tc[current_selection].second,
-	  strings[current_selection].c_str(),
-	  strings[current_selection].length());
-
-  SelectPalette(dc, old_pal, FALSE);
-
-  // unselect all those things we selected before
-  SelectObject(dc,(HGDIOBJ)old_font);
-  SetTextColor(dc,old_color);
-  SetBkMode(dc,old_bkmode);
-		
-  GfxBackBuffer()->ReleaseDC(dc);
 }
 
-int CMenu::GetSelectionIndex() const
-{
+int CMenu::GetSelectionIndex() const {
   // make sure we've been passed strings
   assert(SELECTION_NOSTRINGSYET != this->current_selection);
 
   return this->current_selection;
 }
 
-bool CMenu::MoveDown()
-{
-  if((const int)(this->current_selection) == this->num_strings - 1)
-    {
-      return false; // can't move
-    }
-  else
-    {
-      this->current_selection++;
-      return true;
-    }
+bool CMenu::MoveDown() {
+  if(++current_selection == num_strings) {
+    current_selection--;
+    return false; // can't move
+  } else {
+    return true;
+  }
 }
 
-bool CMenu::MoveUp()
-{
-  if(0 == this->current_selection)
-    {
-      return false; // can't move
-    }
-  else
-    {
-      this->current_selection--;
-      return true;
-    }
+bool CMenu::MoveUp() {
+  if(!current_selection) {
+    return false; // can't move
+  } else {
+    current_selection--;
+    return true;
+  }
 }
 
-void CMenu::SetStrings(const string& header_,const vector<string>& strings_,int current_selection_)
+void CMenu::SetStrings(const string& header_,
+                       const vector<string>& strings_,
+                       int current_selection_)
 {
   this->header = header_;
   this->strings = strings_;
   this->num_strings = strings.size();
   this->current_selection = current_selection_;
-		
+
+  CalculateTextCoordinates();
+}
+
+void CMenu::CalculateTextCoordinates() {
   // figure out text and header coordinates
-  int width = GfxModeWidth(), height = GfxModeHeight();
+  int width = Gfx::Get()->GetVirtualBufferWidth();
+  int height = Gfx::Get()->GetVirtualBufferHeight();
 
-  HDC dc = CreateCompatibleDC(NULL);
-			
-  HGDIOBJ old_font = SelectObject(dc,(HGDIOBJ)this->font);
-			
   // figure out the coordinates of everything
-  SIZE size;
-  TEXTMETRIC tm;
-
-  GetTextMetrics(dc,&tm);
-	
-  int collective_height = tm.tmHeight * (this->num_strings+1);
+  int collective_height = font->GetCharHeight() * (num_strings+1);
 
   hc.second = (height - collective_height) / 2;
-  GetTextExtentPoint32(dc,this->header.c_str(),this->header.length(),&size);
-  hc.first = (width - size.cx) / 2;
+  hc.first = (width - font->GetCharWidth() * header.length()) / 2;
 
   tc.resize(this->num_strings);
 
-  for(DWORD i = 0; i < tc.size(); i++)
-    {
-      GetTextExtentPoint32(dc,this->strings[i].c_str(),this->strings[i].length(),&size);
-      tc[i].first  = (width - size.cx) / 2;
-      tc[i].second = hc.second + ((i+1) * tm.tmHeight);
-    }
-
-  SelectObject(dc,(HGDIOBJ)old_font);
-  DeleteDC(dc);
+  for(DWORD i = 0; i < tc.size(); i++) {
+    tc[i].first = (width - (font->GetCharWidth()) * strings[i].length()) / 2;
+    tc[i].second = hc.second + ((i+1) * font->GetCharHeight());
+  }
 }
 
+void CMenu::ChangeGraphicsConfig(Gfx::Font *f, Gfx::Surface *b) {
+  font = f;
+  backdrop = b;
+  CalculateTextCoordinates();
+}
+
+void CMenu::SetStrings(const char *str, int current_selection_) {
+  string current_str;
+
+  bool has_header = false;
+
+  string hdr;
+  vector<string> strs;
+
+  do {
+    while ('\n' != *str) {
+      current_str += *str++;
+    }
+
+    str++;
+
+    if (has_header) {
+      strs.push_back(current_str);
+    } else {
+      hdr = current_str;
+      has_header = true;
+    }
+
+    current_str = "";
+  } while (*str);
+
+  SetStrings(hdr, strs, current_selection_);
+}

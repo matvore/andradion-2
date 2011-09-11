@@ -143,12 +143,7 @@
 #include "Buffer.h"
 #include "Net.h"
 
-using std::pair;
-using std::string;
-using std::bad_alloc;
-using std::queue;
-using std::auto_ptr;
-using std::vector;
+using namespace std;
 
 class CreatePlayerFailure : public std::exception {
 public:

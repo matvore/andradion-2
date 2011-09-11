@@ -1,7 +1,3 @@
-typedef int FIXEDNUM;
-
-#define Fixed(x) (FIXEDNUM((double)65536 * double(x)))
-
 template<class c> inline FIXEDNUM FixedCnvTo(const c& x) {
   return (FIXEDNUM)(x * c(65536));
 }

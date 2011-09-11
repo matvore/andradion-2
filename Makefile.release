@@ -1,0 +1,90 @@
+cc = gcc -s -O2 -DNDEBUG -U_DEBUG
+cc_ch = g++ -s -O2 -DNDEBUG -U_DEBUG -I.\DXInclude
+
+out = Andradion2.exe
+cleaning = StdAfx.h.gch *.o $(out) "Andradion 2.res"
+rm = del /Q
+gamebmps = "C:\Andradion 2\Resource\1charminn.bmp" "C:\Andradion 2\Resource\1charmins.bmp" "C:\Andradion 2\Resource\1charminw.bmp" "C:\Andradion 2\Resource\1cokens.bmp" "C:\Andradion 2\Resource\1cokew.bmp" "C:\Andradion 2\Resource\1evilturnern.bmp" "C:\Andradion 2\Resource\1evilturners.bmp" "C:\Andradion 2\Resource\1evilturnerw.bmp" "C:\Andradion 2\Resource\1koolaidguyn.bmp" "C:\Andradion 2\Resource\1koolaidguys.bmp" "C:\Andradion 2\Resource\1koolaidguyw.bmp" "C:\Andradion 2\Resource\1miltonn.bmp" "C:\Andradion 2\Resource\1miltons.bmp" "C:\Andradion 2\Resource\1miltonw.bmp" "C:\Andradion 2\Resource\1pepsin.bmp" "C:\Andradion 2\Resource\1pepsis.bmp" "C:\Andradion 2\Resource\1pepsiw.bmp" "C:\Andradion 2\Resource\1sallyn.bmp" "C:\Andradion 2\Resource\1sallys.bmp" "C:\Andradion 2\Resource\1sallyw.bmp" "C:\Andradion 2\Resource\1switzn.bmp" "C:\Andradion 2\Resource\1switzs.bmp" "C:\Andradion 2\Resource\1switzw.bmp" "C:\Andradion 2\Resource\1turnern.bmp" "C:\Andradion 2\Resource\1turners.bmp" "C:\Andradion 2\Resource\1turnerw.bmp" "C:\Andradion 2\Resource\2charminn.bmp" "C:\Andradion 2\Resource\2charmins.bmp" "C:\Andradion 2\Resource\2charminw.bmp" "C:\Andradion 2\Resource\2cokens.bmp" "C:\Andradion 2\Resource\2cokew.bmp" "C:\Andradion 2\Resource\2evilturnern.bmp" "C:\Andradion 2\Resource\2evilturners.bmp" "C:\Andradion 2\Resource\2evilturnerw.bmp" "C:\Andradion 2\Resource\2koolaidguyn.bmp" "C:\Andradion 2\Resource\2koolaidguys.bmp" "C:\Andradion 2\Resource\2koolaidguyw.bmp" "C:\Andradion 2\Resource\2miltonn.bmp" "C:\Andradion 2\Resource\2miltons.bmp" "C:\Andradion 2\Resource\2miltonw.bmp" "C:\Andradion 2\Resource\2pepsin.bmp" "C:\Andradion 2\Resource\2pepsis.bmp" "C:\Andradion 2\Resource\2pepsiw.bmp" "C:\Andradion 2\Resource\2sallyn.bmp" "C:\Andradion 2\Resource\2sallys.bmp" "C:\Andradion 2\Resource\2sallyw.bmp" "C:\Andradion 2\Resource\2switzn.bmp" "C:\Andradion 2\Resource\2switzs.bmp" "C:\Andradion 2\Resource\2switzw.bmp" "C:\Andradion 2\Resource\2turnern.bmp" "C:\Andradion 2\Resource\2turners.bmp" "C:\Andradion 2\Resource\2turnerw.bmp" "C:\Andradion 2\Resource\bazookan.bmp" "C:\Andradion 2\Resource\bazookas.bmp" "C:\Andradion 2\Resource\bazookaw.bmp" "C:\Andradion 2\Resource\bloodstain.bmp" "C:\Andradion 2\Resource\bullet.bmp" "C:\Andradion 2\Resource\decapitate1.bmp" "C:\Andradion 2\Resource\decapitate2.bmp" "C:\Andradion 2\Resource\explosion.bmp" "C:\Andradion 2\Resource\Health.bmp" "C:\Andradion 2\Resource\mgn.bmp" "C:\Andradion 2\Resource\mgs.bmp" "C:\Andradion 2\Resource\mgw.bmp" "C:\Andradion 2\Resource\pistoln.bmp" "C:\Andradion 2\Resource\pistols.bmp" "C:\Andradion 2\Resource\pistolw.bmp" "C:\Andradion 2\palettes\extracolors.bmp"
+
+all: $(out)
+
+clean:
+	$(rm) $(cleaning)
+
+cleanmacs:
+	$(rm) *~
+	$(rm) utility\*~
+
+$(out): Deeds.o Character.o Fire.o Fixed.o GammaEffects.o Glue.o LevelEnd.o Net.o Palette.o PowerUp.o Weather.o WinMain.o Andradion\ 2.o CompactMap.o Gfx.o GfxBasic.o GfxPretty.o Menu.o MusicLib.o Profiler.o RawLoad.o Timer.o
+	$(cc) -o $(out) *.o -lstdc++ -lwinmm -ldxguid -lgdi32 -lole32 -mwindows -s
+
+Andradion\ 2.o: Andradion\ 2.rc Glue.h
+	rc /i "C:\Program Files\Microsoft Platform SDK for Windows Server 2003 R2\Include" /r "Andradion 2.rc"
+	windres -iAndradion\ 2.res -oAndradion\ 2.o
+	$(rm) "Andradion 2.res"
+
+Deeds.o: Deeds.cpp StdAfx.h.gch Fixed.h Deeds.h
+	$(cc) -c Deeds.cpp 
+
+Character.o: Character.cpp StdAfx.h.gch Fixed.h GammaEffects.h Net.h PowerUp.h Character.h Fire.h Glue.h Logger.h Gfx.h
+	$(cc) -c Character.cpp
+
+Fire.o: Fire.cpp StdAfx.h.gch Fixed.h Net.h Gfx.h Character.h Fire.h Glue.h
+	$(cc) -c Fire.cpp
+
+Fixed.o: Fixed.cpp Fixed.h StdAfx.h.gch
+	$(cc) -c Fixed.cpp
+
+GammaEffects.o: GammaEffects.cpp StdAfx.h.gch Gfx.h Fixed.h GammaEffects.h Logger.h Palette.h 
+	$(cc) -c GammaEffects.cpp
+
+Glue.o: Glue.cpp StdAfx.h.gch Gfx.h CompactMap.h Fixed.h Weather.h Fire.h Character.h Glue.h Gfx.h GfxBasic.h GfxPretty.h Deeds.h LevelEnd.h PowerUp.h Net.h GammaEffects.h Logger.h Profiler.h MusicLib.h Timer.h Menu.h RawLoad.h Buffer.h 
+	$(cc) -c Glue.cpp
+
+LevelEnd.o: LevelEnd.cpp StdAfx.h.gch Fixed.h LevelEnd.h
+	$(cc) -c LevelEnd.cpp
+
+Net.o: Net.cpp StdAfx.h.gch Net.h Logger.h
+	$(cc) -c Net.cpp
+
+Palette.o: Palette.cpp Fixed.h StdAfx.h.gch Gfx.h Logger.h Palette.h Glue.h
+	$(cc) -c Palette.cpp
+
+PowerUp.o: PowerUp.cpp StdAfx.h.gch Fixed.h Gfx.h Character.h Glue.h PowerUp.h Net.h MusicLib.h
+	$(cc) -c PowerUp.cpp
+
+Weather.o: Weather.cpp StdAfx.h.gch Fixed.h Weather.h Logger.h Gfx.h Glue.h
+	$(cc) -c Weather.cpp
+
+WinMain.o: WinMain.cpp StdAfx.h.gch Fixed.h Glue.h Logger.h
+	$(cc) -c WinMain.cpp
+
+CompactMap.o: CompactMap.cpp StdAfx.h.gch CompactMap.h Gfx.h Logger.h Buffer.h
+	$(cc) -c CompactMap.cpp
+
+Gfx.o: Gfx.cpp StdAfx.h.gch Gfx.h Buffer.h Logger.h
+	$(cc) -c Gfx.cpp
+
+GfxBasic.o: GfxBasic.cpp StdAfx.h.gch Gfx.h GfxBasic.h Logger.h
+	$(cc) -c GfxBasic.cpp
+
+GfxPretty.o: GfxPretty.cpp StdAfx.h.gch Gfx.h GfxPretty.h Logger.h
+	$(cc) -c GfxPretty.cpp
+
+Menu.o: Menu.cpp StdAfx.h.gch Gfx.h Menu.h Logger.h Fixed.h
+	$(cc) -c Menu.cpp
+
+MusicLib.o: MusicLib.cpp StdAfx.h.gch MusicLib.h Logger.h
+	$(cc) -c MusicLib.cpp
+
+Profiler.o: Profiler.cpp StdAfx.h.gch Profiler.h
+	$(cc) -c Profiler.cpp
+
+RawLoad.o: RawLoad.cpp StdAfx.h.gch Logger.h
+	$(cc) -c RawLoad.cpp
+
+Timer.o: Timer.cpp StdAfx.h.gch Timer.h
+	$(cc) -c Timer.cpp
+
+StdAfx.h.gch: StdAfx.h
+	$(cc_ch) StdAfx.h

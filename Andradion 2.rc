@@ -136,8 +136,8 @@ FONT 8, "MS Sans Serif", 400, 0
  CONTROL "About", IDC_STATIC, "BUTTON", BS_GROUPBOX | WS_CHILD | WS_VISIBLE | WS_TABSTOP, 91,5,145,45
  CONTROL "by Matt DeVore and Doug Templeton", IDC_STATIC, "STATIC", SS_LEFT | WS_CHILD | WS_VISIBLE | WS_GROUP, 97,13,120,10
  CONTROL "11 of 12 levels available", IDC_STATIC, "STATIC", SS_LEFT | WS_CHILD | WS_VISIBLE | WS_GROUP, 97,22,135,10
- CONTROL "E-mail: mdevore@falcon.calpoly.edu", IDC_STATIC, "STATIC", SS_LEFT | WS_CHILD | WS_VISIBLE | WS_GROUP, 97,31,120,8
- CONTROL "Website: home.inreach.com/clkawa", IDC_STATIC, "STATIC", SS_LEFT | WS_CHILD | WS_VISIBLE | WS_GROUP, 97,40,115,
+ CONTROL "E-mail: cplasmaguns@hotmail.com", IDC_STATIC, "STATIC", SS_LEFT | WS_CHILD | WS_VISIBLE | WS_GROUP, 97,31,120,8
+ CONTROL "Website: www.calpoly.edu/~mdevore", IDC_STATIC, "STATIC", SS_LEFT | WS_CHILD | WS_VISIBLE | WS_GROUP, 97,40,115,
 8
  CONTROL "- Futs Reeyalpitlum", IDC_STATIC, "STATIC", SS_LEFT | WS_CHILD | WS_VISIBLE | WS_GROUP, 176,51,60,8
  CONTROL "Hosting vs. Joining", IDC_STATIC, "BUTTON", BS_GROUPBOX | WS_CHILD | WS_VISIBLE, 131,60,105,65, WS_EX_RIGHT
@@ -192,7 +192,7 @@ IDR_WELCOMEBOXMUSIC     MIDI    DISCARDABLE     "Resource\\rush.mid"
 //
 
 IDR_SPLASH              DAT     DISCARDABLE     "Resource\\splash.dat"
-IDR_FONT                DAT     DISCARDABLE     "resource\\font.dat"
+IDR_FONT                DAT     DISCARDABLE     "Resource\\font.dat"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -201,27 +201,6 @@ IDR_FONT                DAT     DISCARDABLE     "resource\\font.dat"
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_SELECTCHARACTERCAPTION "PICK CHARACTER"
-    IDS_DIFFICULTYLEVEL1    "Dangnabit (TRY ME FIRST)"
-    IDS_DIFFICULTYLEVEL2    "My Dear Child (HARDER)"
-    IDS_DIFFICULTYLEVEL3    "Danger! Danger! (VERY HARD)"
-    IDS_CHARNAME1           "Sally"
-    IDS_CHARNAME2           "Milton"
-    IDS_CHARNAME3           "Evil Mr. Turner"
-    IDS_CHARNAME4           "Mr. Turner"
-    IDS_CHARNAME5           "The Switz"
-    IDS_CHARNAME6           "Charmin"
-    IDS_CHARNAME7           "Pepsi One"
-    IDS_CHARNAME8           "Coca-Cola Classic"
-    IDS_CHARNAME9           "Kool-Aid Guy"
-    IDS_UNAVAILABLELEVEL    "(Unavailable)"
-    IDS_MAGICWORD           "No shortcuts; say the magic word!"
-END
-
-STRINGTABLE DISCARDABLE 
-BEGIN
-    IDS_WINDOWCAPTION       "The Turner Game"
-    IDS_WINDOWCLASS         "Andradion 2FV WndClass"
     IDS_OLDDX               "DirectX 3.0 is required to run Andradion 2, but it is not installed.  To download the latest version of DirectX, go to www.microsoft.com/directx/homeuser/downloads/default.asp or www.microsoft.com/directx\nE-mail me at mdevore@falcon.calpoly.edu if you need any help."
     IDS_FORCEPICKUPSP       "Hold F to pick it up for points!"
     IDS_NEWPLAYER           "%s has joined."
@@ -232,43 +211,12 @@ BEGIN
     IDS_BESTTIMEFORMAT      "Best time: %02d:%02d w/score of %d"
     IDS_BESTSCOREFORMAT     "Best score: %d w/time of %02d:%02d"
     IDS_RECORDSUMMARY       "Best score: %d, Best time: %02d:%02d"
-    IDS_MAXSCORE            "Maximum score attained!"
 END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_INIFILE             "Progress11.dat"
-    IDS_MAINMENUITEM1       "Single Player"
-END
-
-STRINGTABLE DISCARDABLE 
-BEGIN
-    IDS_MAINMENUITEM2       "Multiplayer"
-    IDS_MAINMENUITEM3       "Quit"
-    IDS_MAINMENUCAPTION     "ANDRADION 2"
-    IDS_LEVELSELECTCAPTION  "LEVEL SELECT"
-    IDS_CONFIRMATIONCAPTION "ARE YOU SURE?"
-    IDS_NO                  "No"
-    IDS_YES                 "Yes"
     IDS_SELECTCONNECTIONMETHODCAPTION "CONNECTION METHOD"
     IDS_ENTERNAMECAPTION    "ENTER NAME"
-    IDS_SELECTGAMECAPTION   "PICK ROOM (holding down shift to host)"
-    IDS_GAMESLOTNAME1       "Happiness Village"
-    IDS_GAMESLOTNAME2       "Summer School"
-    IDS_GAMESLOTNAME3       "DMV"
-    IDS_GAMESLOTNAME4       "Middle School"
-    IDS_GAMESLOTNAME5       "Gibbs' Class"
-END
-
-STRINGTABLE DISCARDABLE 
-BEGIN
-    IDS_GAMESLOTNAME6       "Joe Henderson"
-    IDS_GAMESLOTNAME7       "Robert Semple"
-    IDS_GAMESLOTNAME8       "Matthew Turner"
-    IDS_GAMESLOTNAME9       "Mary Farmer"
-    IDS_GAMESLOTNAME10      "Turnabout Shack"
-    IDS_GAMESLOTNAME11      "BOOYEAH.COM"
-    IDS_GAMESLOTNAME12      "BOOYEAH.GOV"
 END
 
 STRINGTABLE DISCARDABLE 
@@ -289,39 +237,7 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_BUDGETCUTS          "This is a preview of Andradion 2; it contains only a fraction of the full version.  You should have been able to get this preview for free.  The full version will also be free.  Visit home.inreach.com/clkawa regularly to check for updates, or e-mail me at mdevore@falcon.calpoly.edu if you would like to be notified by e-mail.  Also note that Multiplayer is not functional at this time.  ENJOY!"
-    IDS_LEVELNAME1          "The End of the Beginning"
-    IDS_LEVELFILE1          "1_"
-    IDS_STRING204           "Out of the Office and into the Fire"
-    IDS_STRING205           "2A"
-    IDS_STRING206           "Out of the Office and Viva Zepellin!"
-    IDS_STRING207           "2B"
-END
-
-STRINGTABLE DISCARDABLE 
-BEGIN
-    IDS_STRING208           "What goes up must come SPLAT! Excuse me"
-    IDS_STRING209           "3A"
-    IDS_STRING210           "Super Mario Super Fun Zone"
-    IDS_STRING211           "3B"
-    IDS_STRING212           "Switzerland"
-    IDS_STRING213           "4_"
-    IDS_STRING214           "Gibs Rum"
-    IDS_STRING215           "5_"
-    IDS_STRING216           "¡Taco Taco!"
-    IDS_STRING217           "6A"
-    IDS_STRING218           "Border Hopping and Famous Landmarks"
-    IDS_STRING219           "7A"
-    IDS_STRING220           "Probe-mania"
-    IDS_STRING221           "6B"
-    IDS_STRING222           "Welcome to Hawaii and Die"
-    IDS_STRING223           "7B"
-END
-
-STRINGTABLE DISCARDABLE 
-BEGIN
-    IDS_STRING224           "Tijuana:  the Happiest Place on Earth"
-    IDS_STRING225           "8A"
+    IDS_BUDGETCUTS          "This is a preview of Andradion 2; it contains only a fraction of the full version.  You should have been able to get this preview for free.  The full version will also be free.  Visit www.calpoly.edu/~mdevore regularly to check for updates, or e-mail me at mdevore@falcon.calpoly.edu if you would like to be notified by e-mail.  Also note that Multiplayer is not functional at this time.  ENJOY!"
 END
 
 1__ CMP DISCARDABLE "Resource\\1__.cmpset"

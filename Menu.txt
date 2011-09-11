@@ -1,0 +1,49 @@
+ANDRADION 2
+Single Player
+Multiplayer - Splitscreen
+Multiplayer - Network
+Joystick & Keyboard
+Video
+Quit
+
+JOYSTICK & KEYBOARD
+Other Input
+Player 1 Input
+Player 2 Input
+Player 3 Input
+Player 4 Input
+
+VIDEO (currently #)
+1. Fast at 43hz (needed for some flatscreens)
+2. Fast Normal
+3. Pretty (Modern CPUs only)
+
+PRESS ESC IF THE SCREEN GOES BLACK
+Continue
+Cancel
+
+CAN YOU SEE THE SCREEN NORMALLY?
+No
+Yes
+
+OTHER INPUT
+Restart Level - 
+End Game - 
+Pause - 
+Show Best Time -
+Show Best Score -
+Screenshot - 	
+
+PLAYER ? INPUT
+Joystick/Keyboard - 
+Move Left, Right -
+Move Up, Down - 
+Strafe -
+Slow - 
+Fire -
+Next Weapon - 
+Pick Up - 
+Pistol - 
+Machine Gun - 
+Bazooka - 
+Show Health - 

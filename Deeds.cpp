@@ -8,14 +8,15 @@
 #include "Fixed.h"
 #include "Deeds.h"
 
-using std::pair;
-using std::string;
+using namespace std;
 
 const int MAX_STRINGLEN = 100;
 const short WORST_TIME = 60*99+59;
 const short WORST_SCORE = -1;
-const unsigned int ACCOMPLISHMENTS_SIZE = 2 * sizeof(pair<short, short>)
-  * NUM_LEVELS * NUM_DIFFICULTYLEVELS + NUM_LEVELS;
+const char *CFG_FILE = "Config11.dat";
+const char *DIFFNAME_DANGNABIT = "Dangnabit (TRY ME FIRST)";
+const char *DIFFNAME_MYDEARCHILD = "My Dear Child (HARD)";
+const char *DIFFNAME_DANGERDANGER = "Danger! Danger! (VERY HARD)";
 
 static int level_availability[NUM_LEVELS];
 
@@ -37,14 +38,104 @@ static pair<short, short> best_times[NUM_LEVELS*NUM_DIFFICULTYLEVELS];
  */
 static pair<short, short> best_scores[NUM_LEVELS*NUM_DIFFICULTYLEVELS];
 
-static inline int GetDeedId(int level, int difficulty) throw() {
+static int video_mode;
+static int sync_rate;
+
+static int GetDeedId(int level, int difficulty) throw() {
   assert(level >= 0 && level < NUM_LEVELS);
   assert(difficulty >= 0 && difficulty < NUM_DIFFICULTYLEVELS);
 
   return (level * NUM_DIFFICULTYLEVELS) + difficulty;
 }
 
-void DeeInitialize() throw() {
+static int Read(HANDLE file, int *total_read, int *total_size, bool *success,
+                int max) {
+  unsigned char result;
+
+  (*total_size)++;
+
+  if (!*success) {
+    result = 0;
+  } else {
+    DWORD read;
+
+    *success = ReadFile(file, (void *)&result, 1, &read, 0);
+
+    *total_read += read;
+
+    if ((int)result > max) {
+      *success = false;
+    }
+  }
+
+  return int(result);
+}
+
+static void Write(HANDLE file, int *total_written, int *total_size,
+                  bool *success, int value) {
+  unsigned char write = (unsigned char)value;
+
+  (*total_size)++;
+
+  if (*success) {
+    DWORD written;
+
+    *success = WriteFile(file, (void *)&write, 1, &written, 0);
+
+    *total_written += written;
+  }
+}
+
+static bool Initialize(HANDLE file) throw() {
+  bool success = true;
+  int total_read = 0;
+  int total_size = 0;
+
+  video_mode = Read(file, &total_read, &total_size, &success, NUM_VIDEOMODES-1);
+  sync_rate = Read(file, &total_read, &total_size, &success, MAX_SYNCRATE);
+
+  // read our accomplishments from the file
+
+  // first read level availability
+  for(int i = 0; i < NUM_LEVELS; i++) {
+    level_availability[i] = Read(file, &total_read, &total_size, &success,
+                                 LEVELAVAIL_DANGERDANGER);
+  }
+
+  // now read our best times and best scores, in that order
+  for(int i = 0; i < NUM_LEVELS * NUM_DIFFICULTYLEVELS; i++) {
+    DWORD read;
+
+    success = success && ReadFile(file, (void *)(best_times+i),
+                                  sizeof(pair<short, short>), &read, 0);
+    total_read += read;
+    success = success && ReadFile(file, (void *)(best_scores+i),
+                                  sizeof(pair<short, short>), &read, 0);
+    total_read += read;
+    total_size += sizeof(pair<short, short>) * 2;
+  }
+
+  return total_read == total_size && success;
+}
+
+bool DeeInitialize() throw() {
+  HANDLE file = CreateFile(CFG_FILE,
+                           GENERIC_READ, 0, 0,
+                           OPEN_EXISTING,
+                           FILE_ATTRIBUTE_NORMAL, 0);
+
+  if (INVALID_HANDLE_VALUE != file) {
+    bool success = Initialize(file);
+    CloseHandle(file);
+
+    if (success) {
+      return false;
+    }
+  }
+
+  video_mode = DEFAULT_VIDEOMODE;
+  sync_rate = DEFAULT_SYNCRATE;
+
   // setup the default best score and times
   for(int i = 0; i < NUM_LEVELS; i++) {
     level_availability[i] = LEVELAVAIL_NONE;
@@ -59,65 +150,29 @@ void DeeInitialize() throw() {
   }
 
   level_availability[0] = LEVELAVAIL_DANGERDANGER;
+
+  return true;
 }
 
-void DeeInitialize(HANDLE file) throw() {
-  // read our accomplishments from the file
-  BOOL success = TRUE;
-  DWORD total_read = 0;
+void DeeRelease() throw(DeedsWriteException) {
+  int total_written = 0;
+  int total_size = 0;
+  bool success = true;
+  HANDLE file = CreateFile(CFG_FILE, GENERIC_WRITE, 0, 0,
+                           CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
 
-  // first read level availability
-  for(int i = 0; i < NUM_LEVELS; i++) {
-    DWORD read;
-    unsigned char avail;
-      
-    success = success && ReadFile(file, (void *)&avail, 1, &read, 0);
-    
-    level_availability[i] = avail;
-
-    total_read += read;
-
-    if (avail > LEVELAVAIL_DANGERDANGER) {
-      success = FALSE;
-    }
-  }
-
-  // now read our best times and best scores, in that order
-  for(int i = 0; i < NUM_LEVELS * NUM_DIFFICULTYLEVELS; i++) {
-    DWORD read;
-
-    success = success && ReadFile(file, (void *)(best_times+i),
-                                  sizeof(pair<short, short>), &read, 0);
-    total_read += read;
-    success = success && ReadFile(file, (void *)(best_scores+i),
-                                  sizeof(pair<short, short>), &read, 0);
-    total_read += read;
-  }
-
-  // if the expected number of bytes was not read, or if one of the
-  //  ReadFile calls failed, set the accomplishments of the player to
-  //  nil.
-  if (total_read != ACCOMPLISHMENTS_SIZE || !success) {
-    DeeInitialize();
-  }
-}
-
-void DeeRelease(HANDLE file) throw(DeedsWriteException) {
-  DWORD total_written = 0;
-  BOOL success = TRUE;
+  Write(file, &total_written, &total_size, &success, video_mode);
+  Write(file, &total_written, &total_size, &success, sync_rate);
 
   // first write the level availabilities
   for(int i = 0; i < NUM_LEVELS; i++) {
-    DWORD written;
-    success = success && WriteFile(file, (void *)(level_availability+i),
-                                   1, &written, 0);
-
-    total_written += written;
+    Write(file, &total_written, &total_size, &success, level_availability[i]);
   }
 
   // now write best times and scores
   for(int i = 0; i < NUM_LEVELS * NUM_DIFFICULTYLEVELS; i++) {
     DWORD written;
+
     success = success && WriteFile(file, (void *)(best_times+i),
                                    sizeof(pair<short,short>), &written, 0);
 
@@ -127,9 +182,13 @@ void DeeRelease(HANDLE file) throw(DeedsWriteException) {
                                    sizeof(pair<short,short>), &written, 0);
 
     total_written += written;
+
+    total_size += sizeof(pair<short, short>) * 2;
   }
 
-  if (ACCOMPLISHMENTS_SIZE != total_written || !success) {
+  CloseHandle(file);
+
+  if (total_size != total_written || !success) {
     throw DeedsWriteException();
   }
 }
@@ -186,6 +245,9 @@ void DeeLevelComplete(int level, int difficulty,
      && level_availability[next_level] < difficulty + 1) {
     level_availability[next_level] = difficulty+1;
   }
+
+  // write the accomplishment to the configuration file
+  DeeRelease();
 }
 
 bool DeeHasBeatenLevel(int level, int difficulty) throw() {
@@ -217,3 +279,14 @@ FIXEDNUM DeeGetTimeAtBestScore(int level, int difficulty) throw() {
   return best_scores[GetDeedId(level, difficulty)].second;
 }
 
+int DeeVideoMode() {return video_mode;}
+void DeeSetVideoMode(int vm) {
+  assert(vm >= 0 && vm < NUM_VIDEOMODES);
+  video_mode = vm;
+}
+
+int DeeSyncRate() {return sync_rate;}
+void DeeSetSyncRate(int sr) {
+  assert(sr >= MIN_SYNCRATE && sr <= MAX_SYNCRATE);
+  sync_rate = sr;
+}

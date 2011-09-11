@@ -7,9 +7,12 @@
 #include "Fixed.h"
 #include "Logger.h"
 #include "Weather.h"
-#include "Graphics.h"
+#include "Gfx.h"
+#include "Character.h"
+#include "Glue.h"
+#include "Sound.h"
 
-using std::string;
+using namespace std;
 
 const int MAX_RAINX = 1600, MAX_RAINY = 1200;
 const int RAIN_DROPLENGTH = 10;
@@ -146,15 +149,15 @@ static void StartSounds();
 
 static int hero_room_state;
 static int script_index;
-static DWORD frames_since_start; // records number of frames since start of current weather state
+static DWORD frames_since_start; // records number of frames since start of
+                                 // current weather state  
 static unsigned int current_state;
 static BYTE rain_color;
-static IDirectSoundBuffer *sfx[NUM_WEATHERSOUNDS];
 static POINT rain_drops[NUM_RAINFRAMES][NUM_RAINDROPS];
 static DWORD bolt_timer = LT_THUNDER+1;
 static FIXEDNUM brightness = Fixed(1.0f);
 
-void WtrAnalyzePalette() {rain_color = GfxGetPaletteEntry(CR_RAIN);}
+void WtrAnalyzePalette() {rain_color = Gfx::Get()->MatchingColor(CR_RAIN);}
 
 void WtrBeginScript(int script) {
   assert(current_state < NUM_WEATHERSTATES);
@@ -197,15 +200,7 @@ int WtrCurrentState() {
 
 void WtrEndScript() {Quiet();}
 
-void WtrInitialize(IDirectSoundBuffer **sfx_) {
-  for (int i = 0; i < NUM_WEATHERSOUNDS; i++) {
-    sfx[i] = sfx_ ? sfx_[i] : 0;
-
-    if (sfx[i]) {
-      sfx[i]->AddRef();
-    }
-  }
-  
+void WtrInitialize() {
   // setup the raindrops
   for(int frame = 0; frame < NUM_RAINFRAMES; frame++) {
       for(int drop = 0; drop < NUM_RAINDROPS; drop++) {
@@ -218,7 +213,7 @@ void WtrInitialize(IDirectSoundBuffer **sfx_) {
   }
 }
 
-int WtrOneFrame() {
+int WtrOneFrameIndoors() {
   assert(current_state < NUM_WEATHERSTATES);
 
   // hero is indoors
@@ -234,7 +229,9 @@ int WtrOneFrame() {
   }
 }
 
-int WtrOneFrame(FIXEDNUM screen_x, FIXEDNUM screen_y) {
+int WtrOneFrameOutdoors() {
+  FIXEDNUM screen_x = GluContext()->center_screen_x;
+  FIXEDNUM screen_y = GluContext()->center_screen_y;
   int music_op = WTROF_NOCHANGE;
 
   assert(current_state < NUM_WEATHERSTATES);
@@ -294,23 +291,15 @@ void WtrRelease() {
   WriteLog("Release Wtr module\n");
 
   assert(current_state < NUM_WEATHERSTATES);
-  
-  // get rid of direct sound stuff if
-  //  necessary
-  for(int i = 0; i < NUM_WEATHERSOUNDS; i++) {
-    if(sfx[i]) {
-      TryAndReport(sfx[i]->Release());
-      sfx[i] = 0;
-    }
-  }
 }
 
 void WtrSetSoundPlaybackFrequency(unsigned long freq) {
   assert(current_state < NUM_WEATHERSTATES);
   
   for(int i = 0; i < NUM_WEATHERSOUNDS; i++) {
-    if(sfx[i]) {
-      TryAndReport(sfx[i]->SetFrequency(freq));
+    IDirectSoundBuffer *snd = SndSound(i).Get();
+    if(snd) {
+      TryAndReport(snd->SetFrequency(freq));
     }
   }
 }
@@ -332,7 +321,8 @@ static void OneRainFrame(bool heavy_rain,
                          FIXEDNUM screen_x, FIXEDNUM screen_y) {
   static DWORD frame_count = 0;
   int frame_index = ++frame_count / RAIN_FRAMELENGTH;
-  GfxLock lock(GfxLock::Back());
+
+  Gfx::Get()->Lock();
   
   assert(current_state < NUM_WEATHERSTATES);
 
@@ -359,31 +349,33 @@ static void OneRainFrame(bool heavy_rain,
   for(int i = 0; i < drops; i++) {
     int x = r[i].x + diff_x;
 
-    x %= GfxModeWidth()-RAIN_DROPLENGTH/2;
+    x %= Gfx::Get()->GetVirtualBufferWidth()-RAIN_DROPLENGTH/2;
 
     if(x < RAIN_DROPLENGTH/2)	{
-      x += GfxModeWidth()-RAIN_DROPLENGTH/2;
+      x += Gfx::Get()->GetVirtualBufferWidth()-RAIN_DROPLENGTH/2;
     }
 
     int y = r[i].y + diff_y;
 
-    y %= (GfxModeHeight()-RAIN_DROPLENGTH);	
+    y %= (Gfx::Get()->GetVirtualBufferHeight()-RAIN_DROPLENGTH);	
 
     if(y < 0) {
-      y += GfxModeHeight()-RAIN_DROPLENGTH;
+      y += Gfx::Get()->GetVirtualBufferHeight()-RAIN_DROPLENGTH;
     }
 
-    BYTE *s = lock(x, y);
+    BYTE *s = Gfx::Get()->GetLockPtr(x, y);
 
     for(int j = 0; j < RAIN_DROPLENGTH/2; j++) {
       *s = c;
-      s += lock.Pitch();
+      s += Gfx::Get()->GetLockPitch();
       *s = c;
-      s += lock.Pitch() - 1;
+      s += Gfx::Get()->GetLockPitch() - 1;
     }
   }
 
   assert(current_state < NUM_WEATHERSTATES);
+
+  Gfx::Get()->Unlock();
 }
 
 static void OneThunderFrame(bool lightning) {
@@ -407,7 +399,8 @@ static void OneThunderFrame(bool lightning) {
   bolt_timer += 1;
 
   if(LT_THUNDER == bolt_timer) {
-    IDirectSoundBuffer *thunder_sound = sfx[WEATHERSOUND_THUNDER1 + rand()%NUM_THUNDERSOUNDS];
+    IDirectSoundBuffer *thunder_sound
+      = SndSound(WEATHERSOUND_THUNDER1 + rand()%NUM_THUNDERSOUNDS).Get();
 
     if(thunder_sound) {
       thunder_sound->Stop();
@@ -420,8 +413,9 @@ static void OneThunderFrame(bool lightning) {
 
 static bool Quiet() {
   for(int i = 0; i < NUM_WEATHERSOUNDS; i++) {
-    if(sfx[i]) {
-      sfx[i]->Stop();
+    IDirectSoundBuffer *snd = SndSound(i).Get();
+    if(snd) {
+      snd->Stop();
     } else {
       return false;
     }
@@ -437,13 +431,13 @@ static void StartSounds() {
     DWORD f = WEATHERSTATE_FLAGS[current_state]; 
     if(f & WSF_CRICKETS) {
       // play cricket noise looping
-      sfx[WEATHERSOUND_CRICKETS]->Play(0, 0, DSBPLAY_LOOPING);
+      SndSound(WEATHERSOUND_CRICKETS)->Play(0, 0, DSBPLAY_LOOPING);
     } else if(f & WSF_LIGHTRAIN) { 
       // play light rain sound
-      sfx[WEATHERSOUND_LIGHTRAIN]->Play(0, 0, DSBPLAY_LOOPING);
+      SndSound(WEATHERSOUND_LIGHTRAIN)->Play(0, 0, DSBPLAY_LOOPING);
     } else if(f & WSF_HEAVYRAIN) {
       // play hard rain sound
-      sfx[WEATHERSOUND_HEAVYRAIN]->Play(0, 0, DSBPLAY_LOOPING);
+      SndSound(WEATHERSOUND_HEAVYRAIN)->Play(0, 0, DSBPLAY_LOOPING);
     }
   }
 }
