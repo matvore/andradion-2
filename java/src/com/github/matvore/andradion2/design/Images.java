@@ -18,6 +18,7 @@ package com.github.matvore.andradion2.design;
 
 import com.github.matvore.andradion2.data.LevelIndex;
 
+import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -62,7 +63,9 @@ public class Images {
     for (PlaceableItem item : ITEM_IMAGE_FILES.keySet()) {
       File imagePath = new File(
           itemImageDirectory, ITEM_IMAGE_FILES.get(item).toString());
-      itemImages.put(item, ImageIO.read(imagePath));
+      BufferedImage nonTransparent = ImageIO.read(imagePath);
+      BufferedImage transparent = makeTransparent(nonTransparent, Color.BLACK);
+      itemImages.put(item, transparent);
     }
 
     return new Images(levelImageDirectory, itemImages);
@@ -77,5 +80,27 @@ public class Images {
 
   public BufferedImage imageFor(PlaceableItem item) {
     return itemImages.get(item);
+  }
+
+  private static BufferedImage makeTransparent(
+      BufferedImage source, Color transparentColor) {
+    int transparentRGB = transparentColor.getRGB();
+    BufferedImage result = new BufferedImage(
+        source.getWidth(), source.getHeight(), BufferedImage.TYPE_INT_ARGB);
+    int[] rgbRow = new int[source.getWidth()];
+
+    for (int y = 0; y < source.getHeight(); y++) {
+      source.getRGB(0, y, source.getWidth(), 1, rgbRow, 0, rgbRow.length);
+
+      for (int x = 0; x < rgbRow.length; x++) {
+        if (rgbRow[x] == transparentRGB) {
+          rgbRow[x] &= 0x00ffffff;
+        }
+      }
+
+      result.setRGB(0, y, source.getWidth(), 1, rgbRow, 0, rgbRow.length);
+    }
+
+    return result;
   }
 }
