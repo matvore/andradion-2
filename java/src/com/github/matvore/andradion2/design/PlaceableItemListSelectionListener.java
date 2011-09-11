@@ -20,7 +20,8 @@ import javax.swing.JList;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-public class PlaceableItemListSelectionListener implements ListSelectionListener {
+public class PlaceableItemListSelectionListener
+    implements ListSelectionListener {
   private final LevelEditPanel levelEditPanel;
 
   public PlaceableItemListSelectionListener(LevelEditPanel levelEditPanel) {

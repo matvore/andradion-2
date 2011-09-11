@@ -101,8 +101,8 @@ public class PathConfiguration {
       return windowsSdkDirectory;
     }
     String stdout = runRegQuery(
-        "REG QUERY \"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Microsoft SDKs\\" +
-        "Windows\" /v CurrentInstallFolder");
+        "REG QUERY \"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Microsoft SDKs" +
+        "\\Windows\" /v CurrentInstallFolder");
     Pattern pathCapture = Pattern.compile(
         "\\s+CurrentInstallFolder\\s+REG_SZ\\s+([^\\r\\n]+)[\\r\\n]");
     Matcher matcher = pathCapture.matcher(stdout);

@@ -33,7 +33,8 @@ public class Lists {
     return new ArrayList<E>(capacity);
   }
 
-  public static <E> List<E> deepCopyOf(List<E> source, Copier<? super E> copier) {
+  public static <E> List<E> deepCopyOf(
+      List<E> source, Copier<? super E> copier) {
     List<E> result = newArrayListWithCapacity(source.size());
     for (E sourceItem : source) {
       result.add(copier.copy(sourceItem));
