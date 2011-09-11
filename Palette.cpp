@@ -16,9 +16,11 @@ limitations under the License.
 
 #include "StdAfx.h"
 #include "Fixed.h"
-#include "Graphics.h"
+#include "Gfx.h"
 #include "Logger.h"
 #include "Palette.h"
+
+using std::endl;
 
 const int MENUPALETTE_BASECOLORS = 249;
 const int INTROPALETTE_BASECOLORS = 26;
@@ -32,8 +34,7 @@ static FIXEDNUM old_bb = Fixed(1.0f);
  * @param target reference to the byte value to fill.
  * @return 1 if <tt>target</tt> was set to 0, 0 otherwise.
  */
-static int RandomElementValue(BYTE& target)
-{
+static int RandomElementValue(BYTE& target) {
   int return_value = 0;
   switch(rand()%3) {
   case 0:
@@ -50,10 +51,10 @@ static int RandomElementValue(BYTE& target)
   return return_value;
 }
 
-static inline void ScaleColor(BYTE& source, FIXEDNUM scale) {
+static inline BYTE ScaleColor(BYTE source, FIXEDNUM scale) {
   long x = FixedCnvFrom<long>(scale*FIXEDNUM(source));
 
-  source = x <= 0xff ? (BYTE)x : 0xff;
+  return x <= 0xff ? (BYTE)x : 0xff;
 }
 
 const BYTE *PalInitialize(const BYTE *ifs) {
@@ -93,7 +94,9 @@ const BYTE *PalInitialize(const BYTE *ifs) {
     }
   }
 
-  GfxSetPalette(pe, 256);
+  logger << "Setting new level palette" << endl;
+
+  Gfx::Get()->SetPalette(pe, 256, false);
 
   return ifs;
 }
@@ -188,7 +191,7 @@ void PalInitializeWithMenuPalette() {
     pe[i].peGreen = 0x00;
   }
 
-  GfxSetPalette(pe, 256);
+  Gfx::Get()->SetPalette(pe, 256, false);
 }
 
 void PalInitializeWithIntroPalette() {
@@ -246,22 +249,22 @@ void PalInitializeWithIntroPalette() {
       pe[i].peFlags = 0;
     }
 
-  GfxSetPalette(pe, 256);
+  Gfx::Get()->SetPalette(pe, 256, false);
 }
 
 void PalSetBrightnessFactor(FIXEDNUM br, FIXEDNUM bg, FIXEDNUM bb) {
   if (br != old_br || bg != old_bg || bb != old_bb) {
-    PALETTEENTRY pe[256];
-    int num_copied = GetPaletteEntries(GfxGDIPalette(), 0, 256, pe);
+    const PALETTEENTRY *pe = Gfx::Get()->GetPalette();
+    PALETTEENTRY new_pe[256];
   
     // scale the colors
-    for(int i = 0; i < num_copied; i++) {
-      ScaleColor(pe[i].peRed, br);
-      ScaleColor(pe[i].peGreen, bg);
-      ScaleColor(pe[i].peBlue, bb);
+    for(int i = 0; i < 256; i++) {
+      new_pe[i].peRed = ScaleColor(pe[i].peRed, br);
+      new_pe[i].peGreen = ScaleColor(pe[i].peGreen, bg);
+      new_pe[i].peBlue = ScaleColor(pe[i].peBlue, bb);
     }
 
-    GfxSetPalette(pe, num_copied, false);
+    Gfx::Get()->SetPalette(new_pe, 256, true);
 
     old_br = br;
     old_bg = bg;

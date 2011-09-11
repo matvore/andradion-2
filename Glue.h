@@ -14,30 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-#define IDS_DEFAULTNAME                 1
-#define IDS_SELECTCHARACTERCAPTION      1
-#define IDS_DIFFICULTYLEVEL1            2
-#define IDS_DIFFICULTYLEVEL2            3
-#define IDS_DIFFICULTYLEVEL3            4
-#define IDS_CHARNAME1                   5
-#define IDS_CHARNAME2                   6
-#define IDS_CHARNAME3                   7
-#define IDS_CHARNAME4                   8
-#define IDS_CHARNAME5                   9
-#define IDS_CHARNAME6                   10
-#define IDS_CHARNAME7                   11
-#define IDS_CHARNAME8                   12
-#define IDS_CHARNAME9                   13
-#define IDS_UNAVAILABLELEVEL            14
-#define IDS_MAGICWORD                   15
-#define IDS_WINDOWCAPTION               16
-#define IDS_WINDOWCLASS                 17
 #define IDS_OLDDX                       18
-#define IDS_HOLDPBUTTON                 19
 #define IDS_FORCEPICKUPSP               19
 #define IDS_NEWPLAYER                   20
 #define IDS_OLDPLAYER                   21
-#define IDS_HOLDPBUTTONMP               22
 #define IDS_FORCEPICKUPMP               22
 #define IDS_NORECORDS                   23
 #define IDS_NODLL                       24
@@ -45,35 +25,13 @@ limitations under the License.
 #define IDS_BESTTIMEFORMAT              26
 #define IDS_BESTSCOREFORMAT             27
 #define IDS_RECORDSUMMARY               28
-#define IDS_MAXSCORE                    29
 #define IDI_APPICON                     102
-#define IDS_INIFILE                     110
-#define IDS_MAINMENUITEM1               111
-#define IDS_MAINMENUITEM2               112
-#define IDS_MAINMENUITEM3               113
-#define IDS_MAINMENUCAPTION             114
-#define IDS_LEVELSELECTCAPTION          115
 #define IDS_DIFFICULTYSELECTCAPTION     116
-#define IDS_CONFIRMATIONCAPTION         117
-#define IDS_NO                          118
-#define IDS_YES                         119
 #define IDS_SELECTCONNECTIONMETHODCAPTION 120
 #define IDS_ENTERNAMECAPTION            121
-#define IDS_SELECTGAMECAPTION           122
-#define IDS_GAMESLOTNAME1               123
-#define IDS_GAMESLOTNAME2               124
-#define IDS_GAMESLOTNAME3               125
-#define IDS_GAMESLOTNAME4               126
-#define IDS_GAMESLOTNAME5               127
-#define IDS_GAMESLOTNAME6               128
-#define IDS_GAMESLOTNAME7               129
-#define IDS_GAMESLOTNAME8               130
-#define IDS_GAMESLOTNAME9               131
-#define IDS_GAMESLOTNAME10              132
 #define IDS_COULDNOTCONNECT             133
 #define IDS_GAMESLOTNAME11              133
 #define IDS_GAMESLOTNAME12              134
-#define IDS_LEVELPATH                   143
 #define IDS_NOCONNECTIONMETHODAVAILABLE 144
 #define IDS_GUARANTEEDMSGON             153
 #define IDS_GUARANTEEDMSGOFF            154
@@ -85,33 +43,9 @@ limitations under the License.
 #define IDS_SPKILLED                    160
 #define IDS_INVALIDSYNCRATE             161
 #define IDS_BUDGETCUTS                  201
-#define IDS_LEVELNAME1                  202
-#define IDS_LEVELFILE1                  203
-#define IDS_STRING204                   204
-#define IDS_STRING205                   205
 #define IDB_TURNER                      206
-#define IDS_STRING206                   206
 #define IDB_STORY                       207
-#define IDS_STRING207                   207
-#define IDS_STRING208                   208
 #define IDD_CFG                         209
-#define IDS_STRING209                   209
-#define IDS_STRING210                   210
-#define IDS_STRING211                   211
-#define IDS_STRING212                   212
-#define IDS_STRING213                   213
-#define IDS_STRING214                   214
-#define IDS_STRING215                   215
-#define IDS_STRING216                   216
-#define IDS_STRING217                   217
-#define IDS_STRING218                   218
-#define IDS_STRING219                   219
-#define IDS_STRING220                   220
-#define IDS_STRING221                   221
-#define IDS_STRING222                   222
-#define IDS_STRING223                   223
-#define IDS_STRING224                   224
-#define IDS_STRING225                   225
 
 #define IDR_INTROMUSIC                  279
 #define IDR_MENUMUSIC                   281
@@ -247,22 +181,56 @@ limitations under the License.
 #define IDB_GENERICPISTOL               1127
 
 class CPowerUp;
-class IDirectDrawClipper;
-class GfxLock;
+class GfxPretty;
+class GfxBasic;
+class Gfx;
+
+struct Context {
+  typedef char Score[11];
+
+  Character::Ptr hero;
+
+  // the world coordinates which are in the center of the viewport or buffer
+  FIXEDNUM center_screen_x;
+  FIXEDNUM center_screen_y;
+
+  unsigned short ammo[WEAPON_COUNT];
+
+  FIXEDNUM AmmoAsPercentage(int weapon);
+
+  Score score;
+  int score_print_x;
+
+  bool AmmoFull(int weapon);
+  void AmmoAdd(int weapon, int amount);
+  void AmmoReset();
+
+  void Draw(unsigned int bmp, int x, int y);
+  void DrawScale(unsigned int bmp, RECT *target);
+
+  // changes the score by the difference specified.
+  //  if a difference below zero is specified,
+  //  the score is reduced.  If a difference
+  //  above zero is specified, the score is increased
+  //  if the difference specified is zero, the score
+  //  is reset to zero
+  void ChangeScore(int diff);
+};
+
+Context *GluContext();
+
+bool GluInitialize(HINSTANCE hInstance_, HWND hWnd_);
+
+void GluRelease();
 
 /**
- * This function returns true if CGlue has been
+ * This function returns true if Glue has been
  * released and the app can quit without any
  * memory leak or anything bad like that
  * @return true iff the application can quit.
  */
 bool GluCanQuit();
 
-/**
- * Causes the music corresponding to the current level to play.
- * Requires that the game be in progress already.
- */
-void GluPlayLevelMusic();
 
 // this function plays the game (including the intro, endgame, menu
 //  screen), and returns the handle of the main window
@@ -274,33 +242,12 @@ HWND GluMain();
 //  even when it is not needed
 void GluPostForcePickupMessage();
 
-// this function stops the music temporarily
-//  until SetMusic is called again
-void GluStopMusic();
-
 // puts a text message at the top of the screen
 //  if the previous message has not been up there for very long,
 //  this function does nothing
 void GluPostMessage(const char *str);
 
-// call once to disable music throughout the entire game
-void GluDisableMusic();
-
-// changes the score by the difference specified.
-//  if a difference below zero is specified,
-//  the score is reduced.  If a difference
-//  above zero is specified, the score is increased
-//  if the difference specified is zero, the score
-//  is reset to zero
-void GluChangeScore(int diff);
-
-// plays the okay got it sound at the specified frequency
-//  and reverses if necessary
-void GluPlaySound(int i, FIXEDNUM freq_factor, bool reverse);
-
-// finds the text colors from the palette that are used when printing
-//  score, message, and timer
-void GluFindTextColors();
+void GluPlaySound(int i, FIXEDNUM x_source, FIXEDNUM y_source);
 
 // sets the music that should be played.
 //  if music was disabled, this function does nothing
@@ -324,18 +271,14 @@ void GluGetRandomStartingSpot(POINT&);
 // plans unaltered otherwise, the function will make it so the
 // character stops walking right before the wall by "filtering"
 // plans.second to a valid destination 
-void GluFilterMovement(const POINT *start, POINT *end, GfxLock& lock);
+void GluFilterMovement(const POINT *start, POINT *end);
 
-void GluRestoreSurfaces();
 void GluCharPress(char c);
 void GluKeyPress(BYTE scan_code);
-void GluPlaySound(int i, FIXEDNUM x_dist=0, FIXEDNUM y_dist=0);
-void GluRelease();
 bool GluWalkingData(FIXEDNUM x,FIXEDNUM y);
 void GluPostSPKilledMessage();
-void GluStrLoad(unsigned int id, std::string& target);
 void GluInterpretDirection(BYTE d, FIXEDNUM& xf, FIXEDNUM& yf);
-void GluStrVctrLoad(unsigned int id, std::vector<std::string>& target);
+void GluStrLoad(unsigned int id, std::string& target);
 
 // returns the amount a points a player gets when he picks up weapon
 // type x 
@@ -345,28 +288,8 @@ int GluScoreDiffPickup(int x);
 // type x 
 int GluScoreDiffKill(int x);
 
-bool GluInitialize(HINSTANCE hInstance_,HWND hWnd_);
-
-void GluDraw(unsigned int bmp, int x, int y);
-void GluDrawScale(unsigned int bmp, RECT *target);
-
-const int KBBUFFERSIZE = 256;
-const int WAV_OKGOTIT = 6;
-const int WAV_STEP = 7;
-const int WAV_GUNNOISE = 8;
-const int WAVSET_WEAPONS = 9;
-const int WAVSET_ALIENHIT = 12;
-const int WAVSET_ALIENDEATH = 15;
-const int WAVSET_FIRSTNONALIEN = 18;
-const int WAVSET_POINTLESS = 42;
-const int WAV_BING = 45;
-const int WAVSINASET = 3;
-
-// used for collision detection
-// with bullets/characters const
-const FIXEDNUM FATNESS = Fixed(12);  
-const int NUM_CHARACTERS = 9;
-const int NUM_WEAPONS = 3;
+// constants having to do with how many bitmaps we have and
+//  what the indices of the bitmaps are
 const int BMP_BLOODSTAIN = 0;
 const int BMP_BULLET = 1;
 const int BMP_EXPLOSION = 2;
@@ -380,49 +303,8 @@ const int BMPSET_BAZOOKA = 15;
 const int BMPSET_CHARACTERS = 19;
 const int ANIMATIONFRAMESPERCHARACTER = 8;
 const int RENDERED_DIRECTIONS = 4;
-const int GAME_MODEWIDTH = 320;
-const int GAME_MODEHEIGHT= 200;
-const int GAME_PORTHEIGHT = 200;
-const int GAME_MODEBUFFERS = 2; 
-const int GAME_MODEREFRESH = 0; 
-const int GAME_MODEBPP = 8;
-const BYTE EIGHTHBIT = 0x80;
-const int TILE_WIDTH = 32;
-const int TILE_HEIGHT = 30;
-const int CREATEGAME_SUCCESS = 0;
-const int CREATEGAME_FAILURE = 1;
-const int JOINGAME_FAILURE = -1;
-const int INITIALIZEPROTOCOL_SUCCESS = 0;
-const int INITIALIZEPROTOCOL_INVALIDINDEX = 1;
-const int SECTOR_WIDTH = 160;
-const int SECTOR_HEIGHT = 100;
+
+extern const char *WINDOW_CAPTION;
 
 enum {DEAST, DNORTH, DWEST, DSOUTH, DNE, DNW, DSW, DSE};
-enum {WEAPON_PISTOL, WEAPON_MACHINEGUN, WEAPON_BAZOOKA};
-enum {CHAR_SALLY,
-      CHAR_MILTON,
-      CHAR_EVILTURNER,
-      CHAR_TURNER,
-      CHAR_SWITZ,
-      CHAR_CHARMIN,
-      CHAR_PEPSIONE,
-      CHAR_COCACOLACLASSIC,
-      CHAR_KOOLAIDGUY,
-      CHAR_HERO = -1,
-      CHAR_UNKNOWN = -2};
 
-enum {CHARSTATE_ALIVE,
-      CHARSTATE_WALKING,
-      CHARSTATE_HURT,
-      CHARSTATE_DYING,
-      CHARSTATE_DEAD,
-      CHARSTATE_UNKNOWING,
-      CHARSTATE_FIRING,
-      CHARSTATE_UNINIT = -1};
-
-enum {SHOWHEALTH_NO, SHOWHEALTH_YES, SHOWHEALTH_IFHURT};
-
-extern int                    GLUdifficulty;
-extern BYTE                   GLUkeyb[KBBUFFERSIZE];
-extern std::vector<CPowerUp>  GLUpowerups;
-extern FIXEDNUM               GLUcenter_screen_y, GLUcenter_screen_x;

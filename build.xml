@@ -211,7 +211,7 @@ limitations under the License.
   </target>
 
   <target name="buildCpp"
-          depends="declareCustomTasks,compileResource,makeOutputDirs">
+          depends="declareCustomTasks,makeOutputDirs">
     <!-- Create the precompiled header. -->
     <msvcCompile>
       <!-- Compile and don't link. -->
@@ -228,12 +228,16 @@ limitations under the License.
     <compileOneCpp name="Character" />
     <compileOneCpp name="CompactMap" />
     <compileOneCpp name="Deeds" />
+    <compileOneCpp name="Difficulty" />
     <compileOneCpp name="Fire" />
     <compileOneCpp name="Fixed" />
     <compileOneCpp name="GammaEffects" />
     <compileOneCpp name="Glue" />
-    <compileOneCpp name="Graphics" />
+    <compileOneCpp name="Gfx" />
+    <compileOneCpp name="GfxBasic" />
+    <compileOneCpp name="GfxPretty" />
     <compileOneCpp name="LevelEnd" />
+    <compileOneCpp name="Keyboard" />
     <compileOneCpp name="logger" />
     <compileOneCpp name="Menu" />
     <compileOneCpp name="MusicLib" />
@@ -242,12 +246,14 @@ limitations under the License.
     <compileOneCpp name="PowerUp" />
     <compileOneCpp name="Profiler" />
     <compileOneCpp name="RawLoad" />
+    <compileOneCpp name="Resource" />
+    <compileOneCpp name="Sound" />
     <compileOneCpp name="Timer" />
     <compileOneCpp name="Weather" />
     <compileOneCpp name="WinMain" />
   </target>
 
-  <target name="linkExe" depends="buildCpp">
+  <target name="linkExe" depends="buildCpp,compileResource">
     <msvcLink>
       <arg flag="/MACHINE:X86" />
       <arg flag="/OUT:" path="${obj.dir}/andradion2.exe" />
@@ -256,13 +262,17 @@ limitations under the License.
       <arg path="${obj.dir}/Character.obj" />
       <arg path="${obj.dir}/CompactMap.obj" />
       <arg path="${obj.dir}/Deeds.obj" />
+      <arg path="${obj.dir}/Difficulty.obj" />
       <arg path="${obj.dir}/Fire.obj" />
       <arg path="${obj.dir}/Fixed.obj" />
       <arg path="${obj.dir}/GammaEffects.obj" />
       <arg path="${obj.dir}/Glue.obj" />
-      <arg path="${obj.dir}/Graphics.obj" />
+      <arg path="${obj.dir}/Gfx.obj" />
+      <arg path="${obj.dir}/GfxBasic.obj" />
+      <arg path="${obj.dir}/GfxPretty.obj" />
       <arg path="${obj.dir}/LevelEnd.obj" />
       <arg path="${obj.dir}/logger.obj" />
+      <arg path="${obj.dir}/Keyboard.obj" />
       <arg path="${obj.dir}/Menu.obj" />
       <arg path="${obj.dir}/MusicLib.obj" />
       <arg path="${obj.dir}/Net.obj" />
@@ -270,6 +280,8 @@ limitations under the License.
       <arg path="${obj.dir}/PowerUp.obj" />
       <arg path="${obj.dir}/Profiler.obj" />
       <arg path="${obj.dir}/RawLoad.obj" />
+      <arg path="${obj.dir}/Resource.obj" />
+      <arg path="${obj.dir}/Sound.obj" />
       <arg path="${obj.dir}/Timer.obj" />
       <arg path="${obj.dir}/Weather.obj" />
       <arg path="${obj.dir}/WinMain.obj" />

@@ -24,6 +24,17 @@ public:
   }
 };
 
+const int DEFAULT_VIDEOMODE = 2;
+const int VIDEOMODE_FAST43 = 0;
+const int VIDEOMODE_FASTNORMAL = 1;
+const int VIDEOMODE_PRETTY = 2;
+
+const int NUM_VIDEOMODES = 3;
+
+const int MAX_SYNCRATE = 100;
+const int MIN_SYNCRATE = 1;
+const int DEFAULT_SYNCRATE = 30;
+
 /** The number of levels in the game.
  */
 const int NUM_LEVELS = 11;
@@ -41,26 +52,27 @@ enum {LEVELAVAIL_NONE,
       LEVELAVAIL_MYDEARCHILD,
       LEVELAVAIL_DANGERDANGER};
 
-/** Puts the Deeds module into the initialized state, setting the all
- * the player's accomplishments to nil.
- */
-void DeeInitialize() throw();
+extern const char *DIFFNAME_DANGNABIT;
+extern const char *DIFFNAME_MYDEARCHILD;
+extern const char *DIFFNAME_DANGERDANGER;
 
-/** Puts the Deeds module into the initialized state, loading the
- * player's accomplishments from the given file.
- * If there is any error in reading the given file, then the
- * <tt>DeeInitialize()</tt> function is called to set the player's
- * accomplishments to nil.
- * @param file the file from which to load the player's accomplishments.
+/** Puts the Deeds module into the initialized state, attempting to load from
+ * the configuration data file.
+ * @return true if the initialization file was not read normally (it was either
+ *  incomplete, corrupt, or missing)
  */
-void DeeInitialize(HANDLE file) throw(); 
+bool DeeInitialize() throw();
 
-/** Writes the data of all our accomplishments to the specified file
+/** Writes the data of all our accomplishments to the configuration data file
  * and puts the Deeds module into the uninitialized state.
- * @param file an output stream opened through the Windows API to which 
- *  the deeds information will be written.
  */
-void DeeRelease(HANDLE file) throw(DeedsWriteException);
+void DeeRelease() throw(DeedsWriteException);
+
+int DeeVideoMode();
+void DeeSetVideoMode(int video_mode);
+
+int DeeSyncRate();
+void DeeSetSyncRate(int sync_rate);
 
 void DeeLevelComplete(int level, int difficulty,
                       FIXEDNUM since_start,

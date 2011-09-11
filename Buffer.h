@@ -49,9 +49,8 @@ public:
   unsigned int Size() const throw() {return size;}
 
   Buffer& operator=(const Buffer& rhs) throw(std::bad_alloc) {
-    void *old_buf = buf;
+    free(buf);
     buf = allocate(rhs.size);
-    free(old_buf);
 
     size = rhs.size;
 

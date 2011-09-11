@@ -14,20 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-class GfxLock {
-  GfxLock(const GfxLock&);
-  GfxLock& operator=(const GfxLock&);
+#include "StdAfx.h"
+#include "Controller.h"
+#include "Array.h"
 
-protected:
-  int pitch;
-  BYTE *surf;
+static int global_action_buttons[GLOBAL_ACTIONS];
+static int controller_count = 0;
 
-public:
-  GfxLock(BYTE *surf, int pitch) : surf(surf), pitch(pitch) {}
-
-  virtual ~GfxLock() {}
-
-  int Pitch() {return pitch;}
-  BYTE *operator()() {return surf;}
-  BYTE *operator()(int x, int y) {return surf + y * pitch + x;}
-};
+static std::set<int> active_joysticks;
+static Array<JOYINFOEX> joystick_states;

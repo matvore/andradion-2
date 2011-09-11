@@ -20,23 +20,20 @@ enum {POWERUPCOLLIDES_NOTHINGHAPPENED,
       POWERUPCOLLIDES_PICKEDUPANDWILLNOTREGENERATE,
       POWERUPCOLLIDES_PICKEDUPANDWILLREGENERATE};
 
-class CCharacter;
+class Character;
 
 class CPowerUp {
-  friend void NetRemoteLogic();
-
- public:
+public:
   // setup function used for ammo sets
   void Setup(FIXEDNUM x_, FIXEDNUM y_, const FIXEDNUM *ammo);
   
   // setup function used for normal powerups
   void Setup(FIXEDNUM x_, FIXEDNUM y_, unsigned int type_); 
 
-  int Collides(const CCharacter& ch);
+  int CollidesWithHero();
   void Draw();
   void Logic();
-  CPowerUp(const CPowerUp& r);
-  CPowerUp& operator =(const CPowerUp& r);
+
   CPowerUp();
   ~CPowerUp();
 
@@ -62,7 +59,7 @@ class CPowerUp {
     return ammo_contained[weapon_type];
   }
 
- private:
+private:
   // coordinates are negative if the item has been picked up
   FIXEDNUM x, y;
 
@@ -71,7 +68,7 @@ class CPowerUp {
   int type; 
 
   union {
-    FIXEDNUM *ammo_contained; // only used by ammo sets
+    FIXEDNUM ammo_contained[WEAPON_COUNT]; // only used by ammo sets
     DWORD frames_since_picked_up; // not used by ammo sets
   };
 
@@ -80,5 +77,3 @@ class CPowerUp {
   static HANDLE beat_event;
   static unsigned int reference_count;
 };
-
-typedef std::vector<CPowerUp> VCTR_POWERUP;

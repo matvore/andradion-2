@@ -16,15 +16,15 @@ limitations under the License.
 
 class SurfaceFiller;
 
-class CCompactMap {
+class CompactMap {
   Buffer left_over_pixels, pattern_pixels;
 
   typedef struct {
     BYTE x, opaque_count;
   } RUN;
 
-  typedef std::vector<RUN> ROW;
-  typedef std::vector<ROW> VCTR_ROW;
+  typedef Array<RUN> ROW;
+  typedef Array<ROW> VCTR_ROW;
 
   VCTR_ROW left_over;
 
@@ -33,41 +33,49 @@ class CCompactMap {
   } RCT;
   
   /** Colors of the blocks. */
-  std::vector<BYTE> blocks;
+  Array<BYTE> blocks;
 
   /** Coordinates of the blocks. */
-  std::vector< std::vector<RCT> > block_areas;
+  Array<Array<RCT> > block_areas;
 
   typedef struct {
     BYTE x, y;
   } PNT;
 
   typedef struct {
-    std::vector<PNT> spots;
+    Array<PNT> spots;
     BYTE width, height;
   } PATTERN;
 
-  std::vector<PATTERN> patterns;
+  Array<PATTERN> patterns;
 
-  // this function needs the surface to be locked
-  // clipping is not supported
-  void RenderStep2(void *surface, int pitch);
+  /** Renders this compact map to the given locked surface region. No clipping
+   * is performed.
+   */
+  void Render(BYTE *surf_ptr, int pitch);
 
   friend class CmpFiller;
 
 public:
-  CCompactMap(BYTE **source);
+  CompactMap(BYTE **source);
   
-  static std::auto_ptr<std::vector<CCompactMap *> >
-  LoadMapSet(const char *res_name, const char *type,
-             HMODULE module, WORD language);             
+  static std::auto_ptr<std::vector<CompactMap *> >
+  LoadMapSet(const char *type, const char *res_name);
 
-  // uses manual clipper and BltFast.
-  // pass: target surface, target x and y, and clipper rectangle
-  void RenderStep1(IDirectDrawSurface *, int, int, const RECT&);
+  /** Renders the "step 1" component of the compact map, which is comprised
+   * entirely of rectangles. A lock must be obtained on the buffer of the given
+   * Graphics object, which is done automatically if there is no lock already.
+   *
+   * @param gfx the Graphics object to which to draw the rectangles.
+   * @param x the x-coordinate at which to draw the rectangles.
+   * @param y the y-coordinate at which to draw the rectangles.
+   * @param clip Indicates whether to clip the rectangles to the Graphics
+   *  buffer. If this is false when portions of the rectangles reach outside of
+   *  the Graphics buffer, the results are undefined.
+   */
+  void RenderStep1(Gfx *gfx, int x, int y, bool clip);
 
-  inline bool NoStep2() const {return left_over.empty()
-                                 && patterns.empty();}
+  inline bool NoStep2() {return left_over.Empty() && patterns.Empty();}
 
-  std::auto_ptr<SurfaceFiller> Filler();
+  std::auto_ptr<Gfx::SurfaceFiller> Filler();
 };

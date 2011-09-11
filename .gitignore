@@ -6,4 +6,5 @@ StdAfx.pch
 andradion2log.txt
 Progress*.dat
 *.class
+Config*.dat
 

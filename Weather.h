@@ -63,10 +63,8 @@ void WtrEndScript();
 /** Prepares internal data structures for simulating weather. This
  * can be called only once as long as the IDirectSound interface to
  * use does not change.
- * @param sfx_ the sound effects that the weather module needs. This
- *  may be null, in which case no sounds will be played.
  */ 
-void WtrInitialize(IDirectSoundBuffer **sfx_);
+void WtrInitialize();
 
 /** Executes the weather for one frame. This does not allow for state
  * changes because it does not increment the frame count.
@@ -74,18 +72,16 @@ void WtrInitialize(IDirectSoundBuffer **sfx_);
  * @return one of the <tt>STATECHANGE_</tt> enumerated values
  *  indicating what to do with the music.
  */
-int WtrOneFrame();
+int WtrOneFrameIndoors();
 
 /** Executes the weather for one frame. This includes rendering the
  * rain and playing any necessary sound effects, but it does not allow
  * for state changes because it does not increment the frame count.
  * Use this version of <tt>WtrOneFrame</tt> when the hero is outdoors
- * @param screen_x the x-coordinate of the camera, relative to any point.
- * @param screen_y the y-coordinate of the camera, relative to any point.
  * @return one of the <tt>STATECHANGE_</tt> enumerated values
  *  indicating what to do with the music.
  */
-int WtrOneFrame(FIXEDNUM screen_x, FIXEDNUM screen_y, GfxLock& lock);
+int WtrOneFrameOutdoors();
 
 /** Allows the change of weather state by incrementing the frame counter.
  * @return true iff the state changed.

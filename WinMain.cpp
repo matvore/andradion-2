@@ -17,10 +17,13 @@ limitations under the License.
 #include "StdAfx.h"
 #include "Fixed.h"
 #include "Logger.h"
+#include "Character.h"
 #include "Glue.h"
 
 using std::endl;
 using std::string;
+
+const char *WINDOW_CLASS = "Andradion 2FV WndClass";
 
 LRESULT WINAPI WindowProc(HWND hWnd, UINT Msg, WPARAM wParam,
 			  LPARAM lParam) {
@@ -49,7 +52,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
   HINSTANCE DIHinst = TryAndReport(LoadLibrary("DINPUT.DLL"));
   WNDCLASSEX winclass;
   HWND hWnd;
-  string wnd_cap, wnd_class;
   int wx, wy;
   MSG msg;
 
@@ -57,8 +59,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     // No DInput... must not be DX3
     string failure, title;
     GluStrLoad(IDS_OLDDX, failure);
-    GluStrLoad(IDS_WINDOWCAPTION, title);
-    MessageBox(0, failure.c_str(), title.c_str(), MB_ICONSTOP);
+    MessageBox(0, failure.c_str(), WINDOW_CAPTION, MB_ICONSTOP);
     logger << "Terminate" << endl;
     return 0;
   }
@@ -66,7 +67,6 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
   // Close open library
   logger << "Unloading experimental DirectInput DLL" << endl;
   FreeLibrary(DIHinst);
-
 
   logger << "Filling out WNDCLASSEX structure" << endl;
   memset(&winclass, 0, sizeof(winclass));
@@ -77,8 +77,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
   winclass.hIconSm = LoadIcon(hInstance,MAKEINTRESOURCE(IDI_APPICON));
   winclass.hInstance = hInstance;
   winclass.lpfnWndProc = WindowProc;
-  GluStrLoad(IDS_WINDOWCLASS,wnd_class);
-  winclass.lpszClassName = wnd_class.c_str();
+  winclass.lpszClassName = WINDOW_CLASS;
 
   logger << "Registering window class" << endl;
 	
@@ -87,17 +86,15 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     return 0; 
   }
 
-  GluStrLoad(IDS_WINDOWCAPTION,wnd_cap);
-
   // precalc window coordinates
   logger << "Calling CreateWindow" << endl;
   wx = GetSystemMetrics(SM_CXSCREEN)/2-GAME_MODEWIDTH/2;
   wy = GetSystemMetrics(SM_CYSCREEN)/2-GAME_MODEHEIGHT/2;
   hWnd =
-    CreateWindow(wnd_class.c_str(), wnd_cap.c_str(),
+    CreateWindow(WINDOW_CLASS, WINDOW_CAPTION,
                  WS_CAPTION | WS_POPUP | WS_VISIBLE,
-		 wx, wy, GAME_MODEWIDTH, GAME_MODEHEIGHT,
-		 0, 0, hInstance, 0);	
+                 wx, wy, GAME_MODEWIDTH, GAME_MODEHEIGHT,
+                 0, 0, hInstance, 0);	
 
   if(!hWnd) {
     logger << "Failed to CreateWindow" << endl;
