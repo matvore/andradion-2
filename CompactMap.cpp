@@ -86,12 +86,12 @@ void CompactMap::Render(BYTE *surface, int pitch) {
   // get a pointer into the surface, too
   BYTE *source = (BYTE *)left_over_pixels.Get();
   BYTE *surf = surface;
-  
+
   for(VCTR_ROW::Iterator row = left_over.Begin();
       row != left_over.End(); row++) {
     for(ROW::Iterator run_i = row->Begin(); run_i != row->End(); run_i++) {
       const int amount = run_i->opaque_count + 1;
-      
+
       memcpy(surf + run_i->x, source, amount);
       source += amount;
     }
@@ -172,7 +172,7 @@ CompactMap::CompactMap(BYTE **source) {
       block_i != blocks.End(); block_i++, area_i++) {
     // get this block's color
     *block_i = f.getByte();
-      
+
     // get how many blocks of it we have
     area_i->Resize(f.getUsuallyByte());
 
@@ -198,7 +198,7 @@ CompactMap::CompactMap(BYTE **source) {
 
     unsigned int old_pattern_size = pattern_pixels.Size();
     pattern_pixels.Reallocate(old_pattern_size + width * height);
-    
+
     BYTE *buffer = (BYTE *)pattern_pixels.Get() + old_pattern_size;
 
     for(DWORD y = 0; y < height; y++) {
@@ -223,20 +223,20 @@ CompactMap::CompactMap(BYTE **source) {
   VCTR_ROW::Iterator ritr;
   for(ritr = left_over.Begin(); ritr != left_over.End(); ritr++) {
     ritr->Resize(f.getByte());
-    
+
     // now get each left over run in this row
     int current_offset = 0;
-      
+
     for(ROW::Iterator run_i = ritr->Begin(); run_i != ritr->End(); run_i++) {
       const int trans = f.getByte(), opaque = f.getByte() + 1;
       const unsigned int old_size = left_over_pixels.Size();
       BYTE *data;
 
       current_offset += trans;
-        
+
       // make room for the next non-transparent run
       left_over_pixels.Reallocate(old_size + opaque);
-      
+
       data = (BYTE *)left_over_pixels.Get() + old_size;
 
       run_i->x = current_offset;
