@@ -77,7 +77,7 @@ GfxBasic::GfxBasic(HWND hWnd, int mode_width, int mode_height, int refresh_rate,
 
   if (non_blank.right != mode_width) {
     // right blank area
-    blank_areas[val++] 
+    blank_areas[val++]
       = Rect(non_blank.right, non_blank.top, mode_width, non_blank.bottom);
   }
 
@@ -115,7 +115,7 @@ GfxBasic::GfxBasic(HWND hWnd, int mode_width, int mode_height, int refresh_rate,
     for (int x = 0; x < grid_width; x++, i++) {
       int left = grid_interval_x * x + non_blank.left;
       int top = grid_interval_y * y + non_blank.top;
-      
+
       clip_areas[i] = Rect(left, top, left + virtual_buffer_width,
                            top + virtual_buffer_height);
 
@@ -154,7 +154,7 @@ void GfxBasic::SurfaceBasic::DrawScale(const RECT *dest_rect, const RECT
                                        *source_rect, bool transparency) {
   GfxBasic *owner = GetOwner<GfxBasic>();
   RECT dest;
-  
+
   if (!owner->single_buffer_standard) {
     RECT& clip(owner->clip_areas[owner->target_virtual_buffer]);
 
@@ -186,7 +186,7 @@ bool GfxBasic::SurfaceBasic::Refill() {
 }
 
 auto_ptr<Gfx::Font>
-GfxBasic::LoadFont(HGLOBAL resource_handle, int font_width, int font_height, 
+GfxBasic::LoadFont(HGLOBAL resource_handle, int font_width, int font_height,
                    int first_font_char, int last_font_char) {
   void *resource_data = LockResource(resource_handle);
 
@@ -205,7 +205,7 @@ void GfxBasic::Flip() {
   if (!InFocus()) {
     return;
   }
-  
+
   if (!single_buffer_standard) {
     DDBLTFX fx;
     fx.dwSize = sizeof(fx);
@@ -223,7 +223,7 @@ void GfxBasic::Flip() {
                        DDBLT_COLORFILL | async_blit_flags, &fx);
     }
   }
-  
+
   front_buffer->Flip(0, DDFLIP_WAIT);
 }
 

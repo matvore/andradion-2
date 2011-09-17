@@ -28,7 +28,7 @@ static HRESULT WINAPI EnumSurfacesCallback(IDirectDrawSurface *lpDDSurface,
 
 Gfx::Exception::Exception(int line, HRESULT error_code) throw()
   : line(line), error_code(error_code) {}
-    
+
 Gfx::Exception::Exception(int line, const string& message) throw()
   : line(line), error_code(DDERR_GENERIC), message(message) {}
 
@@ -75,7 +75,7 @@ Gfx::Font::Font(Gfx *owner, void *resource_data,
     first_font_char(first_font_char), last_font_char(last_font_char),
     font_data(last_font_char - first_font_char + 1) {
   BYTE *resource = (BYTE *)resource_data;
-  
+
   for (CharacterSet::Iterator itr = font_data.Begin(); itr != font_data.End();
        itr++) {
     itr->Resize(font_height);
@@ -122,7 +122,7 @@ void Gfx::Font::WriteChar(int x, int y, int ch, BYTE color) {
     int row_data = *itr;
     int x_off = x;
     BYTE *dest_off = dest;
-    
+
     if (y < ct) {
       continue;
     }
@@ -195,7 +195,7 @@ void Gfx::BitmapSurfaceFiller::Fill(BYTE *surf_ptr, int surf_pitch,
 
   for (int y = surface->GetHeight()-1; y >= 0; y--, surf_ptr+=surf_pitch) {
     BYTE *row_ptr = row;
-    
+
     LogResult("Get one line of image", GetDIBits(
         hdc, bmp, y, 1, (void *)row, (BITMAPINFO *)&binfo, DIB_RGB_COLORS));
 
@@ -262,7 +262,7 @@ static HRESULT WINAPI EnumSurfacesCallback(IDirectDrawSurface *lpDDSurface,
 Gfx::Gfx
 (HWND hWnd, int mode_width, int mode_height, int refresh_rate,
  bool create_back_buffer, int virtual_buffer_width,
- int virtual_buffer_height, int virtual_buffer_count) 
+ int virtual_buffer_height, int virtual_buffer_count)
   : lock_ptr(0), lock_pitch(0),
     lock_count(0), virtual_buffer_width(virtual_buffer_width),
     virtual_buffer_height(virtual_buffer_height),
@@ -301,7 +301,7 @@ Gfx::Gfx
     desc.dwFlags |= DDSD_BACKBUFFERCOUNT;
     desc.ddsCaps.dwCaps |= DDSCAPS_COMPLEX;
     desc.ddsCaps.dwCaps |= DDSCAPS_FLIP;
-  } 
+  }
 
   desc.dwFlags |= DDSD_CAPS;
 
@@ -368,11 +368,11 @@ void Gfx::Rectangle(const RECT *area, BYTE color, bool clip) {
     const int ct = 0;
     const int cr = virtual_buffer_width;
     const int cb = virtual_buffer_height;
-  
+
     if (target.left < cl) {
       target.left = cl;
     }
-  
+
     if (target.right > cr) {
       target.right = cr;
     }
@@ -384,7 +384,7 @@ void Gfx::Rectangle(const RECT *area, BYTE color, bool clip) {
     if (target.top < ct) {
       target.top = ct;
     }
-  } 
+  }
 
   dest = lock_ptr + target.left + target.top * lock_pitch;
 
@@ -535,7 +535,7 @@ bool Gfx::ClipLine(int *x0, int *y0, int *x1, int *y1) {
   const int cb = virtual_buffer_height;
 
   // record whether or not each point is visible by testing them
-  // within the clipping region 
+  // within the clipping region
   bool visible0 = *x0 >= cl && *x0 < cr && *y0 >= ct && *y0 < cb;
   bool visible1 = *x1 >= cl && *x1 < cr && *y1 >= ct && *y1 < cb;
 
@@ -602,7 +602,7 @@ bool Gfx::ClipLine(int *x0, int *y0, int *x1, int *y1) {
       xi = int(0.5f + ((float)dx/(float)dy) * float(cb-1 - *y0) + (float)*x0);
     } else if(*y1 < ct) {
       top_edge =true;
-      
+
       assert(0 != dy);
       xi = int(0.5f + ((float)dx/(float)dy) * float(ct - *y0) + (float)*x0);
     }
@@ -776,7 +776,7 @@ Gfx::BitmapSurfaceFiller::CreateSurfaceFromBitmap
     = new BitmapSurfaceFiller(hInstance, resource_name);
 
   logger << "Creating new surface for bitmap filler" << endl;
-  
+
   auto_ptr<Surface> new_surface(owner->CreateSurface
                                 (filler->GetWidth(), filler->GetHeight(),
                                  auto_ptr<SurfaceFiller>(filler)));
@@ -831,8 +831,8 @@ AutoComPtr<IDirectDraw2> Gfx::CreateDirectDraw() {
 
   if (FAILED(direct_draw->Initialize(0))) {
     direct_draw.Reset();
-  } 
-    
+  }
+
   return direct_draw;
 }
 
@@ -861,7 +861,7 @@ bool Gfx::VideoModeAvailable(int mode_width, int mode_height) {
 
   desc.dwWidth = mode_width;
   desc.dwHeight = mode_height;
-  
+
   desc.ddpfPixelFormat.dwSize = sizeof(desc.ddpfPixelFormat);
   desc.ddpfPixelFormat.dwFlags = DDPF_PALETTEINDEXED8;
 

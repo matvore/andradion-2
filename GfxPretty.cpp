@@ -106,11 +106,11 @@ void GfxPretty::SurfacePretty::DrawScale
 
 bool GfxPretty::SurfacePretty::Refill() {
   BYTE *dim_palette = GetOwner<GfxPretty>()->dim_palette;
-  
+
   if (Surface::Refill()) {
     SurfaceLock lock(surface.Get());
     int virtual_pitch = lock.GetPitch() << 1;
-    BYTE *surf = lock.GetPtr(); 
+    BYTE *surf = lock.GetPtr();
     BYTE *surf_scan = lock.GetPtr() + lock.GetPitch();
 
     filler->Fill(lock.GetPtr(), virtual_pitch, this);
@@ -147,7 +147,7 @@ GfxPretty::GfxPretty(HWND hWnd)
   : Gfx(hWnd, 640, 480, 0, false, 320, 200, 1),
     physical_clip_rect(Rect(0, 0, 320, 400)) {
   assert(!back_buffer);
-  
+
   back_buffer = CreateOffscreenSurface(320, 400);
 
   clipper = CreateClipper(&physical_clip_rect);
@@ -199,7 +199,7 @@ void GfxPretty::Rectangle(const RECT *area, BYTE color, bool clip) {
   Lock();
 
   Gfx::Rectangle(area, color, clip);
-  
+
   lock_ptr += lock_pitch >> 1;
   Gfx::Rectangle(area, dim_palette[color], clip);
   lock_ptr -= lock_pitch >> 1;
@@ -213,7 +213,7 @@ void GfxPretty::SetPalette(PALETTEENTRY *pe, int entry_count,
 
   if (!visual_effect) {
     pe += entry_count;
-    
+
     while (entry_count > 0) {
       pe--;
 
@@ -228,9 +228,9 @@ auto_ptr<Gfx::Surface> GfxPretty::CreateSurface
   auto_ptr<Surface> result(new SurfacePretty(this, w, h));
 
   result->ChangeFiller(filler);
-  
+
   result->Refill();
-  
+
   return result;
 }
 
@@ -282,7 +282,7 @@ void GfxPretty::FrontBufferRectangle(RECT *area, BYTE color) {
 
   fx.dwSize = sizeof(fx);
   fx.dwFillColor = color;
-  
+
   front_buffer->Blt(area, 0, 0, async_blit_flags | DDBLT_COLORFILL, &fx);
 }
 
@@ -314,7 +314,7 @@ void GfxPretty::WriteToFrontBuffer(FontPretty *font, BYTE *surf, int pitch,
 
     return;
   }
-  
+
   pitch *= 2;
 
   ch -= font->first_font_char;

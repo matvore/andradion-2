@@ -72,4 +72,3 @@ public:
 
   ~Buffer() throw() {free(buf);}
 };
-
