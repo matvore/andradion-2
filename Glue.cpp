@@ -74,7 +74,7 @@ const float TIMETOTHROWBACK = 2.25f;
 const float TIMETOSCROLL = 100.0f;
 const int   TRANSITIONSQUARESIZE = 350;
 const float TRANSITIONSECSPERSQUARE = 1.0f/80.0f;
-const float MAXFLASHTIME = 5.0f; 
+const float MAXFLASHTIME = 5.0f;
 
 const RECT  UPPERBLACKAREA = {0,0,800,75}; // left,top,right,bottom
 const RECT  LOWERBLACKAREA = {0,525,800,600};
@@ -92,7 +92,7 @@ const int SCREENROWS = 450;
 const float SCREENMINROW = -225;
 const float VIEWERDISTANCE = 1000.0f;
 const float SCREENWIDTHHALF = 400.0f;
-const float STORYWIDTHHALFSQ = 390.0f * 390.0f; 
+const float STORYWIDTHHALFSQ = 390.0f * 390.0f;
 const float STORYANGLE = 3.14159f / 3.0f;
 const float SCREENHEIGHTHALF = 225.0f;
 const float STORYANGLECOS = cos(STORYANGLE);
@@ -145,7 +145,7 @@ enum {
   GLUESTATE_PICKCHARACTER,
   GLUESTATE_SELECTCONNECTIONMETHOD,
   GLUESTATE_PICKGAME,
-  
+
   GLUESTATE_PICKVIDEOMODE,
   GLUESTATE_PRESSESCAPEINSTRUCTIONS,
   GLUESTATE_CANSEENORMALLY
@@ -258,7 +258,7 @@ const int SHADOW_OFFSET = 1;
 const int MPDIFFICULTY = 2;
 
 // number of game slots on multiplayer game selects
-const int NUM_MPGAMESLOTS = 12; 
+const int NUM_MPGAMESLOTS = 12;
 
 const int LOADINGMETER_MINHEIGHT = 9;
 const int LOADINGMETER_MAXHEIGHT = 15;
@@ -349,7 +349,7 @@ static FIXEDNUM max_center_screen_x, max_center_screen_y;
 static auto_ptr<Gfx::Font> font;
 
 // x-coordinate of the current top-of-screen message
-static int msg_x; 
+static int msg_x;
 
 // current message on the screen
 static string message;
@@ -374,7 +374,7 @@ static CTimer char_demo_stepper;
 static CTimer char_demo_direction_changer;
 
 // how long the current message has been up
-static int frames_for_current_message; 
+static int frames_for_current_message;
 
 static string KILLEDYOURSELF;
 static string KILLED;
@@ -388,13 +388,13 @@ static vector<POINT> possible_starting_spots;
 static FIXEDNUM since_start;
 
 // (used for mp) number of powerups there are when no backpacks are left
-static int std_powerups; 
+static int std_powerups;
 
 static int border_color;
 static int led_color;
 static int msg_and_score_color;
 static int score_flash_color_1;
-static int score_flash_color_2; 
+static int score_flash_color_2;
 
 // these statics make it easier to draw the compact maps faster
 //  by caching them.  This way, the most that can be drawn each frame
@@ -403,10 +403,10 @@ static int score_flash_color_2;
 static pair<Gfx::Surface *, Gfx::Surface *> cached[CACHED_SECTORS];
 
 // index of upper most-left most sector in the cached array
-static int upper_left_sector; 
+static int upper_left_sector;
 
 // the column and row of the upper left sector that is cached
-static int ul_cached_sector_x, ul_cached_sector_y; 
+static int ul_cached_sector_x, ul_cached_sector_y;
 
 // this array of strings contain data for the user to see
 //  that concern his accomplishments
@@ -454,7 +454,7 @@ static void Game();
 static bool Menu();
 static void FlushKeyPresses();
 static void AddPossibleStartingSpot(FIXEDNUM x, FIXEDNUM y);
-static void LoadCmps(int level_width, int level_height, bool skip_wd_resize); 
+static void LoadCmps(int level_width, int level_height, bool skip_wd_resize);
 // draws to the front buffer the current score
 static void WriteScorePretty(Score *score, BYTE color);
 
@@ -498,7 +498,7 @@ public:
 
   virtual void EnemyFiresPistol(unsigned int index) throw() {
     Fire *new_fire = Fire::UnusedSlot();
-    
+
     if (new_fire) {
       Character::Ptr ch(Character::Get(index+1));
       new_fire->Setup(ch->X(), ch->Y(), ch->Direction(), WEAPON_PISTOL, true);
@@ -556,7 +556,7 @@ public:
 
   virtual void WalkEnemy(unsigned int index) throw() {
     Character::Ptr ch(Character::Get(index+1));
-    
+
     ch->Walk(false);
     ch->TryToMove();
   }
@@ -588,10 +588,10 @@ public:
     try {
       int name_strlen = strlen(name);
       string format;
-      
+
       GluStrLoad(IDS_OLDPLAYER, format);
       Buffer buf(name_strlen + format.length() + 1);
-      
+
       sprintf((char *)buf.Get(), format.c_str(), name);
 
       logger << "Posting message of player leaving to screen" << endl;
@@ -603,10 +603,10 @@ public:
     try {
       int name_strlen = strlen(name);
       string format;
-      
+
       GluStrLoad(IDS_NEWPLAYER, format);
       Buffer buf(name_strlen + format.length() + 1);
-      
+
       sprintf((char *)buf.Get(), format.c_str(), name);
 
       logger << "Posting player join message to screen" << endl;
@@ -628,10 +628,10 @@ static BOOL CALLBACK CfgDlgProc(HWND hwndDlg, UINT uMsg,
     //  through the lower word of the wParam parameter
     WORD ctrl = LOWORD(wParam);
     if(IDLAUNCH == ctrl || IDQUIT == ctrl || IDLAUNCHWITHOUTMUSIC == ctrl) {
-      // the launch or quit or launch w/o music btn was pressed 
+      // the launch or quit or launch w/o music btn was pressed
       char txt[MAX_STRINGLEN];
       int sync_rate;
-        
+
       // get the text of the sync rate edit box, where the user specifies
       //  how often andradion 2 peers communicate their location
       GetDlgItemText(hwndDlg, IDC_SYNC, txt, MAX_STRINGLEN);
@@ -665,13 +665,13 @@ static BOOL CALLBACK CfgDlgProc(HWND hwndDlg, UINT uMsg,
           MusicStop();
           disable_music = true;
         }
-        
+
         EndDialog(hwndDlg, LOWORD(wParam));
       }
     }
     return FALSE;
   }
-    
+
   case WM_SHOWWINDOW: {
     // use this opportunity to do somethings to initialize
 
@@ -688,7 +688,7 @@ static BOOL CALLBACK CfgDlgProc(HWND hwndDlg, UINT uMsg,
   }
 
   // we want the currently-in-focus control to be chosen automatically
-  case WM_INITDIALOG: return TRUE; 
+  case WM_INITDIALOG: return TRUE;
 
   default: return FALSE;
   }
@@ -736,13 +736,13 @@ public:
   virtual void Fill(BYTE *starsb, int p,
                     Gfx::Surface *surf) throw() {
     logger << "Filling star surface" << endl;
-    
+
     BYTE *clearing_point = starsb;
     for (int y = 0; y < surf->GetHeight(); y++) {
       memset(clearing_point, 0, surf->GetWidth());
       clearing_point += p;
     }
-    
+
     for (int i = 0; i < NUMSTARS; i++) {
       // plot a bunch of stars
       // make a small plus sign for each star
@@ -777,7 +777,7 @@ static void Introduction() {
                             / (Z + VIEWERDISTANCE));
   }
 
-  auto_ptr<Gfx::Surface> stars, story, turner; 
+  auto_ptr<Gfx::Surface> stars, story, turner;
   CTimer timer, inc_or_dec;
 
   RECT dest, source;
@@ -812,14 +812,14 @@ static void Introduction() {
   // load the warpout sound
   auto_ptr<Resource> warpout_resource(new Resource("DAT", "SFX"));
   void *warpout_data = (void *)warpout_resource->GetPtr();
-  
+
   // we locked it successfully
   int warpout_size = *(int *)warpout_data;
   warpout_data = (void *)(warpout_resource->GetPtr(sizeof(int)));
   warpout = CreateSBFromRawData
     (SndDirectSound().Get(), warpout_data, warpout_size, 0,
      SOUNDRESOURCEFREQ, SOUNDRESOURCEBPS, 1);
-  
+
   warpout_resource.reset();
 
   logger << "Play Intro Music" << endl;
@@ -831,7 +831,7 @@ static void Introduction() {
   auto_ptr<Resource> splash_resource
     (new Resource("DAT", MAKEINTRESOURCE(IDR_SPLASH)));
   const BYTE *locked = splash_resource->GetPtr();
-  
+
   // load the meaningful data
   polygon_count = (int)*locked++;
   // get the vertex counts
@@ -878,11 +878,11 @@ static void Introduction() {
       // blit the background
       HBRUSH old_brush = (HBRUSH)SelectObject(dc, (HGDIOBJ)brush1);
       Rectangle(dc, 0, 0, MODEWIDTH, MODEHEIGHT);
-      
+
       // select the objects for the text
       SelectObject(dc, (HGDIOBJ)brush2);
       HPEN old_pen = (HPEN)SelectObject(dc,(HGDIOBJ)pen2);
-      
+
       // blit the text
       PolyPolygon(dc, (const POINT *)polygon_vertices,
                   vertex_counts, polygon_count);
@@ -963,14 +963,14 @@ static void Introduction() {
       dest.right = MODEWIDTH - dest.left;
       dest.top--;
       dest.bottom--;
-      
+
       source.top = storyy - STORYCOOR[index];
 
       if(source.top < STORY_HEIGHT && source.top >= 0
          && dest.right > dest.left) {
         source.bottom = source.top + 1;
 
-        story->DrawScale(&dest, &source, true); 
+        story->DrawScale(&dest, &source, true);
       }
     }
 
@@ -1073,7 +1073,7 @@ static void Introduction() {
 
 static void LoadBitmaps(int type) {
   logger << "LoadBitmaps called with load type " << type << endl;
-  
+
   // first take care of the special case
   //  of reloading bitmaps in case of surface loss
   //  or palette change
@@ -1153,7 +1153,7 @@ static void PrepareMenu() {
     break;
   case GLUESTATE_PICKGAME:
     // show cursor in case we need connection info (user would need  mouse)
-    ShowMouseCursor(); 
+    ShowMouseCursor();
     m->SetStrings(MENU_GAMESLOT, 0);
     break;
   case GLUESTATE_ENTERNAME:
@@ -1206,7 +1206,7 @@ static void PrepareMenu() {
   case GLUESTATE_CANSEENORMALLY:
     m->SetStrings(MENU_CANSEENORMALLY, 0);
   }
-  
+
 
   key_presses.push(0);
 }
@@ -1218,7 +1218,7 @@ static int MenuLoop() {
     (GLUESTATE_LEVELSELECT == state && NetProtocolInitialized()) ||
     GLUESTATE_SELECTCONNECTIONMETHOD == state ||
     GLUESTATE_PICKGAME == state;
-  
+
   do {
       GamOneFrame(Fixed(1.0f));
 
@@ -1299,7 +1299,7 @@ static int MenuLoop() {
 
         bitmaps[bmp]->Draw(target_x, target_y, true);
       }
-      
+
       if (GfxPretty::Get()) {
         GfxPretty::Get()->ClearBorderArea();
       }
@@ -1309,7 +1309,7 @@ static int MenuLoop() {
             VK_ESCAPE != last_key_pressed);
 
   if(VK_RETURN == last_key_pressed) {
-    SndPlay(WAV_OKGOTIT, FREQFACTOR_OKGOTITNORMAL, false); 
+    SndPlay(WAV_OKGOTIT, FREQFACTOR_OKGOTITNORMAL, false);
     return MENUACTION_RETURN;
   } else {
     SndPlay(WAV_OKGOTIT,FREQFACTOR_OKGOTITBACKWARDS, true);
@@ -1407,7 +1407,7 @@ static void LoadLevel(bool load_flesh, bool load_bone) {
   AddPossibleStartingSpot(i, j);
 
   ClearCharacters(false);
-  
+
   contexts.Resize(1);
   current_context = 0;
 
@@ -1415,7 +1415,7 @@ static void LoadLevel(bool load_flesh, bool load_bone) {
     contexts[i].hero = AddCharacter();
     contexts[i].AmmoReset();
   }
-  
+
   if(!NetProtocolInitialized()) {
      // single-player behaviour
     contexts[0].hero->Setup(i, j, CHAR_TURNER, false, true);
@@ -1548,8 +1548,8 @@ static void PrepareForMPGame() {
 
   // reset score and calculate its coordinates
   contexts[0].ChangeScore(0);
-   
-  HideMouseCursor(); 
+
+  HideMouseCursor();
   NetChangeWeather(WtrCurrentState());
   NetSetLevelIndex(level);
 }
@@ -1567,7 +1567,7 @@ static void Flip() {
       TranslateMessage(&msg);
       DispatchMessage(&msg);
     }
-    
+
     if (!Gfx::Get()->InFocus()) {
       Gfx::Get()->Flip();
       CTimer::Wait(0.5);
@@ -1581,7 +1581,7 @@ static void Flip() {
   if(KeyPressed(DIK_C)) {
      static int frames = 0;
      static CTimer counter;
-     
+
      frames++;
      if(counter.SecondsPassed32() >= 1.0f) {
         char buffer[FRAMERATE_BUFFERLEN];
@@ -1642,7 +1642,7 @@ static void Levels(vector<string>& target) {
   for (int i = NUM_LEVELS - 1; i >= 0; i--) {
     if (LEVELAVAIL_NONE != DeeLevelAvailability(i)) {
       target.resize(i+1);
-      
+
       for (int j = 0; j <= i; j++) {
         target[j] = LEVELAVAIL_NONE != DeeLevelAvailability(j)
           ? LEVEL_NAMES[j] : UNAVAILABLE_LEVEL;
@@ -1702,7 +1702,7 @@ static void FilterMovement(const POINT *start, POINT *end) {
   FIXEDNUM center_screen_x = contexts[current_context].center_screen_x;
   FIXEDNUM center_screen_y = contexts[current_context].center_screen_y;
 
-  // first check to make sure they are on the screen, and that we have 
+  // first check to make sure they are on the screen, and that we have
   //  the back buffer successfully locked
 
   if(abs(center_screen_x - start->x) >= Fixed(GAME_MODEWIDTH/2) ||
@@ -1817,7 +1817,7 @@ static void FilterMovement(const POINT *start, POINT *end) {
       *axis -= axis_inc;
       break;
     }
-    
+
     *axis += axis_inc;
     surface_data += inc;
     moves = true;
@@ -1883,7 +1883,7 @@ static void ReleaseGfxElements() {
   LoadBitmaps(RESOURCELOAD_NONE);
 
   sectors.Clear();
-  
+
   logger << "Releasing cached map surfaces" << endl;
   for(int i = 0; i < CACHED_SECTORS; i++) {
     Delete(&cached[i].first);
@@ -1936,7 +1936,7 @@ static bool Menu() {
 
     while (MENUACTION_ESCAPE == MenuLoop())
       ;
-      
+
     logger << "The user pressed Enter, analyzing selection" << endl;
 
     switch(m->GetSelectionIndex()) {
@@ -1990,7 +1990,7 @@ static bool Menu() {
             // the user has never entered a player_name before, so pick one
             player_name = m->GetString(CHAR_TURNER);
           }
-          
+
           PrepareMenu();
 
           // now entering player_name:
@@ -2158,7 +2158,7 @@ static void Game() {
   logger << "Entering Game() loop" << endl;
   bool reload_flesh = true;
   bool reload_bone = true;
-  
+
   InitializeProfiler(NUM_PROFILES);
   while (true) {
     multiset<Character::Ptr> drawing_order;
@@ -2198,7 +2198,7 @@ static void Game() {
         AutoComPtr<IDirectSoundBuffer> s = SndSound(WAV_PAUSE);
         logger << "User pressed pause" << endl;
 
-        // play the sound for pausing the game, 
+        // play the sound for pausing the game,
         if (s && !contexts[0].hero->Dead()) {
           s->SetFrequency(SOUNDRESOURCEFREQ);
           s->Play(0,0,0);
@@ -2362,7 +2362,7 @@ static void Game() {
 
               if (!disable_music) {
                 CTimer::Wait(YOUWINTUNE_LENGTH);
-              } 
+              }
 
               // update level availability variable
               DeeLevelComplete(level, DifGet(), since_start,
@@ -2379,7 +2379,7 @@ static void Game() {
             } // end if collides with level end
           } // end for level ends in this sector
         }
-        
+
         target_x += SECTOR_WIDTH;
       } // end for column
       target_y += SECTOR_HEIGHT;
@@ -2395,12 +2395,12 @@ static void Game() {
     for (int i = 0; i < contexts.Size(); i++) {
       contexts[i].hero->Logic();
       contexts[i].hero->PowerUpCollisions(&powerups);
-    }    
+    }
     EndProfile();
 
     // drive the enemies based on AI or network messages
     BeginProfile(Enemy_Logic);
-    
+
     if (NetInGame()) {
       NetLogic();
 
@@ -2425,7 +2425,7 @@ static void Game() {
         }
       }
     }
-    
+
     EndProfile();
 
     // now we can logic with the projectiles
@@ -2490,9 +2490,9 @@ static void Game() {
 
     // draw upper-level bitmap if outdoors
     BeginProfile(U_Cmp_Drawing_N_Weather);
-    
+
     bool locked = !GluWalkingData(contexts[0].hero->X(), contexts[0].hero->Y());
-    
+
     if (locked) {
       Gfx::Get()->Lock();
 
@@ -2512,7 +2512,7 @@ static void Game() {
               Gfx::Get()->Unlock();
               locked = false;
             }
-            
+
             cached[(upper_left_sector + (r - row1)
                     * CACHED_SECTORS_WIDE + (c - column1))
                    % CACHED_SECTORS].second->Draw(target_x, target_y, true);
@@ -2577,7 +2577,7 @@ static void WriteString(int x, int y, const char *str,
   if (-1 != shadow_color) {
     font->WriteString(x+1, y+1, str, shadow_color);
   }
-  
+
   font->WriteString(x, y, str, color);
   Gfx::Get()->Unlock();
 }
@@ -2586,7 +2586,7 @@ static void WriteScorePretty(Score *score, BYTE color) {
   int score_width = strlen(*score) * font->GetCharWidth() * 2;
   RECT target;
   GfxPretty *p_gfx = GfxPretty::Get();
-      
+
   p_gfx->WriteToFrontBuffer
     (font.get(), p_gfx->GetModeWidth() - score_width - 4, 4, *score, color, 0);
 
@@ -2714,16 +2714,16 @@ static void Recache(int flags) {
   if(0 == flags) {
     return; // already cached everything
   }
-  
+
   int bit = 1, cached_sector = upper_left_sector;
-  
+
   for (int y = 0; y < CACHED_SECTORS_HIGH; y++) {
     // find the sector coordinates at this height
     int sector_y = ul_cached_sector_y + y;
     if(sector_y >= sector_height) {
       return; // all done, we are out of range
     }
-    
+
     for (int x = 0; x < CACHED_SECTORS_WIDE; x++, bit <<= 1) {
       if(bit & flags) {
         // we have to recache the map at x,y
@@ -2781,10 +2781,10 @@ static void FillAccomplishmentLines() {
 
     GluStrLoad(IDS_RECORDSUMMARY,
                accomplishment_lines[DEEDS_SUMMARY]);
-    
+
     GluStrLoad(IDS_BESTTIMEFORMAT,
                accomplishment_lines[DEEDS_BESTTIME]);
-    
+
     GluStrLoad(IDS_BESTSCOREFORMAT,
                accomplishment_lines[DEEDS_BESTSCORE]);
 
@@ -2925,7 +2925,7 @@ void Context::ChangeScore(int diff) {
 
 Context *GluContext() {return contexts + current_context;}
 
-bool GluInitialize(HINSTANCE hInstance_, HWND hWnd_) { 
+bool GluInitialize(HINSTANCE hInstance_, HWND hWnd_) {
   com.reset(new Com());
   hInstance = hInstance_;
   hWnd = hWnd_;
@@ -3021,7 +3021,7 @@ HWND GluMain() {
   Introduction();
 
   logger << "Starting Menu() for the first time" << endl;
-  
+
   while (LogResult("Run Menu loop", Menu())) {
     Game();
     logger << "Game() terminated" << endl;
@@ -3061,7 +3061,7 @@ void GluPostMessage(const char *str) {
     if (message.length() > MAX_CHARS_PER_LINE) {
       message = message.substr(0, MAX_CHARS_PER_LINE);
     }
-    
+
     msg_x = (GAME_MODEWIDTH - (message.length() * FONTWIDTH)) / 2;
 
     // reset the timer
@@ -3103,7 +3103,7 @@ void GluSetMusic(bool loop, const char *music_resource) {
   //  don't play music that's already going
   logger << "SetMusic type A called to use music resource " <<
       music_resource << endl;
-  
+
   if (!disable_music && last_music != music_resource) {
     LogResult("Start to play music",
         MusicPlay(loop,MIDI_RESOURCE_TYPE, music_resource));
@@ -3115,7 +3115,7 @@ void GluSetMusic(bool loop, const char *music_resource) {
   } else {
     SetSpeed(1);
   }
-  
+
   logger << "SetMusic finished" << endl;
 }
 
@@ -3190,7 +3190,7 @@ void GluCharPress(char c) {
 void GluKeyPress(BYTE scan_code) {key_presses.push(scan_code);}
 
 bool GluWalkingData(FIXEDNUM x, FIXEDNUM y) {
-  x /= TILE_WIDTH; 
+  x /= TILE_WIDTH;
   y /= TILE_HEIGHT;
 
   return walking_data->get(
@@ -3211,7 +3211,7 @@ void GluInterpretDirection(BYTE d,FIXEDNUM& xf,FIXEDNUM& yf) {
   switch(d) {
   case DWEST : case DEAST:           yf = Fixed( 0); break;
   case DNORTH: case DNE  : case DNW: yf = Fixed(-1); break;
-  default:                           yf = Fixed( 1); 
+  default:                           yf = Fixed( 1);
   }
 }
 
@@ -3226,4 +3226,3 @@ void GluStrLoad(unsigned int id, string& target) {
 int GluScoreDiffPickup(int x) {return (2 == x) ? 2 : 1;}
 
 int GluScoreDiffKill(int x) {return x * 2 + 2;}
-

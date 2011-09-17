@@ -16,7 +16,7 @@ limitations under the License.
 
 // if this line is not commented, then enemies will
 //  not attack you unless fired upon
-//#define TESTMODE 
+//#define TESTMODE
 
 #include "StdAfx.h"
 #include "Fixed.h"
@@ -169,8 +169,8 @@ bool Character::EnemyLogic() {
   if(CHARSTATE_UNKNOWING == state) {
 #if !defined(TESTMODE)
     // figure out if the hero is close enough to be noticed
-    xd = FixedMul(xd,xd); 
-    yd = FixedMul(yd,yd); 
+    xd = FixedMul(xd,xd);
+    yd = FixedMul(yd,yd);
     if(MIN_SAFEDISTANCESQUARED > xd + yd) {
       // this computer player is no longer unaware of turner's presence
       //  so change the state to ALIVE
@@ -205,7 +205,7 @@ bool Character::EnemyLogic() {
     } else {
       speed = ALIENSPEED[this->model];
 
-      // use the filter movement glue function hypothetically to see if 
+      // use the filter movement glue function hypothetically to see if
       //  aligning horizontally would be a good idea
       pair<POINT,POINT> hypothetical = coor;
       coor.second.y += yd;
@@ -261,14 +261,14 @@ bool Character::EnemyLogic() {
     state = CHARSTATE_DYING == state ? CHARSTATE_DEAD : CHARSTATE_WALKING;
     frames_in_this_state = 0;
   }
-  
+
   return true;
 }
 
 void Character::Logic() {
   static bool firing_last_frame = false;
   Context *cxt = GluContext();
-  
+
   frames_since_last_fire++;
 
   if(coor.first.x < 0 || coor.first.y < 0) {
@@ -346,7 +346,7 @@ void Character::Logic() {
     DWORD directional_buttons = 0;
     bool running;
     int old_direction = direction;
-    
+
     if (KeyPressed(DIK_RIGHT)) {directional_buttons |= 1;}
     if (KeyPressed(DIK_UP)) {directional_buttons |= 2;}
     if (KeyPressed(DIK_LEFT)) {directional_buttons |= 4;}
@@ -380,7 +380,7 @@ void Character::Logic() {
       if((KeyPressed(DIK_LSHIFT)) || (KeyPressed(DIK_RSHIFT))) {
           direction = old_direction;
       }
-      
+
       TryToMove();
     }
   } else {
@@ -389,7 +389,7 @@ void Character::Logic() {
 
   NetSetPosition(FixedCnvFrom<long>(coor.first.x),
                  FixedCnvFrom<long>(coor.first.y) - TILE_HEIGHT/2, direction);
-  
+
   // now see if they are trying to fire the gun . . .
   if(KeyPressed(DIK_SPACE) && cxt->ammo[current_weapon]) {
     TryToFire();
@@ -672,7 +672,7 @@ void Character::DrawMetersBasic
 void Character::SubtractHealth(int fire_type) {
   FIXEDNUM pain; // how much is actually taken away is calculated now
   Context *cxt = GluContext();
-  
+
   if(CHARSTATE_DEAD == state) {
     return;
   }
@@ -814,7 +814,7 @@ void Character::PowerUpCollisions(vector<CPowerUp> *pups) {
         cxt->AmmoAdd(type, DifAmmoPerPack(type));
         GamDoEffect(GETYPE_AMMO, health);
       }
-      
+
       return;
     }
   }
@@ -828,7 +828,7 @@ bool Character::IsOffScreen() const {
 }
 
 void Character::TryToMove() {
-  pair<POINT, POINT> l = coor; 
+  pair<POINT, POINT> l = coor;
 
   if(l.first.x != l.second.x) {
     if(l.first.y != l.second.y) {
