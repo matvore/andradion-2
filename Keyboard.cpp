@@ -253,7 +253,7 @@ string KeyName(int key) {
       break;
     case 4:
       index = *++data_ptr;
-      break;      
+      break;
     case 3:
       data_ptr++;
       result = "Numpad ";
@@ -269,6 +269,6 @@ string KeyName(int key) {
     result += (char)('0' + key / 16);
     result += (char)('0' + key % 16);
   }
-  
+
   return result;
 }

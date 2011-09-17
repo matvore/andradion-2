@@ -22,7 +22,7 @@ public:
 
   void set(int x, int y);
   bool get(int x, int y) const;
-  
+
 private:
   CBitMatrix(int width, char *data) : width(width), data(data) {}
   CBitMatrix& operator=(const CBitMatrix&);

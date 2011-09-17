@@ -116,7 +116,7 @@ void SndRelease() {
   }
 
   ds.Reset();
-  
+
   logger << "Done releasing Sound module" << endl;
 }
 
@@ -206,7 +206,7 @@ void SndPlay(int index, FIXEDNUM freq_factor, bool reverse) {
                              &ptr1, &ptr1_size,
                              &ptr2, &ptr2_size, 0))) {
         BYTE *p1, *p1_end, *p2, *p2_start;
-        
+
         reversed.flip(index);
 
         // we have to reverse data that is in both ptr1 and ptr2

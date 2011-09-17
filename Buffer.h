@@ -64,9 +64,9 @@ public:
     buf = allocate(s);
 
     std::memcpy(buf, old_buf, s < size ? s : size);
-    
+
     size = s;
-    
+
     free(old_buf);
   }
 

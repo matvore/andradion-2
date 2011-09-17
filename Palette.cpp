@@ -104,7 +104,7 @@ const BYTE *PalInitialize(const BYTE *ifs) {
 void PalInitializeWithMenuPalette() {
   old_br = old_bg = old_bb = Fixed(1.0f);
 
-  const BYTE mpe[MENUPALETTE_BASECOLORS * 3] = 
+  const BYTE mpe[MENUPALETTE_BASECOLORS * 3] =
     {
   4,   2,   4,  8,   8,   8,  16,  16,  16,  1,   0,  57,
   15,  25,  53,  32,  32,  32,  40,  40,  40,  57,  44,  60,
@@ -183,7 +183,7 @@ void PalInitializeWithMenuPalette() {
     pe[i].peGreen = *mpe_ptr++;
     pe[i].peBlue = *mpe_ptr++;
   }
-  
+
   // fill the rest with magenta
   for(; i < 256; i++) {
     pe[i].peFlags = 0;
@@ -256,7 +256,7 @@ void PalSetBrightnessFactor(FIXEDNUM br, FIXEDNUM bg, FIXEDNUM bb) {
   if (br != old_br || bg != old_bg || bb != old_bb) {
     const PALETTEENTRY *pe = Gfx::Get()->GetPalette();
     PALETTEENTRY new_pe[256];
-  
+
     // scale the colors
     for(int i = 0; i < 256; i++) {
       new_pe[i].peRed = ScaleColor(pe[i].peRed, br);

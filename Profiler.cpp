@@ -70,7 +70,7 @@ CProfile::CProfile(DWORD id, const char *name) {
   QueryPerformanceCounter((LARGE_INTEGER *)&x->start_time);
 
   x->open_profiles++;
-  
+
   assert(1 == x->open_profiles);
 
   this->data = x;
@@ -89,13 +89,13 @@ CProfile::~CProfile() {
     // so figure out our parentage
     x->parent = 0-1;
     x->num_parents = 0;
-    
+
     // count all parents and find the immediate parent
     for(VCTR_PROFILESAMPLE::iterator inner = profile_data.begin();
         inner != profile_data.end(); inner++) {
       if(inner->open_profiles > 0) {
         x->num_parents++;
-        
+
         if((DWORD)-1 == x->parent || inner->start_time
            >= profile_data[x->parent].start_time) {
           x->parent = inner - profile_data.begin();
@@ -209,7 +209,7 @@ void GetProfileData(vector<string>& text_rows) {
       for(DWORD j = 0;j < i->num_parents; j++) {
         data += ' ';
       }
-          
+
       data += i->name;
 
       addstring(text_rows,data.c_str());

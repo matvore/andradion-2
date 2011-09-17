@@ -55,7 +55,7 @@ void GamOneFrame(FIXEDNUM overall_brightness) {
     scale = FixedMul(scale, overall_brightness);
 
     overall_brightness = overall_brightness * 2 - scale;
-    
+
     PalSetBrightnessFactor(overall_brightness, overall_brightness,
                            overall_brightness);
 

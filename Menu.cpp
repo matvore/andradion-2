@@ -51,7 +51,7 @@ void CMenu::FillSurface() {
   for(int i = 0; i < num_strings;i++) {
     pair<BYTE, BYTE> color = i != current_selection
       ? font_color : selected_color;
-    
+
     font->WriteString(tc[i].first+shadow_offset, tc[i].second+shadow_offset,
                       strings[i].c_str(), color.second);
     font->WriteString(tc[i].first, tc[i].second,

@@ -53,7 +53,7 @@ static AutoComPtr<IDirectSoundBuffer> CreateSB
   AutoComPtr<IDirectSoundBuffer> new_buff;
   DSBUFFERDESC dsbd;
   WAVEFORMATEX wfm;
-  
+
   if (!ds) {
     logger << "Direct sound is not available; could not create sound buffer" <<
         endl;

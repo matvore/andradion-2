@@ -38,7 +38,7 @@ const int MACHINEGUNSWAY = 10;
 const FIXEDNUM BULLETSPEED = Fixed(20);
 const int FRAMESTOEXPLOSION = 70;
 const FIXEDNUM PROJECTILE_INITIALMOVEMENT = Fixed(15);
-const FIXEDNUM PROJECTILE_SPEED = Fixed(10); 
+const FIXEDNUM PROJECTILE_SPEED = Fixed(10);
 const int MAX_EXPLOSIONBULGE = 5;
 const int HORIZONTALCOLLISION_UPPER = 1;
 const int HORIZONTALCOLLISION_LOWER = 2;
@@ -120,7 +120,7 @@ void Fire::Logic() {
     hypothetical.first.y = y;
 
     FIXEDNUM dest_x, dest_y, proj_speed_x, proj_speed_y;
-    
+
     GluInterpretDirection(direction, dest_x, dest_y);
     proj_speed_x = FixedMul(dest_x, PROJECTILE_SPEED);
     proj_speed_y = FixedMul(dest_y, PROJECTILE_SPEED);
@@ -274,7 +274,7 @@ protected:
   int length;
 
   int rand0, rand1;
-  
+
   int visible_points_left;
   int points_to_start;
 
@@ -317,7 +317,7 @@ void Fire::Draw() {
       -TILE_HEIGHT/2+GAME_MODEHEIGHT/2;
 
     cxt->Draw(BMP_BULLET, target_x, target_y);
-    return; 
+    return;
   }
 
   int bulge;

@@ -84,7 +84,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
 
   if(!RegisterClassEx(&winclass)) {
     logger << "Failed to register window class" << endl;
-    return 0; 
+    return 0;
   }
 
   // precalc window coordinates

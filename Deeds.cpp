@@ -194,7 +194,7 @@ void DeeRelease() throw(DeedsWriteException) {
                                    sizeof(pair<short,short>), &written, 0);
 
     total_written += written;
-    
+
     success = success && WriteFile(file, (void *)(best_scores+i),
                                    sizeof(pair<short,short>), &written, 0);
 
