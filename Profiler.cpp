@@ -48,7 +48,8 @@ VCTR_PROFILESAMPLE profile_data;
 
 CProfile::CProfile(DWORD id, const char *name) {
   if(profile_data.size() <= id) {
-    // the profile_data array is not large enough to store a new profile data sample
+    // the profile_data array is not large enough to store a new profile data
+    // sample
     ProfileSample x;
     x.profile_instances = 0;
     x.min = x.max = x.ave = INVALID_PERCENTAGE;

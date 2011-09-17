@@ -107,7 +107,8 @@ static bool Initialize(HANDLE file) throw() {
   int total_read = 0;
   int total_size = 0;
 
-  video_mode = Read(file, &total_read, &total_size, &success, NUM_VIDEOMODES-1);
+  video_mode = Read(
+      file, &total_read, &total_size, &success, NUM_VIDEOMODES-1);
   sync_rate = Read(file, &total_read, &total_size, &success, MAX_SYNCRATE);
 
   // read our accomplishments from the file

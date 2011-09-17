@@ -67,7 +67,8 @@ static AutoComPtr<IDirectSoundBuffer> CreateSB
 
   // copy wave format structure
   wfm.cbSize = 0;
-  wfm.nAvgBytesPerSec = DWORD(wfm.nBlockAlign = WORD(channels * bits_per_sample / 8));
+  wfm.nAvgBytesPerSec
+      = DWORD(wfm.nBlockAlign = WORD(channels * bits_per_sample / 8));
   wfm.nAvgBytesPerSec *= frequency;
   wfm.nChannels = (WORD)channels;
   wfm.nSamplesPerSec = frequency;

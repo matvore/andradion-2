@@ -1958,7 +1958,8 @@ static bool Menu() {
                 && LEVELAVAIL_NONE == DeeLevelAvailability(level));
 
         if (MENUACTION_ESCAPE == menu_action) {
-          logger << "User pressed Escape at level select, anyway.  PrepareMenu()'ing for main menu" << endl;
+          logger << "User pressed Escape at level select, anyway.  ";
+          logger << "Preparing main menu" << endl;
           state = GLUESTATE_MAINMENU;
           PrepareMenu();
           logger << "Done preparing.  About to enter main menu again" << endl;

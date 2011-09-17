@@ -536,13 +536,11 @@ bool Gfx::ClipLine(int *x0, int *y0, int *x1, int *y1) {
 
   // record whether or not each point is visible by testing them
   // within the clipping region 
-  bool visible0
-    = *x0 >= cl && *x0 < cr && *y0 >= ct && *y0 < cb;
-  bool visible1
-    = *x1 >= cl && *x1 < cr && *y1 >= ct && *y1 < cb;
+  bool visible0 = *x0 >= cl && *x0 < cr && *y0 >= ct && *y0 < cb;
+  bool visible1 = *x1 >= cl && *x1 < cr && *y1 >= ct && *y1 < cb;
 				
   // if both points are int the viewport, we have already finished
-  if(visible0 && visible1) {
+  if (visible0 && visible1) {
     return true;
   }
 
@@ -550,13 +548,13 @@ bool Gfx::ClipLine(int *x0, int *y0, int *x1, int *y1) {
   //  1 both points must be outside the clipping viewport
   //  2 both points must be on the same side of the clipping viewport
 
-  if(visible0 == visible1) {
+  if (visible0 == visible1) {
     // neither point is visible
     //  now do test 2.  If it doesn't pass test 2, then we continue normally
-    if((*x0 < cl && *x1 < cl) ||
-       (*x0 >= cr && *x1 >= cr) ||
-       (*y0 < ct && *y1 < ct) ||
-       (*y0 >= cb && *y1 >= cb)) {
+    if ((*x0 < cl && *x1 < cl) ||
+        (*x0 >= cr && *x1 >= cr) ||
+        (*y0 < ct && *y1 < ct) ||
+        (*y0 >= cb && *y1 >= cb)) {
       return false;
     }
     // and we're done for completely visible or completely invisible lines
@@ -571,52 +569,53 @@ bool Gfx::ClipLine(int *x0, int *y0, int *x1, int *y1) {
 
   bool success;
 
-  if(!visible1 || visible0) {
+  if (!visible1 || visible0) {
     // compute deltas
     int dx = *x1 - *x0;
     int dy = *y1 - *y0;
 
     // compute which boundary lines need to be clipped against
-    if(*x1 >= cr) {
+    if (*x1 >= cr) {
       // flag right edge
       right_edge = true;
 
       // compute intersection with right edge
       assert(0 != dx);
-      yi = (int)(0.5f + ((float)dy/(float)dx) * float(cr-1 - *x0) + (float)*y0);
-    } else if(*x1 < cl) {
+      yi = int(0.5f + ((float)dy/(float)dx) * float(cr-1 - *x0) + (float)*y0);
+    } else if (*x1 < cl) {
       // flags left edge
       left_edge = true;
 
       // compute intersection with left edge
       assert(0 != dx);
-      yi = (int)(0.5f + ((float)dy/(float)dx) * float(cl - *x0) + (float)*y0);
+      yi = int(0.5f + ((float)dy/(float)dx) * float(cl - *x0) + (float)*y0);
     }
-		
-    // that's it for left-right side intersections.  now for top-bottom intersections
+
+    // that's it for left-right side intersections.
+    // now for top-bottom intersections
     if(*y1 >= cb) {
       // flag edge
       bottom_edge = true;
 
       // compute intersection with bottom edge
       assert(0 != dy);
-      xi = (int)(0.5f + ((float)dx/(float)dy) * float(cb-1 - *y0) + (float)*x0);
+      xi = int(0.5f + ((float)dx/(float)dy) * float(cb-1 - *y0) + (float)*x0);
     } else if(*y1 < ct) {
       top_edge =true;
       
       assert(0 != dy);
-      xi = (int)(0.5f + ((float)dx/(float)dy) * float(ct - *y0) + (float)*x0);
+      xi = int(0.5f + ((float)dx/(float)dy) * float(ct - *y0) + (float)*x0);
     }
 
     // now we know which line we passed through
     //  figure which edge is the right intersection
-    if(yi >= ct && yi < cb) {
-      if(true == right_edge) {
+    if (yi >= ct && yi < cb) {
+      if (right_edge) {
         *x1 = cr - 1;
         *y1 = yi;
 
         success = true;
-      } else if(true == left_edge) {
+      } else if (left_edge) {
         *x1 = cl;
         *y1 = yi;
 
@@ -625,12 +624,12 @@ bool Gfx::ClipLine(int *x0, int *y0, int *x1, int *y1) {
     }
 
     if(xi >= cl && xi < cr) {
-      if(true == bottom_edge) {
+      if (bottom_edge) {
         *x1 = xi;
         *y1 = cb-1;
 	
         success = true;
-      } else if(true == top_edge) {
+      } else if (top_edge) {
         *x1 = xi;
         *y1 = ct;
 
@@ -661,15 +660,14 @@ bool Gfx::ClipLine(int *x0, int *y0, int *x1, int *y1) {
 
       // computer intersection with right edge
       assert(0 != dx);
-      yi = (int)(0.5f + ((float)dy/(float)dx) * float(cr - 1 - *x1) + (float)*y1);
+      yi = int(0.5f + ((float)dy/(float)dx) * float(cr - 1 - *x1) + (float)*y1);
     } else if(*x0 < cl) {
       // flag left edge
       left_edge = true;
 
       // compute intersection with left edge
       assert(0 != dx);
-      yi = (int)(0.5f + ((float)dy/(float)dx) * float(cl - *x1) +
-                 (float)*y1);
+      yi = int(0.5f + ((float)dy/(float)dx) * float(cl - *x1) + (float)*y1);
     }
 
     // bottom-top edge intersections
@@ -678,22 +676,22 @@ bool Gfx::ClipLine(int *x0, int *y0, int *x1, int *y1) {
 
       // compute intersection with bottom edge
       assert(0 != dy);
-      xi = (int)(0.5f + ((float)dx/(float)dy) * float(cb - 1 - *y1) + (float)*x1);
+      xi = int(0.5f + ((float)dx/(float)dy) * float(cb - 1 - *y1) + (float)*x1);
     } else if(*y0 < ct) {
       top_edge = true;
 
       // computer intersection with bottom edge
       assert(0 != dy);
-      xi = (int)(0.5f + ((float)dx/(float)dy) * float(ct - *y1) + (float)*x1);
+      xi = int(0.5f + ((float)dx/(float)dy) * float(ct - *y1) + (float)*x1);
     }
 
     // compute which edge is the proper intersection
-    if(yi >= ct && yi < cb) {
-      if(true == right_edge) {
+    if (yi >= ct && yi < cb) {
+      if (right_edge) {
         *x0 = cr - 1;
         *y0 = yi;
         success= true;
-      } else if(true == left_edge) {
+      } else if (left_edge) {
         *x0 = cl;
         *y0 = yi;
         success= true;
@@ -701,11 +699,11 @@ bool Gfx::ClipLine(int *x0, int *y0, int *x1, int *y1) {
     }	
 
     if(xi >= cl && xi < cr) {
-      if(true == bottom_edge) {
+      if (bottom_edge) {
         *x0 = xi;
         *y0 = cb -1;
         success = true;
-      } else if(true == top_edge) {	
+      } else if (top_edge) {
         *x0 = xi;
         *y0 = ct;
         success = true;

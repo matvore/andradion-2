@@ -40,7 +40,10 @@ using namespace std;
 //  will run in the direction opposite of the unpressed button
 
 const FIXEDNUM MIN_SAFEDISTANCESQUARED = Fixed(150*150);
-const FIXEDNUM MIN_ALIGNMENT = Fixed(3); // how close an alien should be before it starts firing
+
+// how close an alien should be before it starts firing
+const FIXEDNUM MIN_ALIGNMENT = Fixed(3);
+
 const int FRAMESTORECOVER_HERO = 15;
 const int FRAMESTORECOVER_ALIEN = 15;
 const FIXEDNUM HURTFACTOR = Fixed(0.5);
@@ -65,11 +68,13 @@ const int AMMO_METER_R = 0;
 const int AMMO_METER_G = 255;
 const int AMMO_METER_B = 255;
 
-// health meter is a meter measuring Turner's level of pain, taking up the bottom of the screen
+// health meter is a meter measuring Turner's level of pain, taking up the
+// bottom of the screen
 const int HEALTH_METER_DISTANCE_FROM_SIDES_OF_SCREEN = 5;
 const int HEALTH_METER_HEIGHT = 15;
 
-// the ammo meter takes up a smaller portion of the screen in the lower right corner, and it is vertical
+// the ammo meter takes up a smaller portion of the screen in the lower right
+// corner, and it is vertical
 const int AMMO_METER_DISTANCE_FROM_SIDES_OF_SCREEN = 2;
 const int AMMO_METER_HEIGHT = 30;
 const int AMMO_METER_WIDTH = 8;
