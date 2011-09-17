@@ -29,7 +29,7 @@ class CTimer {
 
  public:
   static void Wait(double time);
-		
+
   inline float SecondsPassed32() const {
     return (float)this->TicksPassed() / (float) ticks_per_second ;
   }

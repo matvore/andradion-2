@@ -88,7 +88,7 @@ const BYTE *PalInitialize(const BYTE *ifs) {
     num_black_colors += RandomElementValue(pe[i].peGreen);
     num_black_colors += RandomElementValue(pe[i].peBlue);
 
-    if(3 == num_black_colors)	{
+    if(3 == num_black_colors) {
       // set all to pure white
       pe[i].peRed = pe[i].peGreen = pe[i].peBlue = 0xff;
     }

@@ -18,7 +18,7 @@ limitations under the License.
 class CMenu {
 public:
   Gfx::Surface *Backdrop() {return backdrop;}
-	
+
   // note that there are shadow colors for each font in this constructor
   //  to not use shadows, use the other constructor
   CMenu(Gfx::Font *font,

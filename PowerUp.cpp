@@ -118,7 +118,7 @@ int CPowerUp::CollidesWithHero() {
   }
 
   ch->GetLocation(tx,ty);
-	
+
   if(abs(x - tx) < POWERUP_FATNESS && abs(y - ty) < POWERUP_FATNESS &&
      !ch->Dead()) {
     if(type < 0) {
@@ -190,17 +190,17 @@ unsigned int CPowerUp::reference_count = 0;
 void CPowerUp::Rotate() {
   // make the weapons dance to the music if there is any
   if(beat_event) {
-      if(WAIT_OBJECT_0 == WaitForSingleObject(beat_event,0)) {
-        if(++rotation_direction >= RENDERED_DIRECTIONS) {
-	      rotation_direction = 0;
-	    }
-      } else if(!Segment()) {
-        // we don't use a beat event anymore
-        CloseHandle(beat_event);
-        beat_event = 0;
-        Performance()->RemoveNotificationType(GUID_NOTIFICATION_MEASUREANDBEAT);
+    if(WAIT_OBJECT_0 == WaitForSingleObject(beat_event,0)) {
+      if (++rotation_direction >= RENDERED_DIRECTIONS) {
+        rotation_direction = 0;
       }
-      return;
+    } else if(!Segment()) {
+      // we don't use a beat event anymore
+      CloseHandle(beat_event);
+      beat_event = 0;
+      Performance()->RemoveNotificationType(GUID_NOTIFICATION_MEASUREANDBEAT);
+    }
+    return;
   }
 
   if(++rotation_timer > FRAMESTOROTATEPOWERUP) {

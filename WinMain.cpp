@@ -25,8 +25,8 @@ using std::string;
 
 const char *WINDOW_CLASS = "Andradion 2FV WndClass";
 
-LRESULT WINAPI WindowProc(HWND hWnd, UINT Msg, WPARAM wParam,
-			  LPARAM lParam) {
+LRESULT WINAPI WindowProc(
+    HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam) {
   switch(Msg) {
   case WM_CLOSE:
     if(GluCanQuit()) {
@@ -81,7 +81,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
   winclass.lpszClassName = WINDOW_CLASS;
 
   logger << "Registering window class" << endl;
-	
+
   if(!RegisterClassEx(&winclass)) {
     logger << "Failed to register window class" << endl;
     return 0; 
@@ -95,7 +95,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     CreateWindow(WINDOW_CLASS, WINDOW_CAPTION,
                  WS_CAPTION | WS_POPUP | WS_VISIBLE,
                  wx, wy, GAME_MODEWIDTH, GAME_MODEHEIGHT,
-                 0, 0, hInstance, 0);	
+                 0, 0, hInstance, 0);
 
   if(!hWnd) {
     logger << "Failed to CreateWindow" << endl;

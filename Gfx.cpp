@@ -538,7 +538,7 @@ bool Gfx::ClipLine(int *x0, int *y0, int *x1, int *y1) {
   // within the clipping region 
   bool visible0 = *x0 >= cl && *x0 < cr && *y0 >= ct && *y0 < cb;
   bool visible1 = *x1 >= cl && *x1 < cr && *y1 >= ct && *y1 < cb;
-				
+
   // if both points are int the viewport, we have already finished
   if (visible0 && visible1) {
     return true;
@@ -627,7 +627,7 @@ bool Gfx::ClipLine(int *x0, int *y0, int *x1, int *y1) {
       if (bottom_edge) {
         *x1 = xi;
         *y1 = cb-1;
-	
+
         success = true;
       } else if (top_edge) {
         *x1 = xi;
@@ -642,11 +642,9 @@ bool Gfx::ClipLine(int *x0, int *y0, int *x1, int *y1) {
   top_edge = false;
   bottom_edge = false;
   left_edge = false;
-  // right_edge = true . . . no wait! I meant . . .
   right_edge = false;
 
-  // now we have to do the same friggin thing for the second endpoint
-	
+  // now we have to do the same thing for the second endpoint
 
   if(visible1 || !visible0) {
     // compute deltas
@@ -696,7 +694,7 @@ bool Gfx::ClipLine(int *x0, int *y0, int *x1, int *y1) {
         *y0 = yi;
         success= true;
       }
-    }	
+    }
 
     if(xi >= cl && xi < cr) {
       if (bottom_edge) {

@@ -24,16 +24,17 @@ const int CMenu::SELECTION_NOSTRINGSYET = -1;
 
 using namespace std;
 
-CMenu::CMenu(Gfx::Font *font,
-	     BYTE font_color, BYTE font_shadow,
-	     BYTE selected_color, BYTE selected_shadow,
-	     BYTE header_color, BYTE header_shadow,
-	     int shadow_offset, Gfx::Surface *backdrop)
-  : font(font), backdrop(backdrop),
-    font_color(font_color, font_shadow),
-    selected_color(selected_color, selected_shadow),
-    header_color(header_color, header_shadow),
-    shadow_offset(shadow_offset) {
+CMenu::CMenu(
+    Gfx::Font *font,
+    BYTE font_color, BYTE font_shadow,
+    BYTE selected_color, BYTE selected_shadow,
+    BYTE header_color, BYTE header_shadow,
+    int shadow_offset, Gfx::Surface *backdrop)
+        : font(font), backdrop(backdrop),
+        font_color(font_color, font_shadow),
+        selected_color(selected_color, selected_shadow),
+        header_color(header_color, header_shadow),
+        shadow_offset(shadow_offset) {
   assert(font);
   assert(backdrop);
 }

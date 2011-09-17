@@ -159,7 +159,7 @@ bool Character::EnemyLogic() {
       return true;
     }
   }
-	
+
   xd = cxt->hero->coor.first.x - coor.first.x;
   yd = cxt->hero->coor.first.y - coor.first.y;
   FIXEDNUM speed;
@@ -190,7 +190,7 @@ bool Character::EnemyLogic() {
     // see if we are close enough to start firing
     if(abs(xd) <= MIN_ALIGNMENT) {
       state = CHARSTATE_FIRING;
-			
+
       // lining up horizontally and firing vertically
       direction = yd > 0 ? DSOUTH : DNORTH;
 
@@ -373,7 +373,7 @@ void Character::Logic() {
                ((KeyPressed(DIK_LCONTROL)
                  || KeyPressed(DIK_RCONTROL))
                 && direction < RENDERED_DIRECTIONS));
-		
+
     if(walked) {
       Walk(running);
 
@@ -438,7 +438,7 @@ bool Character::DrawCharacter() {
     (model == current_weapon && CHAR_EVILTURNER != model) ||
     (CHARSTATE_DEAD == state) ||
     (WEAPON_PISTOL == current_weapon && CHAR_CHARMIN == model);
-	
+
   tx = coor.first.x - cxt->center_screen_x
     + Fixed(GAME_MODEWIDTH/2) - Fixed(TILE_WIDTH/2);
   ty = coor.first.y - cxt->center_screen_y
@@ -676,7 +676,7 @@ void Character::SubtractHealth(int fire_type) {
   if(CHARSTATE_DEAD == state) {
     return;
   }
-	
+
   if (controlled_by_human) {
     GamDoEffect(GETYPE_BLOOD, health);
 
@@ -855,12 +855,12 @@ void Character::TryToMove() {
 
         a.first.y = a.second.y = l.first.y;
         b.first.y = b.second.y = l.first.y - Fixed(TILE_HEIGHT/2);
-				
+
         a.first.x = l.first.x+Fixed(TILE_WIDTH/4);
         a.second.x = l.second.x+Fixed(TILE_WIDTH/4);
         b.first.x = a.first.x;
         b.second.x = a.second.x;
-				
+
         GluFilterMovement(&a.first, &a.second);
         GluFilterMovement(&b.first, &b.second);
 
@@ -876,12 +876,12 @@ void Character::TryToMove() {
 
         a.first.y = a.second.y = l.first.y;
         b.first.y = b.second.y = l.first.y - Fixed(TILE_HEIGHT/2);
-				
+
         a.first.x = l.first.x-Fixed(TILE_WIDTH/4);
         a.second.x = l.second.x-Fixed(TILE_WIDTH/4);
         b.first.x = a.first.x;
         b.second.x = a.second.x;
-				
+
         GluFilterMovement(&a.first, &a.second);
         GluFilterMovement(&b.first, &b.second);
 

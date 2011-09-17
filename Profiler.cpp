@@ -55,7 +55,7 @@ CProfile::CProfile(DWORD id, const char *name) {
     x.min = x.max = x.ave = INVALID_PERCENTAGE;
     profile_data.resize(id+1,x);
   }
-		
+
   // get pointer to the sample in question
   ProfileSample *x = &profile_data[id];
 
@@ -134,14 +134,14 @@ void GetProfileData(vector<string>& text_rows) {
 
   LONGLONG frame_time;
   QueryPerformanceCounter((LARGE_INTEGER *)&frame_time);
-  frame_time -= start_frame;		
+  frame_time -= start_frame;
   float seconds_per_frame = (float)(frame_time) / timer_frequency;
 
   text_rows.reserve(profile_data.size()+2);
 
   addstring(text_rows, "  Ave :   Min :   Max :   # : Profile Name");
   addstring(text_rows, "------------------------------------------");
-		
+
   for(VCTR_PROFILESAMPLE::iterator i = profile_data.begin();
       i != profile_data.end(); i++) {
     if(i->profile_instances > 0) {
@@ -190,7 +190,7 @@ void GetProfileData(vector<string>& text_rows) {
         }
       }
       // end of storeing profile in history
-				
+
       // add all this data into a string
       string data;
       char buffer[16];

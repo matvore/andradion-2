@@ -390,7 +390,7 @@ FoundPlayer(DPID dpId, DWORD, LPCDPNAME lpName, DWORD, LPVOID) {
   
   logger << "Enumeration of players callback called for player " << lpName <<
       endl;
-	
+
   if(FAILED(dp->GetPlayerData(dpId, &m, &size, DPGET_REMOTE))) {
     logger << "Failed to get player data, skipping enumeration of this "
              "participant" << endl;
@@ -432,7 +432,7 @@ static void ProcessSystemMessage(DPMSG_GENERIC *msg)
   case DPSYS_DESTROYPLAYERORGROUP: {
     logger << "System message: player has left" << endl;
     DPMSG_DESTROYPLAYERORGROUP *p_msg = (DPMSG_DESTROYPLAYERORGROUP *)msg;
-	
+
     feedback->PlayerLeaving(p_msg->dpnName.lpszShortNameA);
 
     RecountPlayers();
@@ -555,7 +555,7 @@ void NetInitializeProtocol(unsigned int index) throw() {
       CLSID_DirectPlay, 0, CLSCTX_ALL, IID_IDirectPlay4A, (void **)&dp));
   LogResult("Initialize connection",
       dp->InitializeConnection(protocols[index].second.Get(), 0));
-	
+
   logger << "NetInitializeProtocol() finished" << endl;
 
   assert(NetProtocolInitialized());
@@ -597,13 +597,13 @@ void NetCreateGame(unsigned int index, unsigned int sr,
     sd.dwFlags = SESSION_FLAGS | DPSESSION_JOINDISABLED;
     sd.guidApplication = ANDRADION2GUID;
     sd.dwMaxPlayers = MAX_PLAYERS;
-	
+
     // calculate session name 
     char session_name[2] = {'a', 0};
     session_name[0] += (char)index;
     room_index = index;
     sd.lpszSessionNameA = session_name;
-	
+
     sd.dwUser1 = 0xffffffff; // we don't know the level yet
     sd.dwUser2 = sync_rate = sr;
     sync = 0;
@@ -985,4 +985,3 @@ void NetChangeWeather(unsigned int new_weather) throw() {
     SendSimpleMsg(MSGTYPE_CHANGEWEATHER | weather, true);
   }
 }
-

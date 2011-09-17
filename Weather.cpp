@@ -272,7 +272,7 @@ int WtrOneFrameOutdoors() {
     }
   }
   
-  if(WSF_LIGHTRAIN & f) {	
+  if(WSF_LIGHTRAIN & f) {
     OneRainFrame(false, screen_x, screen_y);
   } else if(WSF_HEAVYRAIN & f) {
     OneRainFrame(true, screen_x, screen_y);
@@ -368,13 +368,13 @@ static void OneRainFrame(
 
     x %= Gfx::Get()->GetVirtualBufferWidth()-RAIN_DROPLENGTH/2;
 
-    if(x < RAIN_DROPLENGTH/2)	{
+    if(x < RAIN_DROPLENGTH/2) {
       x += Gfx::Get()->GetVirtualBufferWidth()-RAIN_DROPLENGTH/2;
     }
 
     int y = r[i].y + diff_y;
 
-    y %= (Gfx::Get()->GetVirtualBufferHeight()-RAIN_DROPLENGTH);	
+    y %= (Gfx::Get()->GetVirtualBufferHeight()-RAIN_DROPLENGTH);
 
     if(y < 0) {
       y += Gfx::Get()->GetVirtualBufferHeight()-RAIN_DROPLENGTH;
@@ -405,7 +405,7 @@ static void OneThunderFrame(bool lightning) {
   static DWORD probability_timer = 0;
 
   if(++probability_timer > LT_TIMETOSTRIKE) {
-    if(0 == rand()%LT_CHANCETOSTRIKE)	{
+    if(0 == rand()%LT_CHANCETOSTRIKE) {
       // lightning!!
       bolt_timer = 0;
     }

@@ -68,7 +68,7 @@ void GamOneFrame(FIXEDNUM overall_brightness) {
 
     max_time = GE_FRAMESTOAMMO;
   }
-		
+
   if(++frames_since_effect_started > max_time) {
     effect_type = GETYPE_NONE;
   }

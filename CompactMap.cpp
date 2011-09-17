@@ -186,7 +186,7 @@ CompactMap::CompactMap(BYTE **source) {
   }
 
   patterns.Resize(LogResult("# of patterns", f.getUsuallyByte()));
-		
+
   Array<PATTERN>::Iterator pitr;
 
   for(pitr = patterns.Begin(); pitr != patterns.End(); pitr++) {

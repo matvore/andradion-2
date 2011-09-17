@@ -21,10 +21,8 @@ using std::endl;
 
 // module that loads raw sound data into sound buffers
 
-static IDirectSoundBuffer *FillSoundBuffer(IDirectSoundBuffer *target,
-                                           const void *data,
-                                           DWORD bytes) {
-		
+static IDirectSoundBuffer *FillSoundBuffer(
+    IDirectSoundBuffer *target, const void *data, DWORD bytes) {
   BYTE *audio_ptr_1 = 0, *audio_ptr_2 = 0;
 
   DWORD audio_length_1 = 0, audio_length_2 = 0;
@@ -80,7 +78,7 @@ static AutoComPtr<IDirectSoundBuffer> CreateSB
   dsbd.dwBufferBytes = buffer_size;
   dsbd.dwFlags = desc_flags;
   dsbd.lpwfxFormat = &wfm;
-		
+
   LogResult("Create sound buffer",
       ds->CreateSoundBuffer(&dsbd, new_buff.GetPtrToPtr(), 0));
 

@@ -113,7 +113,7 @@ public:
    * @return true iff the enemy is not off the side of the screen.
    */
   bool EnemyLogic();
-	
+
   void Logic();
   
   // used for locals (enemies or hero):
@@ -141,8 +141,9 @@ public:
   inline FIXEDNUM X() const {return coor.first.x;}
   inline FIXEDNUM Y() const {return coor.first.y - Fixed(TILE_HEIGHT/2);}
   inline int Model() const {return model;}
-  inline bool Dead() const {return CHARSTATE_DEAD == state
-			      || CHARSTATE_DYING == state;}
+  inline bool Dead() const {
+    return CHARSTATE_DEAD == state || CHARSTATE_DYING == state;
+  }
 
   inline bool HasFullHealth() const {return Fixed(1) == health;}
   

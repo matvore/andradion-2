@@ -75,7 +75,7 @@ const float TIMETOSCROLL = 100.0f;
 const int   TRANSITIONSQUARESIZE = 350;
 const float TRANSITIONSECSPERSQUARE = 1.0f/80.0f;
 const float MAXFLASHTIME = 5.0f; 
-	
+
 const RECT  UPPERBLACKAREA = {0,0,800,75}; // left,top,right,bottom
 const RECT  LOWERBLACKAREA = {0,525,800,600};
 const RECT  DISPLAYAREA    = {0,75,800,525};
@@ -364,7 +364,7 @@ static int width_in_tiles, height_in_tiles;
 
 static Array<Sector> sectors;
 static int sector_width, sector_height;
-	
+
 static auto_ptr<CMenu> m;
 static list<CLevelEnd> lends;
 
@@ -593,7 +593,7 @@ public:
       Buffer buf(name_strlen + format.length() + 1);
       
       sprintf((char *)buf.Get(), format.c_str(), name);
-				
+
       logger << "Posting message of player leaving to screen" << endl;
       GluPostMessage((const char *)buf.Get());
     } catch (std::bad_alloc& ba) { }
@@ -608,7 +608,7 @@ public:
       Buffer buf(name_strlen + format.length() + 1);
       
       sprintf((char *)buf.Get(), format.c_str(), name);
-				
+
       logger << "Posting player join message to screen" << endl;
       GluPostMessage((const char *)buf.Get());
     } catch (std::bad_alloc& ba) { }
@@ -646,7 +646,7 @@ static BOOL CALLBACK CfgDlgProc(HWND hwndDlg, UINT uMsg,
       // scan the sync rate from txt using the mapped tchar function
       //  of scanf
       sscanf(txt, SYNCRATE_FORMAT, &sync_rate);
-				
+
       // see if the sync_rate was invalid
       if(sync_rate < MIN_SYNCRATE || sync_rate > MAX_SYNCRATE) {
         // invalid sync rate was entered
@@ -677,7 +677,7 @@ static BOOL CALLBACK CfgDlgProc(HWND hwndDlg, UINT uMsg,
 
     // set the hyper welcome box music
     GluSetMusic(false,IDR_WELCOMEBOXMUSIC);
-			
+
     char number_buffer[MAX_STRINGLEN];
     itoa(DeeSyncRate(), number_buffer, 10);
 
@@ -874,7 +874,7 @@ static void Introduction() {
     if(dc) {
       swap(brush1, brush2);
       swap(pen1, pen2);
-	
+
       // blit the background
       HBRUSH old_brush = (HBRUSH)SelectObject(dc, (HGDIOBJ)brush1);
       Rectangle(dc, 0, 0, MODEWIDTH, MODEHEIGHT);
@@ -894,8 +894,8 @@ static void Introduction() {
     } while (frame.SecondsPassed32() < FLASHCOLORPERSEC);
     Gfx::Get()->Flip();
   } while ((!warpout || SUCCEEDED(warpout->GetStatus(&warp_status)))
-          && (warp_status & DSBSTATUS_PLAYING)
-	  && (total_flash.SecondsPassed32() < MAXFLASHTIME));
+      && (warp_status & DSBSTATUS_PLAYING)
+      && (total_flash.SecondsPassed32() < MAXFLASHTIME));
 
   // get rid of those extra brushes we made
   DeleteObject((HGDIOBJ)brush1);
@@ -1175,7 +1175,7 @@ static void PrepareMenu() {
   case GLUESTATE_SELECTCONNECTIONMETHOD: {
     vector<string> con_names(NetProtocolCount());
     string con_header;
-	
+
     GluStrLoad(IDS_SELECTCONNECTIONMETHODCAPTION,con_header);
 
     if(0 == con_names.size()) {
@@ -1228,7 +1228,7 @@ static int MenuLoop() {
         last_key_pressed = key_presses.front();
         key_presses.pop();
       }
-		
+
       bool has_changed_position = false;
 
       if(VK_DOWN == last_key_pressed) {
@@ -1268,13 +1268,13 @@ static int MenuLoop() {
         }
 
         if(char_demo_direction_changer.SecondsPassed32()
-           >= DEMOCHAR_SECSTOCHANGEDIR) {	
+           >= DEMOCHAR_SECSTOCHANGEDIR) {
           char_demo_direction = rand()%RENDERED_DIRECTIONS;
           char_demo_direction_changer.Restart();
         }
 
         int bmp = BMPSET_CHARACTERS;
-		
+
         if(char_demo_stepper.SecondsPassed32() > DEMOCHAR_SECSTOSTEP) {
           bmp += RENDERED_DIRECTIONS;
           if(char_demo_stepper.SecondsPassed32()
@@ -1403,7 +1403,7 @@ static void LoadLevel(bool load_flesh, bool load_bone) {
   ExtractWord(&data_ptr, &j);
   i = FixedCnvTo<long>(i);
   j = FixedCnvTo<long>(j);
-	
+
   AddPossibleStartingSpot(i, j);
 
   ClearCharacters(false);
@@ -1523,7 +1523,7 @@ static void LoadLevel(bool load_flesh, bool load_bone) {
         l = FixedCnvTo<long>(l);
 
         powerups[powerups.size()-i-1].Setup(k,l,p);
-			
+
         AddPossibleStartingSpot(k,l);
 
         max_score += GluScoreDiffPickup(p);
@@ -1767,7 +1767,7 @@ static void FilterMovement(const POINT *start, POINT *end) {
     } else {
       // moving horizontally
 
-      if(x_change < 0) {	
+      if(x_change < 0) {
         inc = -1;
         gen_change = -x_change;
         axis_inc = -Fixed(1);
@@ -1776,7 +1776,7 @@ static void FilterMovement(const POINT *start, POINT *end) {
         gen_change = x_change;
         axis_inc = Fixed(1);
       }
-	
+
       axis = &end->x;
     }
   } else if(y_change) {
@@ -1822,7 +1822,7 @@ static void FilterMovement(const POINT *start, POINT *end) {
     surface_data += inc;
     moves = true;
   }
-	
+
   if(moves) {
     *axis -= axis_inc;
   }
@@ -1864,7 +1864,7 @@ static void SetGfx() {
 
   logger << "Initializing Pal with menu palette" << endl;
   GamInitializeWithMenuPalette();
-	
+
   logger << "Loading single player and multiplayer bitmaps" << endl;
   LoadBitmaps(RESOURCELOAD_MP);
 
@@ -2009,7 +2009,7 @@ static bool Menu() {
             // canceled mp game plans
             goto enter_name;
           }
-			
+
           model = m->GetSelectionIndex();
 
       select_connection_method:
@@ -2168,13 +2168,13 @@ static void Game() {
 
     // check for new input
     KeyRefreshState();
-	
+
     // STEP 0: RELOAD LEVEL IF APPROPRIATE or RUN THE END GAME
     if(KeyPressed(DIK_RETURN) && !NetProtocolInitialized()) {
       logger << "User pressed Return, reloading level" << endl;
       reload_flesh = true;
     }
-	
+
     if (reload_flesh || reload_bone) {
       LoadLevel(reload_flesh, reload_bone);
       reload_flesh = reload_bone = false;
@@ -2185,7 +2185,7 @@ static void Game() {
       EndGame();
       break;
     }
-	
+
     // STEP 2: CHECK FOR QUITTER
     if (KeyPressed(DIK_ESCAPE)) {
       logger << "User pressed escape, quitting game" << endl;
@@ -2197,7 +2197,7 @@ static void Game() {
       if (!NetInGame()) {
         AutoComPtr<IDirectSoundBuffer> s = SndSound(WAV_PAUSE);
         logger << "User pressed pause" << endl;
-	
+
         // play the sound for pausing the game, 
         if (s && !contexts[0].hero->Dead()) {
           s->SetFrequency(SOUNDRESOURCEFREQ);
@@ -2333,7 +2333,7 @@ static void Game() {
     Recache(reload);
 
     upper_left_sector %= CACHED_SECTORS;
-		
+
     EndProfile(); // recaching
 
     // draw lower-level CMP
@@ -2357,7 +2357,7 @@ static void Game() {
                itr != sect->levelEnds.end(); itr++) {
             if (itr->Collides(contexts[0].hero->X(), contexts[0].hero->Y())) {
               int next_level = itr->Reference();
-				
+
               GluSetMusic(false, IDR_YOUWINTUNE);
 
               if (!disable_music) {
@@ -2367,7 +2367,7 @@ static void Game() {
               // update level availability variable
               DeeLevelComplete(level, DifGet(), since_start,
                                atoi(contexts[0].score), next_level);
-	
+
               level = next_level;
 
               if (NUM_LEVELS > next_level) {
@@ -2385,7 +2385,7 @@ static void Game() {
       target_y += SECTOR_HEIGHT;
     } // end for row
     EndProfile(); // lower-level-cmp drawing
-	
+
     Gfx::Get()->Lock();
 
     // allow the hero to try moving
@@ -2434,17 +2434,17 @@ static void Game() {
     }
 
     Gfx::Get()->Unlock();
-	
+
     // note that we picked a definite coordinate for the center of the
-    //  screen before we allowed any movement.  Also note that the 
-    //  coordinates decided on by the FilterMovement methods will not
-    //  be applied until after the corresponding sprites have been
-    //  drawn to the back buffer.  (look at the Character class)
-    //  This will prevent shakiness and other strange distortions,
-    //  such as making turner's head move like a pigeon's.
-    //	However, the coordinates of the characters will always be
-    //  one frame old, while the pistol projectiles will
-    //  be right on track.
+    // screen before we allowed any movement.  Also note that the
+    // coordinates decided on by the FilterMovement methods will not
+    // be applied until after the corresponding sprites have been
+    // drawn to the back buffer.  (look at the Character class)
+    // This will prevent shakiness and other strange distortions,
+    // such as making turner's head move like a pigeon's.
+    // However, the coordinates of the characters will always be
+    // one frame old, while the pistol projectiles will
+    // be right on track.
 
     // draw characters with respect to drawing order
     BeginProfile(Draw_Character);
@@ -2468,7 +2468,7 @@ static void Game() {
     for (r = row1; r < row3; r++) {
       for (c = column1; c < column3; c++) {
         set<int> *sect_pups = &sectors[r * sector_width + c].powerups;
-	  
+
         for (set<int>::iterator itr = sect_pups->begin();
             itr != sect_pups->end(); itr++) {
           powerups[*itr].Draw();
@@ -2729,13 +2729,13 @@ static void Recache(int flags) {
         // we have to recache the map at x,y
         int sector_x = ul_cached_sector_x + x;
 
-	logger << "Reload sector " << sector_x << "x" << sector_y << endl;
+        logger << "Reload sector " << sector_x << "x" << sector_y << endl;
 
-	// now make sure this fits into the sector grid of the whole level
-	if(sector_x < sector_width) {
+        // now make sure this fits into the sector grid of the whole level
+        if(sector_x < sector_width) {
           CompactMap *source_a, *source_b;
-	  logger << "Sector coor is in range, loading" << endl;
-	  
+          logger << "Sector coor is in range, loading" << endl;
+
           cached_sector %= CACHED_SECTORS;
           source_a = sectors[sector_y*sector_width + sector_x].lowerCell.get();
           source_b = sectors[sector_y*sector_width + sector_x].upperCell.get();
@@ -2745,11 +2745,11 @@ static void Recache(int flags) {
         }
 
         // all done rendering to surface
-	logger << "Reloaded sector " << sector_x << "x" << sector_y << endl;
+        logger << "Reloaded sector " << sector_x << "x" << sector_y << endl;
 
         flags &= ~bit;
         if(!flags) {
-	  logger << "Recache finished" << endl;
+          logger << "Recache finished" << endl;
           return;
         }
       }
@@ -2856,7 +2856,7 @@ static void CleanUpAfterGame() {
   FlushKeyPresses();
 
   PrepareMenu();
-			
+
   WtrEndScript();
   GluSetMusic(true, IDR_MENUMUSIC);
 }
@@ -3044,10 +3044,10 @@ void GluPostForcePickupMessage() {
       && frames_for_current_message > FRAMESTODISPLAYMSG) {
     string msg;
     if (NetInGame()) {
-	  GluStrLoad(IDS_FORCEPICKUPMP,msg);
-	} else {
-	  GluStrLoad(IDS_FORCEPICKUPSP,msg);
-	}
+      GluStrLoad(IDS_FORCEPICKUPMP,msg);
+    } else {
+      GluStrLoad(IDS_FORCEPICKUPSP,msg);
+    }
     GluPostMessage(msg.c_str());
     shown_message_already = true;
   }
@@ -3135,31 +3135,31 @@ void GluFilterMovement(const POINT *start, POINT *end) {
 
 void GluCharPress(char c) {
   if (GLUESTATE_ENTERNAME == state) {
-    switch(c)	{
-	case '\b':
-	  // backspace was pressed
-	  if (player_name.length() > 0) {
+    switch(c) {
+    case '\b':
+      // backspace was pressed
+      if (player_name.length() > 0) {
         player_name = player_name.substr(0, player_name.length()-1);
       }
 
-	  SndPlay(WAV_BING, Fixed(1), false);
-	  break;
-      case '\r': case '\n': case '\t': case '\a':
-      case '\f': case '\v': case 27:
-        // a key we don't care about was pressed
-        break;
-      default:
-        SndPlay(WAVSET_POINTLESS+(rand()%WAVSINASET), Fixed(1), rand() & 1);
-        player_name += c;
-      }
-      // reset the menu
-      string header; 
-      vector<string> strings;
-      GluStrLoad(IDS_ENTERNAMECAPTION,header);
-      strings.resize(1);
-      strings[0] = player_name;
-      m->SetStrings(header,strings,0);
-      return;
+      SndPlay(WAV_BING, Fixed(1), false);
+      break;
+    case '\r': case '\n': case '\t': case '\a':
+    case '\f': case '\v': case 27:
+      // a key we don't care about was pressed
+      break;
+    default:
+      SndPlay(WAVSET_POINTLESS+(rand()%WAVSINASET), Fixed(1), rand() & 1);
+      player_name += c;
+    }
+    // reset the menu
+    string header;
+    vector<string> strings;
+    GluStrLoad(IDS_ENTERNAMECAPTION,header);
+    strings.resize(1);
+    strings[0] = player_name;
+    m->SetStrings(header,strings,0);
+    return;
   } else if (GLUESTATE_GAME == state && !NetInGame()) {
     // we are doing single-player, we may want to show the player some
     //  best time/ best score data
@@ -3219,7 +3219,7 @@ void GluStrLoad(unsigned int id, string& target) {
   char buffer[LONG_STRINGLEN];
 
   LoadString(hInstance, id, buffer, LONG_STRINGLEN);
-	
+
   target = buffer;
 }
 

@@ -77,7 +77,7 @@ int MusicInit(HWND w, IDirectSound *ds) throw(std::bad_alloc) {
   
   return error;
 }
-	
+
 void MusicUninit(void) {
   assert(!performance == !loader);
 

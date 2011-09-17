@@ -221,7 +221,7 @@ void SndPlay(int index, FIXEDNUM freq_factor, bool reverse) {
         //  2. continue swapping, only within the second block
 
         // get a pointer to the first byte in pointer one
-	      
+
         if (!ptr1) {
           p1 = (BYTE *)1;
           p1_end = 0;
@@ -317,7 +317,7 @@ void SndPlay(int index, FIXEDNUM x_dist, FIXEDNUM y_dist) {
       factor = 1.0f;
     }
     factor *= -10000.0f;
-		
+
     b2->SetVolume((long)factor);
 
     b2->Play(0,0,0);

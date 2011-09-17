@@ -98,7 +98,7 @@ void Fire::Setup(FIXEDNUM sx_, FIXEDNUM sy_, int direction_,
   // do some extra things if we are using horizontal collision flags
   horizontal_collision_flags = 0 == mx ? HORIZONTALCOLLISION_LOWER : 0;
 
-  // this is only imnportant if we are bazooka	
+  // this is only imnportant if we are bazooka
   frames_since_explosion_started = 0;
 }
 
@@ -209,7 +209,7 @@ void Fire::Logic() {
                 break;
               }
           }
-				
+
           if(!(HORIZONTALCOLLISION_LOWER
                & horizontal_collision_flags)) {
             // let's try the lower one because so far,
@@ -217,7 +217,7 @@ void Fire::Logic() {
             hypothetical.second.y += Fixed(TILE_HEIGHT/2);
             hypothetical.second.x = x;
             hypothetical.first.y = hypothetical.second.y;
-	
+
             GluFilterMovement(&hypothetical.first, &hypothetical.second);
             if(x != hypothetical.second.x) {
                 horizontal_collision_flags |= HORIZONTALCOLLISION_LOWER;
@@ -232,7 +232,7 @@ void Fire::Logic() {
             hypothetical.second.y -= Fixed(TILE_HEIGHT/2);
           }
       }
-			
+
       hypothetical.first = hypothetical.second;
     } while (hypothetical.first.x != dest_x
              || hypothetical.first.y != dest_y
@@ -249,7 +249,7 @@ void Fire::Logic() {
   } else if(WEAPON_BAZOOKA == type) {
     vector<int> collides;
 
-    // exploding bazooka		
+    // exploding bazooka
     if(++frames_since_explosion_started > FRAMESTOEXPLOSION) {
       state = FIRESTATE_INACTIVE;
       return;
@@ -315,7 +315,7 @@ void Fire::Draw() {
       -TILE_WIDTH/2+GAME_MODEWIDTH/2;
     int target_y = FixedCnvFrom<long>(y - cxt->center_screen_y)
       -TILE_HEIGHT/2+GAME_MODEHEIGHT/2;
-		
+
     cxt->Draw(BMP_BULLET, target_x, target_y);
     return; 
   }
@@ -326,7 +326,7 @@ void Fire::Draw() {
   if(WEAPON_BAZOOKA == type) {
     // draw explosion now
     bulge = rand()%MAX_EXPLOSIONBULGE;
-		
+
     RECT target;
     target.left = FixedCnvFrom<long>(x - cxt->center_screen_x)
       + GAME_MODEWIDTH/2 - bulge - TILE_WIDTH/2;
