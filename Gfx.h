@@ -29,7 +29,7 @@ public:
   class OwnedByGraphics {
   protected:
     Gfx *owner;
-    
+
   public:
     OwnedByGraphics(Gfx *owner) : owner(owner) {}
     virtual ~OwnedByGraphics() {}
@@ -230,7 +230,7 @@ public:
 
     virtual void Fill(BYTE *surf_ptr, int surf_pitch, Surface *surface);
 
-    int GetWidth() {if (width<0) {DeleteObject(LoadImage());} return width;}    
+    int GetWidth() {if (width<0) {DeleteObject(LoadImage());} return width;}
     int GetHeight() {if (height<0) {DeleteObject(LoadImage());} return height;}
 
     static std::auto_ptr<Surface> CreateSurfaceFromBitmap
@@ -290,7 +290,7 @@ protected:
 
   int target_virtual_buffer;
   int virtual_buffer_count;
-    
+
   /** The width of the virtual buffers. */
   int virtual_buffer_width;
 
@@ -337,12 +337,12 @@ protected:
   AutoComPtr<IDirectDrawClipper> CreateClipper(const RECT *area);
 
   /** Clips the given coordinates as if they were being used to draw a
-   * surface. 
+   * surface.
    * The region which to clip against is passed in the clip_area parameter.
    * @param dest_abs_x Where the surface is about to be blitted to the
    *  back buffer (x coordinate). Upon function return, this value
    *  will equal the x-coordinate at which the surface should be
-   *  blitted. 
+   *  blitted.
    * @param dest_abs_y Where the surface is about to be blitted to the
    *  back buffer (y coordinate). Upon function return, this value
    *  will equal the y-coordinate at which the surface should be
@@ -406,7 +406,7 @@ public:
    * The lock must be active.
    */
   virtual void Rectangle(const RECT *area, BYTE color, bool clip);
-  
+
   virtual void SetPalette(PALETTEENTRY *pe, int entry_count,
                           bool visual_effect);
   BYTE MatchingColor(COLORREF rgb);
@@ -416,7 +416,7 @@ public:
   /** Transfers the contents of the front buffer to a bitmap specified by the
    * given filename. If the operation fails, a corrupt file may be left in the
    * place of the given filename.
-   * 
+   *
    * @return true if the operation succeeded, false otherwise.
    */
   bool Screenshot(const char *filename);
@@ -442,7 +442,7 @@ public:
    */
   bool ClipLine(int *x0, int *y0, int *x1, int *y1);
   virtual void DrawLine(int x0, int y0, int x1, int y1, LineDrawer *drawer);
-  
+
   int GetVirtualBufferCount() {return virtual_buffer_count;}
   virtual void SetTargetVirtualBuffer(int index) {
     assert(index >= 0 && index < virtual_buffer_count);
@@ -464,7 +464,7 @@ public:
   /** Returns true if an 8-bit non-Mode-X display mode of the given dimensions
    * is available  on the DirectDraw device. If there was some error in
    * determining for certain if the mode is available, this method returns
-   * false. 
+   * false.
    */
   static bool VideoModeAvailable(int mode_width, int mode_height);
 };

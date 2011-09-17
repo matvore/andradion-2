@@ -31,7 +31,7 @@ class CompactMap {
   typedef struct {
     BYTE x, y, w, h;
   } RCT;
-  
+
   /** Colors of the blocks. */
   Array<BYTE> blocks;
 
@@ -58,7 +58,7 @@ class CompactMap {
 
 public:
   CompactMap(BYTE **source);
-  
+
   static std::auto_ptr<std::vector<CompactMap *> >
   LoadMapSet(const char *type, const char *res_name);
 

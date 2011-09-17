@@ -115,7 +115,7 @@ public:
   bool EnemyLogic();
 
   void Logic();
-  
+
   // used for locals (enemies or hero):
   void Setup(FIXEDNUM x, FIXEDNUM y, int model_, bool doing_mp,
              bool controlled_by_human_);
@@ -137,7 +137,7 @@ public:
     x = coor.first.x;
     y = coor.first.y - Fixed(TILE_HEIGHT/2);
   }
-  
+
   inline FIXEDNUM X() const {return coor.first.x;}
   inline FIXEDNUM Y() const {return coor.first.y - Fixed(TILE_HEIGHT/2);}
   inline int Model() const {return model;}
@@ -146,7 +146,7 @@ public:
   }
 
   inline bool HasFullHealth() const {return Fixed(1) == health;}
-  
+
   inline FIXEDNUM Health() const {return health;}
 
   inline int Direction() const {return direction;}
@@ -165,6 +165,6 @@ public:
   void Walk(bool running);
 
   inline void Hurt() {state = CHARSTATE_HURT; frames_in_this_state = 0;}
-  
+
   void TryToMove();
 };
