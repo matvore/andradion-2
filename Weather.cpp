@@ -316,7 +316,7 @@ void WtrSetSoundPlaybackFrequency(unsigned long freq) {
   for(int i = 0; i < NUM_WEATHERSOUNDS; i++) {
     IDirectSoundBuffer *snd = SndSound(i).Get();
     if(snd) {
-      TryAndReport(snd->SetFrequency(freq));
+      LogResult("Set sound frequency", snd->SetFrequency(freq));
     }
   }
 }
@@ -330,8 +330,8 @@ void WtrSetState(int next_state) {
 }
 
 static bool MusicAudible() {
-  return WEATHERSTATE_PLAYMUSIC & (1 << current_state)
-    || HEROROOMSTATE_INSIDE == hero_room_state;
+  return (WEATHERSTATE_PLAYMUSIC & (1 << current_state))
+      || HEROROOMSTATE_INSIDE == hero_room_state;
 }
 
 static void OneRainFrame(

@@ -80,7 +80,8 @@ static AutoComPtr<IDirectSoundBuffer> CreateSB
   dsbd.dwFlags = desc_flags;
   dsbd.lpwfxFormat = &wfm;
 		
-  TryAndReport(ds->CreateSoundBuffer(&dsbd, new_buff.GetPtrToPtr(), 0));
+  LogResult("Create sound buffer",
+      ds->CreateSoundBuffer(&dsbd, new_buff.GetPtrToPtr(), 0));
 
   return new_buff;
 }

@@ -49,7 +49,8 @@ LRESULT WINAPI WindowProc(HWND hWnd, UINT Msg, WPARAM wParam,
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
   // DirectInput was added for DX3
-  HINSTANCE DIHinst = TryAndReport(LoadLibrary("DINPUT.DLL"));
+  HINSTANCE DIHinst
+      = LogResult("Try to load DInput", LoadLibrary("DINPUT.DLL"));
   WNDCLASSEX winclass;
   HWND hWnd;
   int wx, wy;
@@ -109,17 +110,16 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE, LPSTR, int) {
     return 0;
   }
 
-  srand(TryAndReport((unsigned int)GetTickCount()));
+  srand(LogResult("Random number seed", (unsigned int)GetTickCount()));
 
   logger << "About to enter GluMain" << endl;
   GluMain();
   logger << "Forcing window closed" << endl;
-  TryAndReport(PostMessage(hWnd, WM_CLOSE, 0, 0));
+  LogResult("Post close message", PostMessage(hWnd, WM_CLOSE, 0, 0));
 
-  while(!TryAndReport(GetMessage(&msg, 0, 0, 0))) {
-    TryAndReport(DispatchMessage(&msg));
+  while(!LogResult("Get window message", GetMessage(&msg, 0, 0, 0))) {
+    LogResult("Dispatch window message", DispatchMessage(&msg));
   }
-	
+
   return 0;
 }
-

@@ -60,9 +60,7 @@ Gfx::SurfaceLock::~SurfaceLock() {
 }
 
 Gfx::Surface::~Surface() {
-  logger << "(destroying surface) ";
-  TryAndReport(this);
-
+  LogResult("~Surface for", this);
   if (owner) {
     owner->surfaces.erase(this);
   }
@@ -140,25 +138,22 @@ void Gfx::Font::WriteChar(int x, int y, int ch, BYTE color) {
   owner->Unlock();
 }
 
-Gfx::BitmapSurfaceFiller::BitmapSurfaceFiller
-(HINSTANCE hInst, LPCTSTR res_name)
+Gfx::BitmapSurfaceFiller::BitmapSurfaceFiller(HINSTANCE hInst, LPCTSTR res_name)
   : hInst(hInst), res_name(res_name), width(-1), height(-1) {
-  logger << "(Created new BitmapSurfaceFiller) ";
-  TryAndReport(this);
+  LogResult("BitmapSurfaceFiller() for", this);
 }
-
 
 HBITMAP Gfx::BitmapSurfaceFiller::LoadImage(int wanted_width,
                                                  int wanted_height) {
-  HBITMAP res = (HBITMAP)::LoadImage(hInst, res_name, IMAGE_BITMAP,
-                                     wanted_width, wanted_height,
-                                     LR_CREATEDIBSECTION);
+  HBITMAP res = (HBITMAP)::LoadImage(
+      hInst, res_name, IMAGE_BITMAP, wanted_width, wanted_height,
+      LR_CREATEDIBSECTION);
   BITMAP bmp_info;
 
   logger << "BitmapSurfaceFiller::LoadImage called with arguments (";
   logger << wanted_width << ", " << wanted_height << ")" << endl;
 
-  if (!TryAndReport(res)) {
+  if (!LogResult("Load resource image", res)) {
     throw Exception(__LINE__, string("Could not load resource image"));
   }
 
@@ -201,12 +196,12 @@ void Gfx::BitmapSurfaceFiller::Fill(BYTE *surf_ptr, int surf_pitch,
   for (int y = surface->GetHeight()-1; y >= 0; y--, surf_ptr+=surf_pitch) {
     BYTE *row_ptr = row;
     
-    TryAndReport(GetDIBits(hdc, bmp, y, 1, (void *)row,
-                           (BITMAPINFO *)&binfo, DIB_RGB_COLORS));
+    LogResult("Get one line of image", GetDIBits(
+        hdc, bmp, y, 1, (void *)row, (BITMAPINFO *)&binfo, DIB_RGB_COLORS));
 
     for (int x = 0; x < surface->GetWidth(); x++, row_ptr += 3) {
       surf_ptr[x] = surface->GetOwner()
-        ->MatchingColor(RGB(row_ptr[2], row_ptr[1], row_ptr[0]));
+          ->MatchingColor(RGB(row_ptr[2], row_ptr[1], row_ptr[0]));
     }
   }
 
@@ -403,28 +398,34 @@ void Gfx::Rectangle(const RECT *area, BYTE color, bool clip) {
   }
 }
 
-void Gfx::SetPalette(PALETTEENTRY *pe, int entry_count,
-                          bool visual_effect) {
+void Gfx::SetPalette(
+    PALETTEENTRY *pe, int entry_count, bool visual_effect) {
   AutoComPtr<IDirectDrawPalette> pal;
 
   assert(entry_count >= 0 && entry_count <= 256);
 
-  if (TryAndReport(pe != palette && !visual_effect)) {
+  if (LogResult("Should copy palette directly",
+      pe != palette && !visual_effect)) {
     memcpy((void *)palette, (void *)pe, entry_count * sizeof(PALETTEENTRY));
   }
 
   logger << "Getting/Creating DirectDraw palette" << endl;
 
-  if (FAILED(TryAndReport(front_buffer->GetPalette(pal.GetPtrToPtr())))) {
-    if (FAILED(TryAndReport(direct_draw->CreatePalette
-                            (DDPCAPS_8BIT | DDPCAPS_ALLOW256,
-                             palette, pal.GetPtrToPtr(), 0)))
-        || FAILED(TryAndReport(front_buffer->SetPalette(pal.Get())))) {
+  if (FAILED(LogResult("Get front buffer palette",
+      front_buffer->GetPalette(pal.GetPtrToPtr())))) {
+    if (FAILED(LogResult("Create palette", direct_draw->CreatePalette(
+        DDPCAPS_8BIT | DDPCAPS_ALLOW256, palette, pal.GetPtrToPtr(), 0)))) {
+      return;
+    }
+
+    if (FAILED(LogResult("Attach palette to front buffer",
+        front_buffer->SetPalette(pal.Get())))) {
       return;
     }
   }
 
-  TryAndReport(pal->SetEntries(0, 0, visual_effect ? entry_count : 256, pe));
+  LogResult("Set palette entries",
+      pal->SetEntries(0, 0, visual_effect ? entry_count : 256, pe));
 
   if (!visual_effect) {
     logger << "Refilling surfaces" << endl;

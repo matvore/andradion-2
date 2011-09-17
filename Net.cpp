@@ -300,11 +300,10 @@ static void CreatePlayer(unsigned int model, const char *name)
   BYTE player_data = (BYTE)model; 
   our_name.dwSize = sizeof(our_name);
   our_name.dwFlags = 0;
-  our_name.lpszLongNameA = our_name.lpszShortNameA
-    = const_cast<char *>(name);
-	
-  if(FAILED(TryAndReport(dp->CreatePlayer(&us, &our_name, 0,
-                                          &player_data, 1, 0)))) {
+  our_name.lpszLongNameA = our_name.lpszShortNameA = const_cast<char *>(name);
+
+  if (FAILED(LogResult("Create player",
+      dp->CreatePlayer(&us, &our_name, 0, &player_data, 1, 0)))) {
     logger << "Call to DirectPlay.CreatePlayer failed" << endl;
     throw CreatePlayerFailure();
   }
@@ -317,35 +316,11 @@ FoundProtocol(LPCGUID, LPVOID lpConnection,
               DWORD dwConnectionSize, LPCDPNAME lpName,
               DWORD, LPVOID context) {
   BOOL *mem_error = (BOOL *)context;
-  
-//   logger << "Enumeration of protocols callback called for %s "
-//            "with connection size of %d\n"
-// 	   LogArg(lpName->lpszShortNameA)
-//            LogArg(dwConnectionSize));
-
-//   // make sure we can create this protocol
-//   IDirectPlay4A *dp;
-//   if(FAILED(CoCreateInstance(CLSID_DirectPlay, NULL, CLSCTX_ALL,
-//                              IID_IDirectPlay4A, (void**)&dp))) {
-//     return FALSE; // stop enumeration
-//   }
-
-//   logger << "Try to initiate it for ourselves..." << endl;
-//   if(FAILED(dp->InitializeConnection(lpConnection, 0))) {
-//     logger << "Didn't work, returning to get on with the enumeration" << endl;
-//     TryAndReport(dp->Release());
-//     return TRUE;
-//   }
-
-//   logger << "It worked, recording connection data and protocol "
-//            "name, etc..." << endl;
-
-//   TryAndReport(dp->Release());
 
   try {
-    protocols.push_back(pair<string, Buffer>(string(lpName->lpszShortNameA),
-                                             Buffer(lpConnection,
-                                                    dwConnectionSize)));
+    protocols.push_back(pair<string, Buffer>(
+        string(lpName->lpszShortNameA),
+        Buffer(lpConnection, dwConnectionSize)));
   } catch (bad_alloc& ba) {
     *mem_error = TRUE;
     return FALSE;
@@ -381,20 +356,19 @@ FoundSession(LPCDPSESSIONDESC2 lpThisSD,
   memset((void *)&sd_to_join, 0, sizeof(sd_to_join));
   sd_to_join.dwSize = sizeof(sd_to_join);
   sd_to_join.guidInstance = lpThisSD->guidInstance;
-  if(FAILED(TryAndReport(dp->Open(&sd_to_join, DPOPEN_JOIN)))) {
+  if(FAILED(LogResult("Join session", dp->Open(&sd_to_join, DPOPEN_JOIN)))) {
     return FALSE;
   }
 
-  // get session description
   DWORD sd_size = 0;
-  TryAndReport(dp->GetSessionDesc(NULL, &sd_size));
+  LogResult("Get session description size", dp->GetSessionDesc(NULL, &sd_size));
   Buffer sd_buffer(sd_size);
   assert(sd_size >= sizeof(DPSESSIONDESC2));
   DPSESSIONDESC2 *sd = (DPSESSIONDESC2 *)sd_buffer.Get();
 
-  if(0 == sd_size ||
-     FAILED(TryAndReport(dp->GetSessionDesc(sd, &sd_size)))) {
-    TryAndReport(dp->Close());
+  if  (0 == sd_size ||  FAILED(LogResult("Get session description",
+      dp->GetSessionDesc(sd, &sd_size)))) {
+    LogResult("Close session", dp->Close());
     return FALSE;
   }
 
@@ -440,8 +414,8 @@ static void RecountPlayers() throw(NetSessionLost, bad_alloc) {
 
   logger << "Calling EnumPlayers to enumerate all "
            "players and get their models" << endl;
-  if (FAILED(TryAndReport(dp->EnumPlayers(0, FoundPlayer,
-                                          0, DPENUMPLAYERS_REMOTE)))) {
+  if (FAILED(LogResult("Enumerate players",
+      dp->EnumPlayers(0, FoundPlayer, 0, DPENUMPLAYERS_REMOTE)))) {
     NetLeaveGame();
     throw NetSessionLost();
   }
@@ -522,29 +496,25 @@ void NetInitialize() throw(std::bad_alloc) {
     return;
   }
 
-  if(FAILED(CoInitialize(NULL))) {
-    logger << "CoInitialize() Failed, no protos will be init'd" << endl;
+  if(FAILED(LogResult("CoInitialize()", CoInitialize(NULL)))) {
     throw bad_alloc();
   }
 
   // get a list of all the protocols
-  logger << "Creating temporary DirectPlay interface "
-           "to enum protos" << endl;
-  if(SUCCEEDED(CoCreateInstance(CLSID_DirectPlay, NULL, CLSCTX_ALL,
-                                IID_IDirectPlay4A, (VOID**)&dp))) {
+  if (SUCCEEDED(LogResult("Create temporary DirectPlay", CoCreateInstance(
+      CLSID_DirectPlay, NULL, CLSCTX_ALL, IID_IDirectPlay4A, (VOID**)&dp)))) {
     BOOL mem_error = FALSE;
-    logger << "DirectPlay created!  Now calling enum method" << endl;
-    TryAndReport(dp->EnumConnections(&ANDRADION2GUID, FoundProtocol,
-                                     &mem_error, DPCONNECTION_DIRECTPLAY));
-    TryAndReport(dp->Release());
+    LogResult("Enumerate connections", dp->EnumConnections(
+        &ANDRADION2GUID, FoundProtocol, &mem_error, DPCONNECTION_DIRECTPLAY));
+    LogResult("Release temporary DirectPlay object", dp->Release());
 
     if (mem_error) {
       throw bad_alloc();
     }
   }
-	
+
   state = NOGAME;
-  
+
   logger << "Now leaving NetInitialize()" << endl;
 }
 
@@ -581,9 +551,10 @@ void NetInitializeProtocol(unsigned int index) throw() {
   logger << "NetInitializeProtocol() called to start protocol #" << index <<
       endl;
 
-  TryAndReport(CoCreateInstance(CLSID_DirectPlay, 0, CLSCTX_ALL,
-                                IID_IDirectPlay4A, (void **)&dp));
-  TryAndReport(dp->InitializeConnection(protocols[index].second.Get(), 0));
+  LogResult("CoCreateInstance for DirectPlay", CoCreateInstance(
+      CLSID_DirectPlay, 0, CLSCTX_ALL, IID_IDirectPlay4A, (void **)&dp));
+  LogResult("Initialize connection",
+      dp->InitializeConnection(protocols[index].second.Get(), 0));
 	
   logger << "NetInitializeProtocol() finished" << endl;
 
@@ -596,13 +567,13 @@ void NetReleaseProtocol() throw() {
   if (NetProtocolInitialized()) {
     NetLeaveGame();
 
-    TryAndReport(dp->Release());
+    LogResult("Release DirectPlay", dp->Release());
   
     dp = 0;
     state = NOGAME;
   }
   
-  logger << "NetReleaseProtocol() finished, now leaving" << endl;
+  logger << "NetReleaseProtocol() finished" << endl;
 
   assert(!NetInGame() && !NetProtocolInitialized());
 }
@@ -637,9 +608,7 @@ void NetCreateGame(unsigned int index, unsigned int sr,
     sd.dwUser2 = sync_rate = sr;
     sync = 0;
 
-    logger << "Calling DirectPlay::Open" << endl;
-    if(FAILED(TryAndReport(dp->Open(&sd, DPOPEN_CREATE)))) {
-      logger << "Failed to create game session; leaving NetCreateGame" << endl;
+    if (FAILED(LogResult("Open session", dp->Open(&sd, DPOPEN_CREATE)))) {
       throw NetCreateFailure();
     }
 
@@ -700,9 +669,8 @@ unsigned int NetJoinGame(unsigned int index, unsigned int player_model,
 
     room_index = index;
 
-    TryAndReport(dp->EnumSessions(&session, 0,
-                                  FoundSession, (LPVOID)&index,
-                                  DPENUMSESSIONS_AVAILABLE));
+    LogResult("Enumerate sessions", dp->EnumSessions(
+        &session, 0, FoundSession, (LPVOID)&index, DPENUMSESSIONS_AVAILABLE));
 
     if(JOINING != state) {
       logger << "Enumeration did not change state" << endl;

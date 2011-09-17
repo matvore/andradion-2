@@ -124,45 +124,48 @@ int MusicPlay(bool loop, const char *res_type, const char *res_name) {
   ObjDesc.llMemLength = res->GetSize();
   ObjDesc.pbMemData = const_cast<BYTE *>(res->GetPtr());
 
-  // getting a MusicSegment interface
-  if(FAILED(TryAndReport(loader->GetObject
-                         (&ObjDesc, IID_IDirectMusicSegment,
-                          (void **)new_segment.GetPtrToPtr())))) {
+  if (FAILED(LogResult("Getting MusicSegment Interface",
+      loader->GetObject(
+          &ObjDesc, IID_IDirectMusicSegment,
+          (void **)new_segment.GetPtrToPtr())))) {
     return 4;
   }
 
   res.reset();
 
   // setting band track parameter
-  if(FAILED(TryAndReport
-            (new_segment->SetParam(GUID_StandardMIDIFile, (DWORD)-1,
-                                   0,0, (void *)performance.Get())))) {
+  if (FAILED(LogResult("Setting band track parameter step 1/2",
+       new_segment->SetParam(
+           GUID_StandardMIDIFile, (DWORD)-1,
+           0, 0, (void *)performance.Get())))) {
     return 3; 
-  } else if(FAILED(TryAndReport
-                   (new_segment->SetParam(GUID_Download,(DWORD)-1,0,0,
-                                          (void *)performance.Get())))) {
+  } else if (FAILED(LogResult("Setting band track parameter step 2/2",
+      new_segment->SetParam(
+          GUID_Download,(DWORD) - 1, 0 , 0,
+          (void *)performance.Get())))) {
     return 2; 
   }
 
-  // enable the tempo track
-  TryAndReport(new_segment->SetParam(GUID_EnableTempo, (DWORD)-1, 0, 0, 0));
+  LogResult("Enabling the tempo track",
+      new_segment->SetParam(GUID_EnableTempo, (DWORD)-1, 0, 0, 0));
 
   if(loop) {
-    TryAndReport(new_segment->SetRepeats(0-1));
+    LogResult("Set segment to infinitely repeat",
+        new_segment->SetRepeats(0 - 1));
   }
 
   logger << "Done taking care of looping" << endl;
 
-  // playing the new music
-  if(FAILED(TryAndReport(performance->PlaySegment(new_segment.Get(),
-						 0,0, NULL)))) {
+  if (FAILED(LogResult("Play the new music",
+      performance->PlaySegment(new_segment.Get(), 0, 0, NULL)))) {
     return 1;
-  } else if (FAILED(TryAndReport
-                    (new_segment->GetParam(GUID_TempoParam, 0-1, 0, 0, 0,
-                                           (void *)&tp)))) {
-    original_tempo = 0.0f;
-  } else {
+  }
+
+  if (SUCCEEDED(LogResult("Get original tempo",
+      new_segment->GetParam(GUID_TempoParam, 0 - 1, 0, 0, 0, (void *)&tp)))) {
     original_tempo = tp.dblTempo;
+  } else {
+    original_tempo = 0.0f;
   }
   
   logger << "MusicPlay succeeded" << endl;
@@ -179,10 +182,10 @@ void MusicStop(void) { // stops music if it is playing
   //  because we will release it right afterwards
   if (segment) {
     assert(performance);
-    TryAndReport(performance->Stop(0, 0, 0, 0));
+    LogResult("Stop performance", performance->Stop(0, 0, 0, 0));
 
-    TryAndReport(segment->SetParam(GUID_Unload, (DWORD)-1, 0, 0,
-                                   (void*)performance.Get()));
+    LogResult("Unload performance", segment->SetParam(
+        GUID_Unload, (DWORD)-1, 0, 0, (void*)performance.Get()));
 
     segment.Reset();
   }
@@ -194,19 +197,19 @@ void SetTempo(double tempo) {
   if(segment) {
     DMUS_TEMPO_PMSG* pTempo;
 
-    logger << "About to Disable tempo track in segment" <<
-        "so that it does not reset the tempo" << endl;
-    TryAndReport(segment->SetParam(GUID_DisableTempo, 0xFFFF, 0, 0, 0));
+    LogResult("Disable tempo track so it does not reset the tempo",
+        segment->SetParam(GUID_DisableTempo, 0xFFFF, 0, 0, 0));
  
-    if (SUCCEEDED(TryAndReport(performance->AllocPMsg(sizeof(DMUS_TEMPO_PMSG),
-                                                      (DMUS_PMSG**)&pTempo)))) {
-      logger << "About to queue the tempo event." << endl;
+    if (SUCCEEDED(LogResult("Allocate tempo event",
+        performance->AllocPMsg(
+            sizeof(DMUS_TEMPO_PMSG), (DMUS_PMSG**)&pTempo)))) {
       InitDXStruct(pTempo);
       pTempo->dblTempo = tempo;
       pTempo->dwFlags = DMUS_PMSGF_REFTIME;
       pTempo->dwType = DMUS_PMSGT_TEMPO;
-      TryAndReport(performance->SendPMsg((DMUS_PMSG*)pTempo));
+      LogResult("Queue tempo event", performance->SendPMsg((DMUS_PMSG*)pTempo));
     }
   }
+
   logger << "SetTempo returning" << endl;
 }

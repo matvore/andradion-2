@@ -93,9 +93,9 @@ void SndInitialize(HWND hWnd) {
 
   assert(!ds);
 
-  if (SUCCEEDED(TryAndReport(new_ds->Initialize(0)))
-      && SUCCEEDED(TryAndReport(new_ds->SetCooperativeLevel
-                                (hWnd, DSSCL_NORMAL)))) {
+  if (SUCCEEDED(LogResult("Init DSound", new_ds->Initialize(0)))
+      && SUCCEEDED(LogResult("Set DSound normal cooperative level",
+          new_ds->SetCooperativeLevel(hWnd, DSSCL_NORMAL)))) {
     ds = new_ds;
   }
 
@@ -126,28 +126,29 @@ void SndLoad(int type) {
   logger << "LoadSounds called w/" << prev_num_sounds << " sounds loaded, ";
   logger << "caller wants " << next_num_sounds << " loaded" << endl;
 
-  if(TryAndReport(next_num_sounds > prev_num_sounds)) {
-      Resource sound_resource("DAT", "SFX");
-      DWORD *sound_data = (DWORD *)sound_resource.GetPtr();
+  if (LogResult("Requires more sounds than loaded",
+      next_num_sounds > prev_num_sounds)) {
+    Resource sound_resource("DAT", "SFX");
+    DWORD *sound_data = (DWORD *)sound_resource.GetPtr();
 
-      for(int i = 0; i < NUM_PRESOUNDS+prev_num_sounds; i++) {
-        // skip the first seven sounds; they aren't ours
-        sound_data = (DWORD *)((BYTE *)sound_data+*sound_data)+1;
-      }
-      
-      for(int i = prev_num_sounds; i < next_num_sounds; i++) {
-        logger << "Loading sound " << i << endl;
-        sounds[i]
-          = CreateSBFromRawData(ds.Get(), (void *)(sound_data + 1), *sound_data,
-                                DSBCAPS_CTRLPAN | DSBCAPS_CTRLVOLUME
-                                | DSBCAPS_CTRLFREQUENCY,
-                                SOUNDRESOURCEFREQ, SOUNDRESOURCEBPS, 1);
-        logger << "Clearing reversed bit for sound " << i << endl;
-        reversed.reset(i);
-        // skip the first seven sounds; they aren't ours
-        sound_data = (DWORD *)((BYTE *)sound_data+*sound_data)+1;
-      }
-  } else if(TryAndReport(prev_num_sounds > next_num_sounds)) {
+    for(int i = 0; i < NUM_PRESOUNDS+prev_num_sounds; i++) {
+      // skip the first seven sounds; they aren't ours
+      sound_data = (DWORD *)((BYTE *)sound_data+*sound_data)+1;
+    }
+
+    for(int i = prev_num_sounds; i < next_num_sounds; i++) {
+      logger << "Loading sound " << i << endl;
+      sounds[i] = CreateSBFromRawData(
+          ds.Get(), (void *)(sound_data + 1), *sound_data,
+          DSBCAPS_CTRLPAN | DSBCAPS_CTRLVOLUME | DSBCAPS_CTRLFREQUENCY,
+          SOUNDRESOURCEFREQ, SOUNDRESOURCEBPS, 1);
+      logger << "Clearing reversed bit for sound " << i << endl;
+      reversed.reset(i);
+      // skip the first seven sounds; they aren't ours
+      sound_data = (DWORD *)((BYTE *)sound_data+*sound_data)+1;
+    }
+  } else if (LogResult("Requires fewer sounds than loaded",
+      prev_num_sounds > next_num_sounds)) {
     for(int i = next_num_sounds; i < prev_num_sounds; i++) {
       logger << "Releasing sound " << i << endl;
       sounds[i].Reset();

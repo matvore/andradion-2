@@ -136,7 +136,7 @@ public:
       ptr->AddRef();
     }
   }
-  
+
   AutoComPtr(REFCLSID rclsid, REFIID riid) throw() : ptr(0) {
     Create(rclsid, riid);
   }

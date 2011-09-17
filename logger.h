@@ -18,16 +18,11 @@ limitations under the License.
 
 extern std::ofstream logger;
 
-// the TryAndReport macro tries some kind of operation that returns a
-// success/failure code, and saves the return value in the log, also
-// returning that value
-#define TryAndReport(op) TryAndReportB(op, #op)
-
-template <class T> inline T TryAndReportB(T hr, const char *op) {
+template <class T> inline T LogResult(const char *description, T opResult) {
   std::ofstream::fmtflags flags = logger.flags();
-  logger << "Result of " << op << ": " << std::hex << (DWORD)hr << std::endl;
+  logger << description << ": 0x" << std::hex << opResult << std::endl;
   logger.flags(flags);
-  return hr;
+  return opResult;
 }
 
 #else
@@ -48,6 +43,9 @@ public:
 
 extern IgnoredLog logger;
 
-#define TryAndReport(op) (op)
+template <class T> inline T LogResult(const char *, T opResult) {
+  // Do nothing
+  return opResult;
+}
 
 #endif

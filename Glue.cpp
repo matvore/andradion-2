@@ -856,8 +856,8 @@ static void Introduction() {
 
   splash_resource.reset();
 
-  if (TryAndReport(warpout)) {
-    TryAndReport(warpout->Play(0,0,0));
+  if (LogResult("Value of warpout pointer", warpout)) {
+    LogResult("Play warpout sound", warpout->Play(0,0,0));
   }
 
   CTimer total_flash;
@@ -2929,14 +2929,14 @@ bool GluInitialize(HINSTANCE hInstance_, HWND hWnd_) {
   hInstance = hInstance_;
   hWnd = hWnd_;
 
-  if (TryAndReport(DeeInitialize())) {
+  if (LogResult("Initialize Deeds module", DeeInitialize())) {
     string msg;
     GluStrLoad(IDS_BUDGETCUTS, msg);
     MessageBox(hWnd, msg.c_str(), WINDOW_CAPTION, MB_ICONINFORMATION);
   }
 
   SndInitialize(hWnd);
-  TryAndReport(MusicInit(hWnd, SndDirectSound().Get()));
+  LogResult("MusicInit", MusicInit(hWnd, SndDirectSound().Get()));
 
   NetInitialize();
 
@@ -2989,7 +2989,7 @@ void GluRelease() {
   SndRelease();
 
 #ifdef _DEBUG
-  TryAndReport(DeleteObject(profiler_font));
+  LogResult("Delete profiler font", DeleteObject(profiler_font));
 #endif
 
   KeyRelease();
@@ -3021,14 +3021,12 @@ HWND GluMain() {
 
   logger << "Starting Menu() for the first time" << endl;
   
-  while (TryAndReport(Menu())) {
+  while (LogResult("Run Menu loop", Menu())) {
     Game();
     logger << "Game() terminated" << endl;
     CleanUpAfterGame();
     logger << "Starting Menu() again" << endl;
   }
-
-  logger << "Menu() returned false" << endl;
 
   return hWnd;
 }
@@ -3088,8 +3086,8 @@ void GluSetMusic(bool loop, WORD music_resource) {
       music_resource << endl;
 
   if (!disable_music) {
-    TryAndReport(MusicPlay(loop, MIDI_RESOURCE_TYPE,
-                           MAKEINTRESOURCE(music_resource)));
+    LogResult("Start to play music",
+        MusicPlay(loop, MIDI_RESOURCE_TYPE, MAKEINTRESOURCE(music_resource)));
     last_music = "";
   }
 
@@ -3106,7 +3104,8 @@ void GluSetMusic(bool loop, const char *music_resource) {
       music_resource << endl;
   
   if (!disable_music && last_music != music_resource) {
-    TryAndReport(MusicPlay(loop,MIDI_RESOURCE_TYPE, music_resource));
+    LogResult("Start to play music",
+        MusicPlay(loop,MIDI_RESOURCE_TYPE, music_resource));
     last_music = music_resource;
   }
 

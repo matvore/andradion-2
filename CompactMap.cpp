@@ -163,8 +163,7 @@ CompactMap::CompactMap(BYTE **source) {
 
   datafile f(*source);
 
-  logger << "(# of block colors) ";
-  blocks.Resize(TryAndReport(f.getByte()));
+  blocks.Resize(LogResult("# of block colors", f.getByte()));
   block_areas.Resize(blocks.Size());
 
   Array<BYTE>::Iterator block_i;
@@ -186,8 +185,7 @@ CompactMap::CompactMap(BYTE **source) {
     }
   }
 
-  logger << "(# of patterns) ";
-  patterns.Resize(TryAndReport(f.getUsuallyByte()));
+  patterns.Resize(LogResult("# of patterns", f.getUsuallyByte()));
 		
   Array<PATTERN>::Iterator pitr;
 
