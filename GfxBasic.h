@@ -33,7 +33,7 @@ protected:
   Array<AutoComPtr<IDirectDrawClipper> > clippers;
 
   /** True if there is only one virtual buffer and it takes up the entire
-   * screen. */ 
+   * screen. */
   bool single_buffer_standard;
 
   BYTE border_color;
@@ -70,7 +70,7 @@ public:
   };
 
   virtual std::auto_ptr<Font> LoadFont(HGLOBAL resource_handle,
-                                       int font_width, int font_height, 
+                                       int font_width, int font_height,
                                        int first_font_char, int last_font_char);
 
   virtual void Flip();

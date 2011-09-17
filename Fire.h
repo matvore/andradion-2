@@ -21,9 +21,9 @@ public:
   static Fire *UnusedSlot();
 
   bool OkayToDelete() const;
-  
+
   // pass zero for the last parameter when the gun was fired by a
-  // remote player 
+  // remote player
   void Setup(FIXEDNUM sx_, FIXEDNUM sy_,
              int direction_, int type_,
              bool remotely_generated_);
@@ -31,7 +31,7 @@ public:
   // use for bazookas triggered by remote systems
   void Setup(FIXEDNUM sx_, FIXEDNUM sy_,
              FIXEDNUM tx_, FIXEDNUM ty_);
-  
+
   void Logic();
   void Draw();
   static void AnalyzePalette();

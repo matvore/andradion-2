@@ -48,7 +48,7 @@ const int GAME_MODEWIDTH = 320;
 const int GAME_MODEHEIGHT= 200;
 const int TILE_WIDTH = 32;
 const int TILE_HEIGHT = 30;
-const FIXEDNUM FATNESS = Fixed(12);  
+const FIXEDNUM FATNESS = Fixed(12);
 
 enum {WEAPON_PISTOL, WEAPON_MACHINEGUN, WEAPON_BAZOOKA, WEAPON_COUNT};
 enum {CHAR_SALLY,
@@ -116,7 +116,7 @@ public:
 
   Iterator Begin() throw() {return array;}
   Iterator End() throw() {return array + size;}
-  
+
   inline int Size() throw() {return size;}
   inline bool Empty() throw() {return !size;}
 

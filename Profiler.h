@@ -22,7 +22,7 @@ void GetProfileData(std::vector<std::string>&);
 
 // pass the size of the profile data array
 //  (will grow automatically when necessary)
-void InitializeProfiler(DWORD); 
+void InitializeProfiler(DWORD);
 
 struct ProfileSample;
 
@@ -41,7 +41,7 @@ class CProfile {
 
 #define StartProfileFrame()
 #define GetProfileData(x)
-#define InitializeProfiler(x) 
+#define InitializeProfiler(x)
 #define BeginProfile(x) {
 #define EndProfile() }
 

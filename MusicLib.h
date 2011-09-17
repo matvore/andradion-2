@@ -25,7 +25,7 @@ const int MUSICLIBERR_COMNOTAVAIL  = 2;
 const int MUSICLIBERR_PORTNOTAVAIL = 1;
 
 // returns non-zero on failure
-int MusicInit(HWND w, IDirectSound *ds) throw(std::bad_alloc); 
+int MusicInit(HWND w, IDirectSound *ds) throw(std::bad_alloc);
 
 void MusicUninit();
 

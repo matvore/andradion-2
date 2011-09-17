@@ -16,7 +16,7 @@ limitations under the License.
 
 /** Gamma effect types. */
 enum {GETYPE_NONE, GETYPE_BLOOD,
-      GETYPE_HEALTH, GETYPE_AMMO}; 
+      GETYPE_HEALTH, GETYPE_AMMO};
 
 /** Initiates a gamma effect. In order for the effect to continue, be
  * sure to call <tt>GamOneFrame(FIXEDNUM)</tt> every frame.
@@ -30,7 +30,7 @@ void GamDoEffect(int type, FIXEDNUM current_health);
 
 /** Indicates whether or not the health is in the process of changing.
  * @return true iff the player's virtual health is changing from
- *  frame-to-frame. 
+ *  frame-to-frame.
  */
 bool GamHealthChanging();
 

@@ -92,25 +92,25 @@ public:
 
   /** Indicates that a new enemy was found. The index assigned to the
    * enemy is determined by the order in which the enemies were
-   * created. For example, upon the first call to this function, the 
+   * created. For example, upon the first call to this function, the
    * enemy created will have the index of 0. Upon the second call to
    * this function, the enemy created will have the index of 1, and so
    * on.
    * @param model the model that this enemy should appear as.
-   */  
+   */
   virtual void CreateEnemy(unsigned int model) throw() = 0;
-  
+
   virtual void SetEnemyWeapon(unsigned int index,
                               unsigned int weapon) throw() = 0;
   virtual void SetEnemyPosition(unsigned int index,
                                 unsigned short x,
                                 unsigned short y) throw() = 0;
-  
+
   virtual void SetEnemyDirection(unsigned int index,
                                  unsigned int direction) throw() = 0;
-  
+
   virtual void WalkEnemy(unsigned int index) throw() = 0;
-  
+
   virtual void KillEnemy(unsigned int index, WORD *ammo)
     throw() = 0;
   virtual void HurtEnemy(unsigned int index) throw() = 0;
@@ -261,7 +261,7 @@ const char *NetProtocolName(unsigned int protocol_index) throw();
  * @throw std::bad_alloc if there was a lack of sufficient system
  *  memory.
  */
-void NetLogic() throw(NetSessionLost, std::bad_alloc); 
+void NetLogic() throw(NetSessionLost, std::bad_alloc);
 
 /** Indicates to the other players in the game that the player fired
  * the bazooka. This function has no effect if a game is not in
@@ -296,7 +296,7 @@ void NetDied(WORD *ammo) throw();
  * @param new_x the x-coordinate of the player for this frame.
  * @param new_y the y-coordinate of the player for this frame.
  * @param new_dir the direction the player is facing for the current
- *  frame. 
+ *  frame.
  */
 void NetSetPosition(unsigned short new_x, unsigned short new_y,
                     unsigned int new_dir) throw();

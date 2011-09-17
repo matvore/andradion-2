@@ -41,13 +41,13 @@ protected:
       char button_2;
       unsigned char key_index_2;
     };
-    
+
     bool IsAxis() {return button_1 < 0;}
-    
+
     int GetAxisValue();
     bool GetButtonValue(bool sub_action = false);
   };
-  
+
   Button action_buttons[PERPLAYER_ACTIONS];
 
 public:

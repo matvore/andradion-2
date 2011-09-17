@@ -262,7 +262,7 @@ void GluSetMusic(bool loop, const char *music_resource);
 
 // this will return a random spot in the level (for mp games)
 //  that a player can start in without being trapped from everyone
-//  else 
+//  else
 void GluGetRandomStartingSpot(POINT&);
 
 // this function takes as parameter a reference to the movement
@@ -270,7 +270,7 @@ void GluGetRandomStartingSpot(POINT&);
 // through any walls, this function will detect it and leaves the
 // plans unaltered otherwise, the function will make it so the
 // character stops walking right before the wall by "filtering"
-// plans.second to a valid destination 
+// plans.second to a valid destination
 void GluFilterMovement(const POINT *start, POINT *end);
 
 void GluCharPress(char c);
@@ -281,11 +281,11 @@ void GluInterpretDirection(BYTE d, FIXEDNUM& xf, FIXEDNUM& yf);
 void GluStrLoad(unsigned int id, std::string& target);
 
 // returns the amount a points a player gets when he picks up weapon
-// type x 
+// type x
 int GluScoreDiffPickup(int x);
 
 // returns the amount of points a player gets when he kills enemy of
-// type x 
+// type x
 int GluScoreDiffKill(int x);
 
 // constants having to do with how many bitmaps we have and
