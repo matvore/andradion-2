@@ -34,7 +34,7 @@ limitations under the License.
  *   </ul>
  *  <p>The message is <strong>4 bytes long</strong>, and its format
  *  is: <tt>0FMWWDDD XXXXXXXX XXXXYYYY YYYYYYYY</tt> and the byte
- *  order is little-endian</p></td> 
+ *  order is little-endian</p></td>
  * </tr>
  * <tr><td colspan="2"><hr></td></tr>
  * <tr valign="top">
@@ -114,7 +114,7 @@ limitations under the License.
  * <tr><td colspan="2"><hr></td></tr>
  * <tr valign="top">
  *  <td><h4>Admit hit message</h4></td>
- *  <td><p>Indicates that the player is in pain and has just "sworn." 
+ *  <td><p>Indicates that the player is in pain and has just "sworn."
  *  Swearing is a sound that lets the player know some character is
  *  hurt.</p>
  *  <p>The message is <strong>1 byte long</strong>, and its format is:
@@ -127,7 +127,7 @@ limitations under the License.
  *  up. Included in the message is the index of the powerup (P).</p>
  *  <p>The message is <strong>2 bytes long</strong>, and its format is:
  *  <tt>PPPPPPPP PPPPPPPP</tt> and the byte order is
- *  little-endian</p></td> 
+ *  little-endian</p></td>
  * </tr>
  * <tr><td colspan="2"><hr></td></tr>
  * <tr valign="top">
@@ -149,9 +149,9 @@ limitations under the License.
  *  (W).</p>
  *  <p>The message is <strong>1 byte long</strong>, and its format is:
  *  <tt>00010WWW</tt></p></td></tr>
- * 
- *  
- * 
+ *
+ *
+ *
  * </table>
  */
 #include "StdAfx.h"
@@ -196,7 +196,7 @@ static NETSTATE state = NOTINIT;
 static NetFeedback *feedback = 0;
 static vector<pair<string, Buffer> > protocols;
 static DWORD sync_rate, sync;
-static vector<REMOTEPLAYER> remotes; 
+static vector<REMOTEPLAYER> remotes;
 static DPID us;
 static unsigned int room_index;
 
@@ -236,7 +236,7 @@ static inline void SendSimpleMsg(BYTE data,
   DWORD flags = guaranteed
     ? DPSEND_ASYNC | DPSEND_NOSENDCOMPLETEMSG | DPSEND_GUARANTEED
     : DPSEND_ASYNC | DPSEND_NOSENDCOMPLETEMSG;
-  
+
   dp->SendEx(us, DPID_ALLPLAYERS, flags, &data, 1, 0, 0, 0, 0);
 
   logger << "Sent a simple message (1-byte of data to all players), "
@@ -290,14 +290,14 @@ static inline void SendSyncMsg(const unsigned short x,
 }
 
 // {CF58E020-9BD3-11d4-B6FE-0050040B0541}
-static const GUID ANDRADION2GUID = 
+static const GUID ANDRADION2GUID =
   { 0xcf58e020, 0x9bd3, 0x11d4, { 0xb6, 0xfe, 0x0, 0x50, 0x4, 0xb,
                                   0x5, 0x41 } };
 
 static void CreatePlayer(unsigned int model, const char *name)
   throw(CreatePlayerFailure) {
   DPNAME our_name;
-  BYTE player_data = (BYTE)model; 
+  BYTE player_data = (BYTE)model;
   our_name.dwSize = sizeof(our_name);
   our_name.dwFlags = 0;
   our_name.lpszLongNameA = our_name.lpszShortNameA = const_cast<char *>(name);
@@ -325,7 +325,7 @@ FoundProtocol(LPCGUID, LPVOID lpConnection,
     *mem_error = TRUE;
     return FALSE;
   }
-  
+
   logger << "Successfully enum'd " << lpName->lpszShortNameA << endl;
 
   return TRUE;
@@ -338,7 +338,7 @@ FoundSession(LPCDPSESSIONDESC2 lpThisSD,
 
   if(DPESC_TIMEDOUT == dwFlags) {
     logger << "Session enumeration timed out" << endl;
-    return FALSE; 
+    return FALSE;
   }
 
   assert (NULL != context && NULL != lpThisSD);
@@ -387,7 +387,7 @@ static BOOL FAR PASCAL
 FoundPlayer(DPID dpId, DWORD, LPCDPNAME lpName, DWORD, LPVOID) {
   BYTE m;
   DWORD size = 1;
-  
+
   logger << "Enumeration of players callback called for player " << lpName <<
       endl;
 
@@ -397,10 +397,10 @@ FoundPlayer(DPID dpId, DWORD, LPCDPNAME lpName, DWORD, LPVOID) {
     return TRUE;
   }
   logger << "Player uses model " << (int)m << endl;
-  
+
   feedback->CreateEnemy(m);
   remotes.push_back(REMOTEPLAYER(dpId, lpName->lpszShortNameA));
-  
+
   logger << "Finished enumerating " << lpName->lpszShortName << endl;
 
   return TRUE;
@@ -446,7 +446,7 @@ static void ProcessSystemMessage(DPMSG_GENERIC *msg)
     logger << "System message: set player data" << endl;
 
     DPMSG_SETPLAYERORGROUPDATA *p_msg = (DPMSG_SETPLAYERORGROUPDATA *)msg;
-    
+
     if(us != p_msg->dpId) {
       logger << "Telling the new player what the weather is like" << endl;
       NetChangeWeather(weather);
@@ -470,7 +470,7 @@ static unsigned int FindPlayerIndex(DPID id)
   throw (PlayerNotFoundException) {
   for (int times_tried = 0; times_tried < 2; times_tried++) {
     unsigned int i;
-    
+
     for (i = 0; i < remotes.size() && id != remotes[i].id; i++)
       ;
 
@@ -489,7 +489,7 @@ static unsigned int FindPlayerIndex(DPID id)
 
 void NetInitialize() throw(std::bad_alloc) {
   IDirectPlay4A *dp;
-  
+
   logger << "NetInitialize() called" << endl;
 
   if (NOTINIT != state) {
@@ -547,7 +547,7 @@ void NetInitializeProtocol(unsigned int index) throw() {
   assert(NOTINIT != state);
 
   NetReleaseProtocol();
-  
+
   logger << "NetInitializeProtocol() called to start protocol #" << index <<
       endl;
 
@@ -563,16 +563,16 @@ void NetInitializeProtocol(unsigned int index) throw() {
 
 void NetReleaseProtocol() throw() {
   logger << "NetReleaseProtocol() was called, releasing protocol" << endl;
-  
+
   if (NetProtocolInitialized()) {
     NetLeaveGame();
 
     LogResult("Release DirectPlay", dp->Release());
-  
+
     dp = 0;
     state = NOGAME;
   }
-  
+
   logger << "NetReleaseProtocol() finished" << endl;
 
   assert(!NetInGame() && !NetProtocolInitialized());
@@ -598,7 +598,7 @@ void NetCreateGame(unsigned int index, unsigned int sr,
     sd.guidApplication = ANDRADION2GUID;
     sd.dwMaxPlayers = MAX_PLAYERS;
 
-    // calculate session name 
+    // calculate session name
     char session_name[2] = {'a', 0};
     session_name[0] += (char)index;
     room_index = index;
@@ -632,7 +632,7 @@ void NetSetLevelIndex(unsigned int index) throw(NetSessionLost) {
   if (NetIsHost()) {
     DPSESSIONDESC2 sd;
     char session_name[2] = {'a', 0};
-    
+
     memset(&sd, 0, sizeof(sd));
     sd.dwSize = sizeof(sd);
     sd.dwFlags = SESSION_FLAGS;
@@ -661,7 +661,7 @@ unsigned int NetJoinGame(unsigned int index, unsigned int player_model,
 
     assert(NetProtocolInitialized());
     NetLeaveGame();
-  
+
     // create an enumeration filter so we only get what we want
     memset((void *)&session, 0, sizeof(session));
     session.dwSize = sizeof(session);
@@ -686,7 +686,7 @@ unsigned int NetJoinGame(unsigned int index, unsigned int player_model,
 
     logger << "Successfully Joined game" << endl;
     assert(NetInGame() && !NetIsHost());
-    
+
     return index;
   } catch (CreatePlayerFailure& cpf) {
     dp->Close();
@@ -718,7 +718,7 @@ void NetLogic() throw(NetSessionLost, std::bad_alloc) {
     bool has_message;
 
     logger << "Checking for Net message" << endl;
-      
+
     switch(dp->Receive(&from, &to, DPRECEIVE_ALL,
                        msg_buffer.Get(), &data_size)) {
     case DPERR_BUFFERTOOSMALL:
@@ -795,26 +795,26 @@ void NetLogic() throw(NetSessionLost, std::bad_alloc) {
         BYTE data = type & ~MSGTYPE_BITS;
         unsigned int player = FindPlayerIndex(from);
         type &= MSGTYPE_BITS;
-      
+
         switch (type) {
         case MSGTYPE_CHANGEWEATHER:
           logger << "Weather state was changed..." << endl;
           feedback->SetWeatherState(data);
           break;
-        case MSGTYPE_CHANGEWEAPON: 
+        case MSGTYPE_CHANGEWEAPON:
           logger << "Weapon change message; processing" << endl;
           feedback->SetEnemyWeapon(player, data);
           break;
-        case MSGTYPE_FIREPISTOL: 
+        case MSGTYPE_FIREPISTOL:
           logger << "Pistol fire message" << endl;
           feedback->SetEnemyDirection(player, data);
           feedback->EnemyFiresPistol(player);
           break;
-        case MSGTYPE_ADMITHIT: 
+        case MSGTYPE_ADMITHIT:
           logger << "Admit hit message" << endl;
           feedback->HurtEnemy(player);
           break;
-        case MSGTYPE_STARTFIRINGMACHINEGUN: 
+        case MSGTYPE_STARTFIRINGMACHINEGUN:
           logger << "Start firing machine gun message" << endl;
           remotes[player].firing = true;
           feedback->SetEnemyDirection(player, data);
@@ -837,7 +837,7 @@ void NetLogic() throw(NetSessionLost, std::bad_alloc) {
         default:
           logger << "UNKNOWN 1-BYTE MESSAGE OF TYPE " << type << endl;
         }
-      
+
         break;
       }
       default:
@@ -869,16 +869,16 @@ void NetLogic() throw(NetSessionLost, std::bad_alloc) {
 
 void NetFireBazooka(unsigned short x, unsigned short y) throw() {
   assert(ValidCoordinate(x) && ValidCoordinate(y));
-  
+
   if (NetInGame()) {
     BYTE data[MSGSIZE_FIREBAZOOKA];
 
     data[0] = BYTE(x >> 4);
-  
+
     data[1] = BYTE(x & 0x0f);
     data[1] <<= 4;
     data[1] |= BYTE(y >> 8);
-  
+
     data[2] = BYTE(y & 0xff);
 
     dp->SendEx(us, DPID_ALLPLAYERS,
@@ -903,7 +903,7 @@ void NetFireMachineGun(bool firing) throw() {
 
 void NetSetWeapon(unsigned int type) throw() {
   assert(ValidWeapon(weapon));
-  
+
   if (NetInGame() && weapon != type) {
     weapon = type;
     SendSimpleMsg(MSGTYPE_CHANGEWEAPON | weapon, false);
@@ -960,7 +960,7 @@ void NetHit(unsigned int player,
     dp->SendEx
       (us, to, DPSEND_ASYNC | DPSEND_NOSENDCOMPLETEMSG | DPSEND_GUARANTEED,
        &data, 1, 0, 0, 0, 0);
-  }    
+  }
 }
 
 void NetPickUpPowerUp(unsigned short powerup_index) throw() {

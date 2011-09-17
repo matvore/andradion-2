@@ -31,9 +31,9 @@ static auto_ptr<Com> com;
 
 static double original_tempo;
 
-IDirectMusicPerformance *Performance() {return performance.Get();} 
-IDirectMusicSegment *Segment() {return segment.Get();} 
-IDirectMusicLoader *Loader() {return loader.Get();} 
+IDirectMusicPerformance *Performance() {return performance.Get();}
+IDirectMusicSegment *Segment() {return segment.Get();}
+IDirectMusicLoader *Loader() {return loader.Get();}
 double DefaultTempo() {return original_tempo;}
 
 int MusicInit(HWND w, IDirectSound *ds) throw(std::bad_alloc) {
@@ -74,7 +74,7 @@ int MusicInit(HWND w, IDirectSound *ds) throw(std::bad_alloc) {
   } else if (new_performance) {
     new_performance->CloseDown();
   }
-  
+
   return error;
 }
 
@@ -82,7 +82,7 @@ void MusicUninit(void) {
   assert(!performance == !loader);
 
   logger << "MusicUninit called" << endl;
-  
+
   MusicStop();
 
   if (performance) {
@@ -101,7 +101,7 @@ int MusicPlay(bool loop, const char *res_type, const char *res_name) {
   AutoComPtr<IDirectMusicSegment> new_segment;
   DMUS_TEMPO_PARAM tp;
   auto_ptr<Resource> res;
-  
+
   logger << "MusicPlay called" << endl;
 
   if (!performance) {
@@ -138,12 +138,12 @@ int MusicPlay(bool loop, const char *res_type, const char *res_name) {
        new_segment->SetParam(
            GUID_StandardMIDIFile, (DWORD)-1,
            0, 0, (void *)performance.Get())))) {
-    return 3; 
+    return 3;
   } else if (FAILED(LogResult("Setting band track parameter step 2/2",
       new_segment->SetParam(
           GUID_Download,(DWORD) - 1, 0 , 0,
           (void *)performance.Get())))) {
-    return 2; 
+    return 2;
   }
 
   LogResult("Enabling the tempo track",
@@ -167,12 +167,12 @@ int MusicPlay(bool loop, const char *res_type, const char *res_name) {
   } else {
     original_tempo = 0.0f;
   }
-  
+
   logger << "MusicPlay succeeded" << endl;
 
   segment = new_segment;
 
-  return 0; 
+  return 0;
 }
 
 void MusicStop(void) { // stops music if it is playing
@@ -199,7 +199,7 @@ void SetTempo(double tempo) {
 
     LogResult("Disable tempo track so it does not reset the tempo",
         segment->SetParam(GUID_DisableTempo, 0xFFFF, 0, 0, 0));
- 
+
     if (SUCCEEDED(LogResult("Allocate tempo event",
         performance->AllocPMsg(
             sizeof(DMUS_TEMPO_PMSG), (DMUS_PMSG**)&pTempo)))) {

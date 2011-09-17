@@ -131,7 +131,7 @@ const FIXEDNUM LIGHTNING_BRIGHTNESS = Fixed(3.0f);
 
 // the palette brightness is normal after half a sec
 const DWORD LT_LIGHTNINGSTOP = 12;
-  
+
 // thunder comes AFTER lightning, even in the real world
 const DWORD LT_THUNDER       = 22;
 
@@ -139,7 +139,7 @@ const DWORD LT_THUNDER       = 22;
 const DWORD LT_TIMETOSTRIKE  = 90;
 
 // the chances of it striking at that time are 1/3
-const int   LT_CHANCETOSTRIKE = 3; 
+const int   LT_CHANCETOSTRIKE = 3;
 
 /** Determines whether the background music should be heard.
  * In general, music is not played when it is really dark or raining.
@@ -167,7 +167,7 @@ static void StartSounds();
 static int hero_room_state;
 static int script_index;
 static DWORD frames_since_start; // records number of frames since start of
-                                 // current weather state  
+                                 // current weather state
 static unsigned int current_state;
 static BYTE rain_color;
 static POINT rain_drops[NUM_RAINFRAMES][NUM_RAINDROPS];
@@ -178,7 +178,7 @@ void WtrAnalyzePalette() {rain_color = Gfx::Get()->MatchingColor(CR_RAIN);}
 
 void WtrBeginScript(int script) {
   assert(current_state < NUM_WEATHERSTATES);
-  
+
   script_index = script;
 
   // set current weather state by finding the first one
@@ -223,7 +223,7 @@ void WtrInitialize() {
       for(int drop = 0; drop < NUM_RAINDROPS; drop++) {
         // address the point in question
         POINT *p = &rain_drops[frame][drop];
-        
+
         p->x = rand()%MAX_RAINX;
         p->y = rand()%MAX_RAINY;
       }
@@ -238,7 +238,7 @@ int WtrOneFrameIndoors() {
   if(HEROROOMSTATE_INSIDE != hero_room_state) {
     hero_room_state = HEROROOMSTATE_INSIDE;
     StartSounds();
-    
+
     return MusicAudible()
       ? WTROF_TURNMUSICON : WTROF_TURNMUSICOFF;
   } else {
@@ -271,7 +271,7 @@ int WtrOneFrameOutdoors() {
       OneThunderFrame(false);
     }
   }
-  
+
   if(WSF_LIGHTRAIN & f) {
     OneRainFrame(false, screen_x, screen_y);
   } else if(WSF_HEAVYRAIN & f) {
@@ -290,7 +290,7 @@ bool WtrPermitStateChange() {
     // on to the next weather state
     frames_since_start = 0;
     hero_room_state = HEROROOMSTATE_UNKNOWN;
-    
+
     // advance to the next state
     if(WEATHERSCRIPT_RANDOM == script_index) {
       // doing the random weather script
@@ -312,7 +312,7 @@ void WtrRelease() {
 
 void WtrSetSoundPlaybackFrequency(unsigned long freq) {
   assert(current_state < NUM_WEATHERSTATES);
-  
+
   for(int i = 0; i < NUM_WEATHERSOUNDS; i++) {
     IDirectSoundBuffer *snd = SndSound(i).Get();
     if(snd) {
@@ -340,7 +340,7 @@ static void OneRainFrame(
   int frame_index = ++frame_count / RAIN_FRAMELENGTH;
 
   Gfx::Get()->Lock();
-  
+
   assert(current_state < NUM_WEATHERSTATES);
 
   if(frame_index >= NUM_RAINFRAMES) {
@@ -397,9 +397,9 @@ static void OneRainFrame(
 
 static void OneThunderFrame(bool lightning) {
   assert(current_state < NUM_WEATHERSTATES);
-  
+
   // the following timing constants are all
-  //  relative to whenever the lightning actually 
+  //  relative to whenever the lightning actually
   //  strikes -- LT = lightning timing (in frames)
 
   static DWORD probability_timer = 0;
@@ -445,11 +445,11 @@ static void StartSounds() {
   assert(current_state < NUM_WEATHERSTATES);
 
   if(Quiet() && HEROROOMSTATE_OUTSIDE == hero_room_state) {
-    DWORD f = WEATHERSTATE_FLAGS[current_state]; 
+    DWORD f = WEATHERSTATE_FLAGS[current_state];
     if(f & WSF_CRICKETS) {
       // play cricket noise looping
       SndSound(WEATHERSOUND_CRICKETS)->Play(0, 0, DSBPLAY_LOOPING);
-    } else if(f & WSF_LIGHTRAIN) { 
+    } else if(f & WSF_LIGHTRAIN) {
       // play light rain sound
       SndSound(WEATHERSOUND_LIGHTRAIN)->Play(0, 0, DSBPLAY_LOOPING);
     } else if(f & WSF_HEAVYRAIN) {

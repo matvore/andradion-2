@@ -63,12 +63,12 @@ void WtrEndScript();
 /** Prepares internal data structures for simulating weather. This
  * can be called only once as long as the IDirectSound interface to
  * use does not change.
- */ 
+ */
 void WtrInitialize();
 
 /** Executes the weather for one frame. This does not allow for state
  * changes because it does not increment the frame count.
- * Use this version of <tt>WtrOneFrame</tt> when the hero is indoors. 
+ * Use this version of <tt>WtrOneFrame</tt> when the hero is indoors.
  * @return one of the <tt>STATECHANGE_</tt> enumerated values
  *  indicating what to do with the music.
  */

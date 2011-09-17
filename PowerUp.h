@@ -26,9 +26,9 @@ class CPowerUp {
 public:
   // setup function used for ammo sets
   void Setup(FIXEDNUM x_, FIXEDNUM y_, const FIXEDNUM *ammo);
-  
+
   // setup function used for normal powerups
-  void Setup(FIXEDNUM x_, FIXEDNUM y_, unsigned int type_); 
+  void Setup(FIXEDNUM x_, FIXEDNUM y_, unsigned int type_);
 
   int CollidesWithHero();
   void Draw();
@@ -42,7 +42,7 @@ public:
   inline bool Regenerates() const {
     return type >= 0;
   }
-  
+
   inline int Type() const {return type >= 0 ? type : ~type;}
 
   inline void PickUp() {
@@ -53,7 +53,7 @@ public:
     }
     frames_since_picked_up = 0;
   }
-  
+
   inline FIXEDNUM Ammo(unsigned int weapon_type) const {
     assert(type < 0);
     return ammo_contained[weapon_type];
@@ -65,7 +65,7 @@ private:
 
   // how to display it if it is an ammo set,
   //  otherwise, it defines what it is
-  int type; 
+  int type;
 
   union {
     FIXEDNUM ammo_contained[WEAPON_COUNT]; // only used by ammo sets

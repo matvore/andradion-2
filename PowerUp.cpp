@@ -78,7 +78,7 @@ void CPowerUp::Setup(FIXEDNUM x_, FIXEDNUM y_, unsigned int type_) {
   assert(x_ >= 0);
   assert(y_ >= 0);
   assert(type_ < WEAPON_COUNT || POWERUP_HEALTHPACK == type_);
-  
+
   x = x_;
   y = y_;
   if(type < 0) {
@@ -92,16 +92,16 @@ void CPowerUp::Setup(FIXEDNUM x_, FIXEDNUM y_, const FIXEDNUM *ammo) {
   assert(y_ >= 0);
   x = x_;
   y = y_;
-  
+
   type = 0; // find the weapon with the most ammo
-  
+
   for(int i = 0; i < WEAPON_COUNT; i++) {
     ammo_contained[i] = ammo[i];
     if(ammo_contained[i] >= ammo_contained[type]) {
       type = i;
     }
   }
-  
+
   type = ~type;
 }
 
@@ -127,7 +127,7 @@ int CPowerUp::CollidesWithHero() {
       for(int i = 0; i < WEAPON_COUNT; i++) {
         full_ammo = full_ammo && cxt->AmmoFull(i);
       }
-      
+
       if(full_ammo) {
         return POWERUPCOLLIDES_NOTHINGHAPPENED;
       }
@@ -151,7 +151,7 @@ int CPowerUp::CollidesWithHero() {
 
     SndPlay(WAV_GUNNOISE, FREQUENCYFACTOR[Type()],
             bool((1 << Type()) & REVERSEGUNNOISE));
-    
+
     x *= -1;
     y *= -1;
     if (type >= 0) {
