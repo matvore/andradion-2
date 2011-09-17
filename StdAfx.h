@@ -70,14 +70,6 @@ inline void InitDXStruct(T *obj) {
   obj->dwSize = sizeof(T);
 }
 
-template <class T>
-void Release(T **obj) {
-  if (*obj) {
-    (*obj)->Release();
-    (*obj) = 0;
-  }
-}
-
 template <class T> void Delete(T **obj) {delete *obj; *obj = 0;}
 
 template <class T> void DeleteArr(T **obj) {delete[] *obj; *obj = 0;}
@@ -156,7 +148,6 @@ public:
     }
   }
 
-  T *Release() throw() {T *result = ptr; ptr = 0; return result;}
   T *Get() throw() {return ptr;}
   void Create(REFCLSID rclsid, REFIID riid) throw() {
     HRESULT result;
