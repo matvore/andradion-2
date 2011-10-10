@@ -1,0 +1,57 @@
+About Andradion 2
+
+I made this game a few years ago as a hobby with the help of a
+classmate who did the artwork. It's fun but primitive. I never got the
+multiplayer to work or made the planned "Tijuana" level, but fixing
+these or any other improvement you can contribute would be very
+welcome.
+
+After leaving it sitting around for a few years, I got all the backups
+I had accumulated and committed them to git in chronological order. I
+made the build system more automated (see below for instructions) and
+confirmed it works on post-XP Windows.
+
+How to play
+
+The game is saved whenever you complete a level.
+
+1, 2, 3 - switch weapon
+8, 9, 0 - change action speed (slow, normal, fast-forward)
+Arrow keys - walk
+Shift and arrow - strafe or walk backwards
+Control - run
+Space - fire weapon
+P - pause
+Enter - restart level
+Escape - quit game
+
+Building Andradion 2
+
+This game only builds and runs on Windows (XP to Windows 7)
+
+1. Clone the git repository to your machine.
+git clone https://github.com/matvore/Andradion-2.git
+
+2. Download the following software:
+
+Java SDK (a.k.a. the JDK)
+http://www.oracle.com/technetwork/java/javase/downloads/java-se-jdk-7-download-432154.html
+
+Ant
+http://ant.apache.org/bindownload.cgi
+
+Windows SDK version 6.1 (even though it says "for Windows Server
+2008", it will run on Vista and Windows 7)
+http://www.microsoft.com/download/en/details.aspx?displaylang=en&id=24826
+
+You can compile Andradion 2 with a different version of the SDK,
+but you may have to change the Java PathConfiguration class (look in
+java/src/com/github/matvore/andradion2/ant) to look for the correct
+registry location for the MSVC compiler paths. Please send me a pull
+request if you improve the code to support multiple versions of the
+SDK.
+
+3. Once you have all of the required packages, you just have to run
+ant from the command line from the Andradion 2 folder. It will take a
+few minutes and then write the executable to
+out\release\andradion2.exe
