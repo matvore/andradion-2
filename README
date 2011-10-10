@@ -40,9 +40,9 @@ http://www.oracle.com/technetwork/java/javase/downloads/java-se-jdk-7-download-4
 Ant
 http://ant.apache.org/bindownload.cgi
 
-Windows SDK version 6.1 (even though it says "for Windows Server
-2008", it will run on Vista and Windows 7)
-http://www.microsoft.com/download/en/details.aspx?displaylang=en&id=24826
+Windows SDK version 7 (even though it says "for Windows 7", it will
+run on Vista as well)
+http://www.microsoft.com/download/en/details.aspx?id=3138
 
 You can compile Andradion 2 with a different version of the SDK,
 but you may have to change the Java PathConfiguration class (look in
